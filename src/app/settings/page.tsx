@@ -39,6 +39,41 @@ export default function SettingsPage() {
     void loadUser();
   }, [router]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    function refreshUser() {
+      void apiClient
+        .me()
+        .then(setUser)
+        .catch(() => undefined);
+    }
+
+    function onWindowFocus() {
+      refreshUser();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") refreshUser();
+    }
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [user?.id]);
+
+  async function refreshAccount() {
+    setError("");
+    try {
+      setUser(await apiClient.me());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh account");
+    }
+  }
+
   if (!user) {
     return <p className="p-8 text-center text-skill-muted">Loading account…</p>;
   }
@@ -72,8 +107,17 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-skill-muted">Credits</dt>
-            <dd className={lowBalance ? "font-semibold text-amber-700" : "font-semibold"}>
-              {user.balance_credits.toLocaleString()}
+            <dd className="flex items-center gap-3">
+              <span className={lowBalance ? "font-semibold text-amber-700" : "font-semibold"}>
+                {user.balance_credits.toLocaleString()}
+              </span>
+              <button
+                type="button"
+                className="text-xs text-skill-muted underline hover:text-skill-ink"
+                onClick={() => void refreshAccount()}
+              >
+                Refresh
+              </button>
             </dd>
           </div>
         </dl>

@@ -41,6 +41,7 @@ export default function AppJobsPage() {
   const [filter, setFilter] = useState<JobFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
 
   const filteredJobs = useMemo(
     () => jobs.filter((job) => matchesJobFilter(job, filter)),
@@ -116,6 +117,18 @@ export default function AppJobsPage() {
     }, 2000);
     return () => clearInterval(timer);
   }, [jobs, loading]);
+
+  async function copyJobPrompt(job: Job) {
+    try {
+      await navigator.clipboard.writeText(job.prompt_text);
+      setCopiedJobId(job.id);
+      window.setTimeout(() => {
+        setCopiedJobId((current) => (current === job.id ? null : current));
+      }, 2000);
+    } catch {
+      setError("Could not copy prompt to clipboard");
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -240,6 +253,30 @@ export default function AppJobsPage() {
                     Studio project · block {job.block_id ?? "—"}
                   </p>
                 )}
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <button
+                    type="button"
+                    className="underline hover:text-skill-ink"
+                    onClick={() => void copyJobPrompt(job)}
+                  >
+                    {copiedJobId === job.id ? "Prompt copied" : "Copy prompt"}
+                  </button>
+                  {job.output_url && (
+                    <a
+                      href={job.output_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline hover:text-skill-ink"
+                    >
+                      Open output
+                    </a>
+                  )}
+                  {job.project_id && (
+                    <Link href="/studio" className="underline hover:text-skill-ink">
+                      Open studio
+                    </Link>
+                  )}
+                </div>
               </div>
             </article>
               ))}
