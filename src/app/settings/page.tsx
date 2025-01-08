@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiClient, getToken, isFirebaseEnabled, type User } from "@/lib/api";
+import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
 import { estimateGenerations, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
@@ -74,6 +74,11 @@ export default function SettingsPage() {
     }
   }
 
+  async function logOut() {
+    await clearAuth();
+    router.replace("/");
+  }
+
   if (!user) {
     return <p className="p-8 text-center text-skill-muted">Loading account…</p>;
   }
@@ -97,6 +102,9 @@ export default function SettingsPage() {
           <div className="min-w-0">
             <p className="truncate text-lg font-semibold">{user.name}</p>
             <p className="truncate text-sm text-skill-muted">{user.email}</p>
+            <p className="mt-1 text-xs text-skill-muted">
+              Display name is synced from your sign-in provider.
+            </p>
           </div>
         </div>
 
@@ -182,6 +190,17 @@ export default function SettingsPage() {
           </Link>
         ))}
       </nav>
+
+      <div className="mt-8 border-t border-skill-blue/10 pt-6">
+        <button
+          type="button"
+          data-testid="settings-logout"
+          className="btn-secondary"
+          onClick={() => void logOut()}
+        >
+          Log out
+        </button>
+      </div>
     </div>
   );
 }
