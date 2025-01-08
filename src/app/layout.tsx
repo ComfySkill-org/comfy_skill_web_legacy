@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 export const metadata: Metadata = {
   title: "ComfySkill — Skill-driven AI creation",
   description:
-    "Create images and videos without learning ComfyUI. Pick your use case, we handle the rest.",
+    "Text-to-image MVP for ComfySkill — sign in, generate from a prompt, and manage credits.",
   authors: [{ name: "Kelly Yang", url: "mailto:124ykl@gmail.com" }],
 };
 

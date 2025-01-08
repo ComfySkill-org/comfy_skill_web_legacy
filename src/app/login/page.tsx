@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { apiClient, getToken, isFirebaseEnabled, saveToken } from "@/lib/api";
+import {
+  apiClient,
+  getApiBaseUrl,
+  getToken,
+  isFirebaseEnabled,
+  saveToken,
+} from "@/lib/api";
 import { firebaseLogin, getFirebaseAuth } from "@/lib/firebase";
 
 function readLoginPlan(): "standard" | "creator" | "pro" | null {
@@ -71,6 +77,14 @@ export default function LoginPage() {
             ? "Sign in with Firebase (Comfy Cloud–aligned auth)."
             : "Legacy JWT mode — set Firebase env vars for production auth."}
         </p>
+        {!useFirebase && (
+          <p className="text-xs text-skill-muted">
+            API endpoint:{" "}
+            <code className="rounded bg-skill-yellow/40 px-1 font-mono text-skill-ink">
+              {getApiBaseUrl()}
+            </code>
+          </p>
+        )}
         {loginPlan && (
           <p className="rounded-xl border border-skill-blue/20 bg-skill-yellow/30 px-3 py-2 text-sm text-skill-ink">
             After sign-in you&apos;ll continue to Billing for the{" "}
