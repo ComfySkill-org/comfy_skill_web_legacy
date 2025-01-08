@@ -1410,16 +1410,39 @@ export default function StudioPage() {
       await queueRemoteSave(projectRef.current).catch(() => undefined);
     }
     clearProjectLocal();
-    setRemoteProjectId(null);
     historyRef.current = new ProjectHistory();
-    const next = createStarterProject();
-    setProject(next);
+    const starter = createStarterProject();
     setSelectedId(null);
     setSelectedEdgeId(null);
     setLinkSourceId(null);
     setGenerateError("");
     setHistoryTick((n) => n + 1);
-    setSyncLabel(isStudioAuthed() ? "saving" : "local");
+
+    if (isStudioAuthed()) {
+      try {
+        const remote = await createFreshRemoteProject(starter);
+        setProject(remote);
+        setSyncLabel("cloud");
+        setProjectSummaries((prev) => [
+          {
+            id: remote.id,
+            title: remote.title,
+            view_mode: remote.viewMode,
+            updated_at: new Date().toISOString(),
+            block_count: remote.blocks.length,
+          },
+          ...prev.filter((summary) => summary.id !== remote.id),
+        ]);
+      } catch {
+        setRemoteProjectId(null);
+        setProject(starter);
+        setSyncLabel("local*");
+      }
+    } else {
+      setRemoteProjectId(null);
+      setProject(starter);
+      setSyncLabel("local");
+    }
   }
 
   async function loadProjects() {
@@ -4455,8 +4478,9 @@ export default function StudioPage() {
               Start a new project?
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              This replaces the current local canvas with a fresh starter project. Existing cloud
-              projects remain available through the API.
+              {isStudioAuthed()
+                ? "Creates a new cloud project and replaces the current canvas. Your other saved projects stay in the API."
+                : "Local draft only — sign in to save new projects to the cloud."}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button

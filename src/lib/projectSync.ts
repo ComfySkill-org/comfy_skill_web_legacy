@@ -36,6 +36,14 @@ export async function loadRemoteProjectById(projectId: string): Promise<CanvasPr
   return apiProjectToCanvas(remote);
 }
 
+export async function createFreshRemoteProject(starter: CanvasProject): Promise<CanvasProject> {
+  const created = await apiClient.createProject(starter.title || "Studio draft");
+  const seeded = { ...starter, id: created.id };
+  const saved = await apiClient.putProject(created.id, canvasProjectToApiPut(seeded));
+  setRemoteProjectId(saved.id);
+  return apiProjectToCanvas(saved);
+}
+
 export async function loadOrCreateRemoteProject(
   localFallback: CanvasProject,
 ): Promise<CanvasProject> {
