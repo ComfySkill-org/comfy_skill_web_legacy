@@ -202,6 +202,51 @@ paths:
                 properties:
                   balance_credits: { type: integer }
 
+  /billing/transactions:
+    get:
+      summary: Credit transaction ledger
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionListResponse"
+
+  /billing/stripe/status:
+    get:
+      summary: Stripe checkout readiness
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeStatusResponse"
+
+  /billing/checkout:
+    post:
+      summary: Create Stripe Checkout session
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Checkout URL
+
+  /billing/checkout/embedded:
+    post:
+      summary: Create Stripe Embedded Checkout session
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Client secret
+
+  /billing/portal:
+    post:
+      summary: Create Stripe billing portal session
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Portal URL
+
   /admin/jobs:
     get:
       summary: List all jobs (admin)
@@ -221,7 +266,36 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         "200":
-          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUsersResponse"
+        "403":
+          description: Forbidden
+
+  /admin/users/{user_id}/credits:
+    post:
+      summary: Grant credits to a user (admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminGrantCreditsRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserResponse"
+        "403":
+          description: Forbidden
 
   /admin/metrics:
     get:
@@ -229,7 +303,12 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         "200":
-          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMetricsResponse"
+        "403":
+          description: Forbidden
 
 components:
   securitySchemes:
@@ -312,3 +391,64 @@ components:
           type: array
           items: { $ref: "#/components/schemas/JobResponse" }
         total: { type: integer }
+
+    TransactionResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        amount: { type: integer }
+        type: { type: string }
+        description: { type: string, nullable: true }
+        job_id: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    TransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items: { $ref: "#/components/schemas/TransactionResponse" }
+
+    StripeStatusResponse:
+      type: object
+      properties:
+        configured: { type: boolean }
+        price_configured: { type: boolean }
+        price_looks_valid: { type: boolean }
+        mode: { type: string }
+        plans:
+          type: object
+          additionalProperties: { type: boolean }
+
+    AdminGrantCreditsRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: integer, minimum: 1 }
+        description: { type: string, nullable: true }
+
+    AdminUserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [admin, tester, user] }
+        balance_credits: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    AdminUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items: { $ref: "#/components/schemas/AdminUserResponse" }
+
+    AdminMetricsResponse:
+      type: object
+      properties:
+        total_jobs: { type: integer }
+        completed_jobs: { type: integer }
+        failed_jobs: { type: integer }
+        credits_consumed_today: { type: integer }
+        active_users: { type: integer }
