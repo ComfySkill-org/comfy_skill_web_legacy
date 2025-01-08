@@ -39,7 +39,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loginPlan, setLoginPlan] = useState<"standard" | "creator" | "pro" | null>(null);
+  const [apiHealth, setApiHealth] = useState<"checking" | "ok" | "error">("checking");
   const useFirebase = isFirebaseEnabled();
+
+  useEffect(() => {
+    void apiClient
+      .health()
+      .then(() => setApiHealth("ok"))
+      .catch(() => setApiHealth("error"));
+  }, []);
 
   useEffect(() => {
     setLoginPlan(readLoginPlan());
@@ -95,6 +103,18 @@ export default function LoginPage() {
             </code>
           </p>
         )}
+        <p className="text-xs text-skill-muted">
+          API status:{" "}
+          {apiHealth === "checking" && <span>Checking…</span>}
+          {apiHealth === "ok" && (
+            <span className="font-medium text-green-700">Reachable</span>
+          )}
+          {apiHealth === "error" && (
+            <span className="font-medium text-amber-800">
+              Unreachable — start the API at {getApiBaseUrl()}
+            </span>
+          )}
+        </p>
         {loginPlan && (
           <p className="rounded-xl border border-skill-blue/20 bg-skill-yellow/30 px-3 py-2 text-sm text-skill-ink">
             After sign-in you&apos;ll continue to Billing for the{" "}

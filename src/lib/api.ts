@@ -148,6 +148,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const apiClient = {
+  health: () => api<{ status: string; service?: string }>("/health"),
+
   login: (email: string, password: string) =>
     api<{ access_token: string }>("/auth/login", {
       method: "POST",

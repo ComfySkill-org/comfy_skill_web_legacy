@@ -20,6 +20,14 @@ paths:
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: comfy-skill-api }
 
   /auth/register:
     post:
