@@ -30,6 +30,7 @@ import {
   transactionHighlightJobId,
   type TransactionFilter,
 } from "@/lib/transactions";
+import { pollBalanceAfterCheckout } from "@/lib/billingPoll";
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -169,12 +170,32 @@ export default function BillingPage() {
     }
   }
 
+  async function waitForCheckoutCredits(baseline: number) {
+    try {
+      const updated = await pollBalanceAfterCheckout(baseline);
+      setBalance(updated);
+      await refreshBillingSnapshot();
+      setMessage("Credits applied — balance updated.");
+    } catch {
+      setMessage(
+        "Checkout completed. Credits will update after the Stripe webhook is received. Refresh if needed.",
+      );
+      void refreshBillingSnapshot().catch(() => undefined);
+    }
+  }
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "1" || params.get("session_id")) {
-      setMessage("Checkout completed. Credits will update after the Stripe webhook is received.");
-      void refreshBillingSnapshot().catch(() => undefined);
+      setMessage("Checkout completed — waiting for credits…");
+      void refreshBillingSnapshot()
+        .then((baseline) => waitForCheckoutCredits(baseline))
+        .catch(() => {
+          setMessage(
+            "Checkout completed. Credits will update after the Stripe webhook is received.",
+          );
+        });
     }
     if (params.get("canceled") === "1") {
       setMessage("Checkout was canceled.");
@@ -183,8 +204,9 @@ export default function BillingPage() {
 
   function handleEmbeddedCheckoutComplete() {
     setEmbeddedClientSecret("");
-    setMessage("Checkout completed. Credits will update after the Stripe webhook is received.");
-    void refreshBillingSnapshot().catch(() => undefined);
+    const baseline = balance ?? 0;
+    setMessage("Checkout completed — waiting for credits…");
+    void waitForCheckoutCredits(baseline);
   }
 
   const stripeReady = Boolean(stripeStatus?.configured && stripeStatus.price_configured);
