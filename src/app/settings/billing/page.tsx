@@ -25,6 +25,7 @@ import {
   formatTransactionType,
   matchesTransactionFilter,
   summarizeTransactions,
+  summarizeUsageForMonth,
   TRANSACTION_FILTERS,
   transactionAmountClassName,
   transactionHighlightJobId,
@@ -230,6 +231,10 @@ export default function BillingPage() {
     () => countTransactionsByFilter(transactions),
     [transactions],
   );
+  const monthUsage = useMemo(
+    () => summarizeUsageForMonth(transactions),
+    [transactions],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -354,6 +359,21 @@ export default function BillingPage() {
         </div>
 
         <div className="card space-y-4">
+          <div className="rounded-xl border border-skill-blue/10 bg-skill-yellow/20 p-3 text-sm">
+            <p className="font-semibold">This month</p>
+            <p className="mt-1 text-skill-muted">
+              {monthUsage.creditsUsed.toLocaleString()} credits used across{" "}
+              {monthUsage.generationCount.toLocaleString()} generation
+              {monthUsage.generationCount === 1 ? "" : "s"}.
+            </p>
+            <button
+              type="button"
+              className="mt-2 text-xs underline hover:text-skill-ink"
+              onClick={() => setTransactionFilter("usage")}
+            >
+              View generation ledger
+            </button>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Recent transactions</h2>
             <Link href="/app/jobs" className="text-sm underline hover:text-skill-ink">

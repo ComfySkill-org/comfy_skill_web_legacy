@@ -81,3 +81,23 @@ export function countTransactionsByFilter(
 
   return counts;
 }
+
+export function summarizeUsageForMonth(
+  transactions: readonly { type: string; amount: number; created_at: string }[],
+  referenceDate: Date = new Date(),
+): { creditsUsed: number; generationCount: number } {
+  const month = referenceDate.getMonth();
+  const year = referenceDate.getFullYear();
+  let creditsUsed = 0;
+  let generationCount = 0;
+
+  for (const tx of transactions) {
+    if (tx.type !== "usage") continue;
+    const created = new Date(tx.created_at);
+    if (created.getMonth() !== month || created.getFullYear() !== year) continue;
+    creditsUsed += Math.abs(tx.amount);
+    generationCount += 1;
+  }
+
+  return { creditsUsed, generationCount };
+}
