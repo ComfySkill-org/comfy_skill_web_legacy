@@ -101,3 +101,19 @@ export function summarizeUsageForMonth(
 
   return { creditsUsed, generationCount };
 }
+
+export function estimateCreditsRunway(
+  balance: number,
+  monthUsage: { creditsUsed: number; generationCount: number },
+  referenceDate: Date = new Date(),
+): number | null {
+  if (balance <= 0 || monthUsage.generationCount === 0 || monthUsage.creditsUsed <= 0) {
+    return null;
+  }
+
+  const dayOfMonth = referenceDate.getDate();
+  const dailyBurn = monthUsage.creditsUsed / dayOfMonth;
+  if (dailyBurn <= 0) return null;
+
+  return Math.floor(balance / dailyBurn);
+}

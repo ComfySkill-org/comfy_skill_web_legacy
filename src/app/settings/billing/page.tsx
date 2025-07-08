@@ -26,6 +26,7 @@ import {
   matchesTransactionFilter,
   summarizeTransactions,
   summarizeUsageForMonth,
+  estimateCreditsRunway,
   TRANSACTION_FILTERS,
   transactionAmountClassName,
   transactionHighlightJobId,
@@ -235,6 +236,11 @@ export default function BillingPage() {
     () => summarizeUsageForMonth(transactions),
     [transactions],
   );
+  const creditsRunwayDays = useMemo(
+    () =>
+      balance === null ? null : estimateCreditsRunway(balance, monthUsage),
+    [balance, monthUsage],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -366,6 +372,16 @@ export default function BillingPage() {
               {monthUsage.generationCount.toLocaleString()} generation
               {monthUsage.generationCount === 1 ? "" : "s"}.
             </p>
+            {creditsRunwayDays !== null && (
+              <p
+                className={`mt-1 text-sm ${
+                  creditsRunwayDays < 7 ? "font-medium text-amber-800" : "text-skill-muted"
+                }`}
+              >
+                ~{creditsRunwayDays.toLocaleString()} day
+                {creditsRunwayDays === 1 ? "" : "s"} of credits left at this month&apos;s pace.
+              </p>
+            )}
             <button
               type="button"
               className="mt-2 text-xs underline hover:text-skill-ink"
