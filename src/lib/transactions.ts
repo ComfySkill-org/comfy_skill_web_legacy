@@ -117,3 +117,23 @@ export function estimateCreditsRunway(
 
   return Math.floor(balance / dailyBurn);
 }
+
+export function summarizeRefundsForMonth(
+  transactions: readonly { type: string; amount: number; created_at: string }[],
+  referenceDate: Date = new Date(),
+): { refundCount: number; creditsRefunded: number } {
+  const month = referenceDate.getMonth();
+  const year = referenceDate.getFullYear();
+  let refundCount = 0;
+  let creditsRefunded = 0;
+
+  for (const tx of transactions) {
+    if (tx.type !== "refund") continue;
+    const created = new Date(tx.created_at);
+    if (created.getMonth() !== month || created.getFullYear() !== year) continue;
+    refundCount += 1;
+    creditsRefunded += Math.abs(tx.amount);
+  }
+
+  return { refundCount, creditsRefunded };
+}

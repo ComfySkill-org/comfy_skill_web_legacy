@@ -26,6 +26,7 @@ import {
   matchesTransactionFilter,
   summarizeTransactions,
   summarizeUsageForMonth,
+  summarizeRefundsForMonth,
   estimateCreditsRunway,
   TRANSACTION_FILTERS,
   transactionAmountClassName,
@@ -241,6 +242,10 @@ export default function BillingPage() {
       balance === null ? null : estimateCreditsRunway(balance, monthUsage),
     [balance, monthUsage],
   );
+  const monthRefunds = useMemo(
+    () => summarizeRefundsForMonth(transactions),
+    [transactions],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -382,13 +387,36 @@ export default function BillingPage() {
                 {creditsRunwayDays === 1 ? "" : "s"} of credits left at this month&apos;s pace.
               </p>
             )}
+            {monthRefunds.creditsRefunded > 0 && (
+              <p className="mt-1 text-sm text-skill-muted">
+                {monthRefunds.creditsRefunded.toLocaleString()} credits refunded from{" "}
+                {monthRefunds.refundCount.toLocaleString()} failed generation
+                {monthRefunds.refundCount === 1 ? "" : "s"}.
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
             <button
               type="button"
-              className="mt-2 text-xs underline hover:text-skill-ink"
+              className="underline hover:text-skill-ink"
               onClick={() => setTransactionFilter("usage")}
             >
               View generation ledger
             </button>
+            {monthRefunds.refundCount > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="underline hover:text-skill-ink"
+                  onClick={() => setTransactionFilter("refund")}
+                >
+                  View refunds
+                </button>
+                <Link href="/app/jobs?status=failed" className="underline hover:text-skill-ink">
+                  View failed jobs
+                </Link>
+              </>
+            )}
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold">Recent transactions</h2>
