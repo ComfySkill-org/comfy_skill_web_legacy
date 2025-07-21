@@ -479,7 +479,8 @@ export default function StudioPage() {
       if (viewModeRef.current !== "workflow") return;
       if (
         e.target instanceof Element &&
-        e.target.closest("[data-canvas-toolbar]")
+        (e.target.closest("[data-canvas-toolbar]") ||
+          e.target.closest("[data-canvas-zoom]"))
       ) {
         return;
       }
@@ -2571,6 +2572,63 @@ export default function StudioPage() {
           </div>
 
           <div
+            data-canvas-zoom
+            role="group"
+            aria-label="Canvas zoom"
+            className="absolute bottom-4 left-4 flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/90 px-2 py-1 shadow-xl"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onAuxClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <button
+              type="button"
+              disabled={project.viewport.zoom <= 0.35}
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(-0.1);
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Zoom out from canvas center (−)"
+              aria-label="Zoom out"
+              aria-keyshortcuts="-"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              disabled={project.viewport.zoom >= 2}
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(0.1);
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Zoom in toward canvas center (+)"
+              aria-label="Zoom in"
+              aria-keyshortcuts="+"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              disabled={Math.abs(project.viewport.zoom - 1) < 0.001}
+              onClick={(e) => {
+                e.stopPropagation();
+                resetZoomTo100();
+              }}
+              className="min-w-12 rounded-full bg-slate-800 px-2 py-1 text-xs tabular-nums hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              title="Reset zoom to 100% (0)"
+              aria-label={`Current zoom ${Math.round(project.viewport.zoom * 100)}%. Reset to 100%`}
+              aria-keyshortcuts="0"
+            >
+              {Math.round(project.viewport.zoom * 100)}%
+            </button>
+          </div>
+
+          <div
             ref={canvasToolbarRef}
             role="toolbar"
             aria-label="Canvas tools"
@@ -2811,48 +2869,6 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
-              disabled={project.viewport.zoom <= 0.35}
-              onClick={(e) => {
-                e.stopPropagation();
-                zoomBy(-0.1);
-              }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-              title="Zoom out from canvas center (−)"
-              aria-label="Zoom out"
-              aria-keyshortcuts="-"
-            >
-              −
-            </button>
-            <button
-              type="button"
-              disabled={project.viewport.zoom >= 2}
-              onClick={(e) => {
-                e.stopPropagation();
-                zoomBy(0.1);
-              }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-              title="Zoom in toward canvas center (+)"
-              aria-label="Zoom in"
-              aria-keyshortcuts="+"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              disabled={Math.abs(project.viewport.zoom - 1) < 0.001}
-              onClick={(e) => {
-                e.stopPropagation();
-                resetZoomTo100();
-              }}
-              className="min-w-12 rounded-full bg-slate-800 px-2 py-1 text-xs tabular-nums hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-              title="Reset zoom to 100% (0)"
-              aria-label={`Current zoom ${Math.round(project.viewport.zoom * 100)}%. Reset to 100%`}
-              aria-keyshortcuts="0"
-            >
-              {Math.round(project.viewport.zoom * 100)}%
-            </button>
-            <button
-              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 updatePanTool(!panToolActiveRef.current);
@@ -2993,7 +3009,7 @@ export default function StudioPage() {
               New project
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}% · Arrows nudge (one undo burst) · Wheel zoom ·{" "}
+              Arrows nudge (one undo burst) · Wheel zoom ·{" "}
               {syncLabel === "local*" ? (
                 <button
                   type="button"
@@ -3637,7 +3653,10 @@ export default function StudioPage() {
                 Zoom toward the pointer; each continuous gesture is one undo step
               </dd>
               <dt className="font-medium text-slate-300">+ / −</dt>
-              <dd className="text-slate-500">Zoom around the workflow canvas center</dd>
+              <dd className="text-slate-500">
+                Zoom around the workflow canvas center; use the bottom-left zoom controls or
+                these keys
+              </dd>
               <dt className="font-medium text-slate-300">0</dt>
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
               <dt className="font-medium text-slate-300">Shift + 0</dt>
