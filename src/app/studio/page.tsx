@@ -2900,13 +2900,22 @@ export default function StudioPage() {
           </div>
 
           <div
+            className="pointer-events-none absolute bottom-4 left-4 right-4 flex justify-center pl-[8.5rem]"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onAuxClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+          <div
             ref={canvasToolbarRef}
             role="toolbar"
             aria-label="Canvas tools"
             aria-orientation="horizontal"
             aria-keyshortcuts="T"
             data-canvas-toolbar
-            className="absolute bottom-4 left-1/2 flex max-w-[calc(100%_-_2rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0 [&>button:focus-visible]:outline [&>button:focus-visible]:outline-2 [&>button:focus-visible]:outline-sky-400"
+            className="pointer-events-auto flex w-full max-w-full justify-center gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0 [&>button:focus-visible]:outline [&>button:focus-visible]:outline-2 [&>button:focus-visible]:outline-sky-400"
             onFocusCapture={(e) => {
               const related = e.relatedTarget;
               if (
@@ -3315,6 +3324,7 @@ export default function StudioPage() {
                 {projectFileError}
               </span>
             )}
+          </div>
           </div>
             </>
           )}
