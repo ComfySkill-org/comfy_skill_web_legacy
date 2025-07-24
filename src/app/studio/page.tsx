@@ -2024,6 +2024,12 @@ export default function StudioPage() {
             onKeyDown={navigateCanvasToolbar}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => {
+              e.stopPropagation();
+              if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+              e.preventDefault();
+              e.currentTarget.scrollLeft += e.deltaY;
+            }}
             onAuxClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
