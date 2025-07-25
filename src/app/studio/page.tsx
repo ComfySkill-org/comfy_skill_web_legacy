@@ -133,6 +133,10 @@ export default function StudioPage() {
   const [promptCopied, setPromptCopied] = useState(false);
   const [mediaLinkCopied, setMediaLinkCopied] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [toolbarScrollEdges, setToolbarScrollEdges] = useState({
+    left: false,
+    right: false,
+  });
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [importConfirmFile, setImportConfirmFile] = useState<File | null>(null);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -1812,6 +1816,33 @@ export default function StudioPage() {
     nextButton?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
+  const syncToolbarScrollHints = useCallback(() => {
+    const toolbar = canvasToolbarRef.current;
+    if (!toolbar) {
+      setToolbarScrollEdges({ left: false, right: false });
+      return;
+    }
+    const { scrollLeft, scrollWidth, clientWidth } = toolbar;
+    const overflow = scrollWidth - clientWidth > 1;
+    setToolbarScrollEdges({
+      left: overflow && scrollLeft > 1,
+      right: overflow && scrollLeft + clientWidth < scrollWidth - 1,
+    });
+  }, []);
+
+  useEffect(() => {
+    const toolbar = canvasToolbarRef.current;
+    if (!toolbar) return;
+    syncToolbarScrollHints();
+    const observer = new ResizeObserver(() => syncToolbarScrollHints());
+    observer.observe(toolbar);
+    window.addEventListener("resize", syncToolbarScrollHints);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncToolbarScrollHints);
+    };
+  }, [syncToolbarScrollHints, viewMode, project.blocks.length, project.edges.length]);
+
   function applyTemplate(templateId: string) {
     const template = SKILL_TEMPLATES.find((t) => t.id === templateId);
     if (!template) return;
@@ -2976,7 +3007,7 @@ export default function StudioPage() {
           </div>
 
           <div
-            className="pointer-events-none absolute bottom-4 left-4 right-4 flex justify-center pl-[8.5rem]"
+            className="pointer-events-none absolute bottom-4 left-4 right-4 relative flex justify-center pl-[8.5rem]"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onAuxClick={(e) => {
@@ -2984,6 +3015,18 @@ export default function StudioPage() {
               e.stopPropagation();
             }}
           >
+            {toolbarScrollEdges.left && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-0 left-[8.5rem] top-0 z-10 w-8 rounded-l-full bg-gradient-to-r from-slate-950/95 to-transparent"
+              />
+            )}
+            {toolbarScrollEdges.right && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-8 rounded-r-full bg-gradient-to-l from-slate-950/95 to-transparent"
+              />
+            )}
           <div
             ref={canvasToolbarRef}
             role="toolbar"
@@ -3009,6 +3052,7 @@ export default function StudioPage() {
               }
             }}
             onKeyDown={navigateCanvasToolbar}
+            onScroll={syncToolbarScrollHints}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => {
@@ -3016,6 +3060,7 @@ export default function StudioPage() {
               if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
               e.preventDefault();
               e.currentTarget.scrollLeft += e.deltaY;
+              syncToolbarScrollHints();
             }}
             onAuxClick={(e) => {
               e.preventDefault();
@@ -4120,6 +4165,11 @@ export default function StudioPage() {
                 Nudge the selected or focused workflow block as one undo step per burst;
                 with Snap on, nudges move by grid steps (hold Alt for fine steps); navigate
                 storyboard; browse retained outputs in result detail
+              </dd>
+              <dt className="font-medium text-slate-300">Toolbar wheel</dt>
+              <dd className="text-slate-500">
+                Scroll horizontally through overflow canvas tools; edge fades show when more tools
+                are off-screen
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>
