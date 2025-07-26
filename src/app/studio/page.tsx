@@ -171,6 +171,7 @@ export default function StudioPage() {
   const projectsOpenRef = useRef(projectsOpen);
   projectsOpenRef.current = projectsOpen;
   const projectSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const canvasToolbarRef = useRef<HTMLDivElement | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const syncRequestRef = useRef(0);
@@ -626,6 +627,25 @@ export default function StudioPage() {
       ) {
         e.preventDefault();
         updatePanTool(!panToolActiveRef.current);
+        return;
+      }
+      if (
+        e.key.toLowerCase() === "t" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !isTypingTarget(e.target)
+      ) {
+        const firstTool =
+          canvasToolbarRef.current?.querySelector<HTMLButtonElement>(
+            "button:not(:disabled)",
+          );
+        if (!firstTool) return;
+        e.preventDefault();
+        firstTool.focus();
+        firstTool.scrollIntoView({ block: "nearest", inline: "nearest" });
         return;
       }
       if (
@@ -2016,9 +2036,11 @@ export default function StudioPage() {
           </div>
 
           <div
+            ref={canvasToolbarRef}
             role="toolbar"
             aria-label="Canvas tools"
             aria-orientation="horizontal"
+            aria-keyshortcuts="T"
             data-canvas-toolbar
             className="absolute bottom-4 left-1/2 flex max-w-[calc(100%_-_2rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0 [&>button:focus-visible]:outline [&>button:focus-visible]:outline-2 [&>button:focus-visible]:outline-sky-400"
             onKeyDown={navigateCanvasToolbar}
@@ -3012,6 +3034,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>
+              <dt className="font-medium text-slate-300">T</dt>
+              <dd className="text-slate-500">Focus the canvas toolbar</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected block</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
