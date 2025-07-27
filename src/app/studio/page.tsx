@@ -1333,16 +1333,32 @@ export default function StudioPage() {
     }
   }
 
+  function returnFocusFromToolbar() {
+    const returnTarget = toolbarReturnFocusRef.current;
+    if (returnTarget?.isConnected) {
+      returnTarget.focus();
+    } else {
+      canvasMainRef.current?.focus();
+    }
+  }
+
   function navigateCanvasToolbar(e: ReactKeyboardEvent<HTMLDivElement>) {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      const returnTarget = toolbarReturnFocusRef.current;
-      if (returnTarget?.isConnected) {
-        returnTarget.focus();
-      } else {
-        canvasMainRef.current?.focus();
+      returnFocusFromToolbar();
+      return;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      const current = (e.target as HTMLElement).closest("button");
+      if (
+        !current ||
+        current.disabled ||
+        current.dataset.opensOverlay === "true"
+      ) {
+        return;
       }
+      requestAnimationFrame(() => requestAnimationFrame(() => returnFocusFromToolbar()));
       return;
     }
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
@@ -2216,6 +2232,15 @@ export default function StudioPage() {
             aria-keyshortcuts="T"
             data-canvas-toolbar
             className="absolute bottom-4 left-1/2 flex max-w-[calc(100%_-_2rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0 [&>button:focus-visible]:outline [&>button:focus-visible]:outline-2 [&>button:focus-visible]:outline-sky-400"
+            onFocusCapture={(e) => {
+              const related = e.relatedTarget;
+              if (
+                related instanceof HTMLElement &&
+                !e.currentTarget.contains(related)
+              ) {
+                toolbarReturnFocusRef.current = related;
+              }
+            }}
             onKeyDown={navigateCanvasToolbar}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -2262,6 +2287,7 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              data-opens-overlay="true"
               onClick={(e) => {
                 e.stopPropagation();
                 void openAssets();
@@ -2503,6 +2529,7 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              data-opens-overlay="true"
               onClick={(e) => {
                 e.stopPropagation();
                 setHelpOpen(true);
@@ -2539,6 +2566,7 @@ export default function StudioPage() {
             />
             <button
               type="button"
+              data-opens-overlay="true"
               onClick={(e) => {
                 e.stopPropagation();
                 setProjectFileError("");
@@ -2551,6 +2579,7 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              data-opens-overlay="true"
               onClick={(e) => {
                 e.stopPropagation();
                 setResetConfirmOpen(true);
@@ -3208,6 +3237,10 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>
+              <dt className="font-medium text-slate-300">Enter / Space</dt>
+              <dd className="text-slate-500">
+                Activate the focused canvas tool and return to the workflow
+              </dd>
               <dt className="font-medium text-slate-300">T</dt>
               <dd className="text-slate-500">Focus the canvas toolbar</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
