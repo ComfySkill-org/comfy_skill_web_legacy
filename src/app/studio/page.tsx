@@ -172,6 +172,7 @@ export default function StudioPage() {
   projectsOpenRef.current = projectsOpen;
   const projectSearchInputRef = useRef<HTMLInputElement | null>(null);
   const canvasToolbarRef = useRef<HTMLDivElement | null>(null);
+  const toolbarReturnFocusRef = useRef<HTMLElement | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const syncRequestRef = useRef(0);
@@ -644,6 +645,12 @@ export default function StudioPage() {
           );
         if (!firstTool) return;
         e.preventDefault();
+        if (
+          document.activeElement instanceof HTMLElement &&
+          !canvasToolbarRef.current?.contains(document.activeElement)
+        ) {
+          toolbarReturnFocusRef.current = document.activeElement;
+        }
         firstTool.focus();
         firstTool.scrollIntoView({ block: "nearest", inline: "nearest" });
         return;
@@ -1301,6 +1308,17 @@ export default function StudioPage() {
   }
 
   function navigateCanvasToolbar(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      const returnTarget = toolbarReturnFocusRef.current;
+      if (returnTarget?.isConnected) {
+        returnTarget.focus();
+      } else {
+        canvasMainRef.current?.focus();
+      }
+      return;
+    }
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
     const buttons = Array.from(
       e.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
@@ -1682,6 +1700,7 @@ export default function StudioPage() {
         {/* Canvas — flow + results */}
         <main
           ref={canvasMainRef}
+          tabIndex={-1}
           className={`relative min-w-0 flex-1 overflow-hidden ${
             panning
               ? "cursor-grabbing"
@@ -3044,7 +3063,7 @@ export default function StudioPage() {
               <dd className="text-slate-500">Remove the selected block</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
               <dd className="text-slate-500">
-                Cancel the active gesture, dismiss errors, or close overlays
+                Leave the toolbar, cancel a gesture, dismiss errors, or close overlays
               </dd>
             </dl>
           </div>
