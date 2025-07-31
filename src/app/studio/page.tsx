@@ -176,6 +176,7 @@ export default function StudioPage() {
   const projectSearchInputRef = useRef<HTMLInputElement | null>(null);
   const canvasToolbarRef = useRef<HTMLDivElement | null>(null);
   const toolbarReturnFocusRef = useRef<HTMLElement | null>(null);
+  const toolbarLastButtonRef = useRef<HTMLButtonElement | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const syncRequestRef = useRef(0);
@@ -663,11 +664,14 @@ export default function StudioPage() {
         !e.repeat &&
         !isTypingTarget(e.target)
       ) {
-        const firstTool =
-          canvasToolbarRef.current?.querySelector<HTMLButtonElement>(
-            "button:not(:disabled)",
-          );
-        if (!firstTool) return;
+        const resumeTool =
+          toolbarLastButtonRef.current?.isConnected &&
+          !toolbarLastButtonRef.current.disabled
+            ? toolbarLastButtonRef.current
+            : canvasToolbarRef.current?.querySelector<HTMLButtonElement>(
+                "button:not(:disabled)",
+              );
+        if (!resumeTool) return;
         e.preventDefault();
         if (
           document.activeElement instanceof HTMLElement &&
@@ -675,8 +679,8 @@ export default function StudioPage() {
         ) {
           toolbarReturnFocusRef.current = document.activeElement;
         }
-        firstTool.focus();
-        firstTool.scrollIntoView({ block: "nearest", inline: "nearest" });
+        resumeTool.focus();
+        resumeTool.scrollIntoView({ block: "nearest", inline: "nearest" });
         return;
       }
       if (
@@ -1451,7 +1455,9 @@ export default function StudioPage() {
           : (index + (e.key === "ArrowRight" ? 1 : -1) + buttons.length) %
             buttons.length;
     buttons[nextIndex]?.focus();
-    buttons[nextIndex]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const nextButton = buttons[nextIndex];
+    if (nextButton) toolbarLastButtonRef.current = nextButton;
+    nextButton?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
   function applyTemplate(templateId: string) {
@@ -2358,6 +2364,13 @@ export default function StudioPage() {
                 !e.currentTarget.contains(related)
               ) {
                 toolbarReturnFocusRef.current = related;
+              }
+              const focused = (e.target as HTMLElement).closest("button");
+              if (
+                focused instanceof HTMLButtonElement &&
+                e.currentTarget.contains(focused)
+              ) {
+                toolbarLastButtonRef.current = focused;
               }
             }}
             onKeyDown={navigateCanvasToolbar}
@@ -3380,7 +3393,9 @@ export default function StudioPage() {
                 Activate the focused canvas tool and return to the workflow
               </dd>
               <dt className="font-medium text-slate-300">T</dt>
-              <dd className="text-slate-500">Focus the canvas toolbar</dd>
+              <dd className="text-slate-500">
+                Focus the canvas toolbar, resuming the last tool when available
+              </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
               <dt className="font-medium text-slate-300">Shift + Enter</dt>
