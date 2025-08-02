@@ -67,6 +67,7 @@ const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
 };
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
+const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
 const PROJECT_LIST_PREFERENCE_KEY = "comfyskill.studio.project-list";
 type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
 type ProjectSort = "updated-desc" | "updated-asc" | "title-asc" | "title-desc";
@@ -699,13 +700,7 @@ export default function StudioPage() {
         !e.repeat &&
         !isTypingTarget(e.target)
       ) {
-        const resumeTool =
-          toolbarLastButtonRef.current?.isConnected &&
-          !toolbarLastButtonRef.current.disabled
-            ? toolbarLastButtonRef.current
-            : canvasToolbarRef.current?.querySelector<HTMLButtonElement>(
-                "button:not(:disabled)",
-              );
+        const resumeTool = resolveToolbarResumeButton();
         if (!resumeTool) return;
         e.preventDefault();
         if (
@@ -1499,6 +1494,50 @@ export default function StudioPage() {
     }
   }
 
+  function rememberToolbarButton(button: HTMLButtonElement) {
+    toolbarLastButtonRef.current = button;
+    const toolbar = canvasToolbarRef.current;
+    if (!toolbar) return;
+    const buttons = Array.from(
+      toolbar.querySelectorAll<HTMLButtonElement>("button"),
+    );
+    const index = buttons.indexOf(button);
+    if (index < 0) return;
+    try {
+      sessionStorage.setItem(TOOLBAR_LAST_TOOL_KEY, String(index));
+    } catch {
+      // Keep the in-memory preference when storage is unavailable.
+    }
+  }
+
+  function resolveToolbarResumeButton(): HTMLButtonElement | null {
+    if (
+      toolbarLastButtonRef.current?.isConnected &&
+      !toolbarLastButtonRef.current.disabled
+    ) {
+      return toolbarLastButtonRef.current;
+    }
+    const toolbar = canvasToolbarRef.current;
+    if (!toolbar) return null;
+    const buttons = Array.from(
+      toolbar.querySelectorAll<HTMLButtonElement>("button"),
+    );
+    try {
+      const saved = sessionStorage.getItem(TOOLBAR_LAST_TOOL_KEY);
+      if (saved !== null) {
+        const index = Number.parseInt(saved, 10);
+        const savedButton = buttons[index];
+        if (savedButton && !savedButton.disabled) {
+          toolbarLastButtonRef.current = savedButton;
+          return savedButton;
+        }
+      }
+    } catch {
+      // Fall back to the first available tool when storage is unavailable.
+    }
+    return toolbar.querySelector<HTMLButtonElement>("button:not(:disabled)");
+  }
+
   function returnFocusFromToolbar() {
     const returnTarget = toolbarReturnFocusRef.current;
     if (returnTarget?.isConnected) {
@@ -1545,7 +1584,7 @@ export default function StudioPage() {
             buttons.length;
     buttons[nextIndex]?.focus();
     const nextButton = buttons[nextIndex];
-    if (nextButton) toolbarLastButtonRef.current = nextButton;
+    if (nextButton) rememberToolbarButton(nextButton);
     nextButton?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
@@ -2493,7 +2532,7 @@ export default function StudioPage() {
                 focused instanceof HTMLButtonElement &&
                 e.currentTarget.contains(focused)
               ) {
-                toolbarLastButtonRef.current = focused;
+                rememberToolbarButton(focused);
               }
             }}
             onKeyDown={navigateCanvasToolbar}
@@ -3544,7 +3583,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">T</dt>
               <dd className="text-slate-500">
-                Focus the canvas toolbar, resuming the last tool when available
+                Focus the canvas toolbar, resuming the last tool from this session or a
+                previous visit when available
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
