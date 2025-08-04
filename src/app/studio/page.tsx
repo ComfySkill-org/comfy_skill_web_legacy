@@ -1659,6 +1659,14 @@ export default function StudioPage() {
             if (e.button === 1) e.preventDefault();
           }}
         >
+          {generateError && (
+            <div
+              role="alert"
+              className="pointer-events-none absolute left-1/2 top-4 z-30 max-w-md -translate-x-1/2 rounded-lg border border-rose-500/40 bg-rose-950/90 px-4 py-2 text-center text-xs text-rose-200 shadow-xl"
+            >
+              {generateError}
+            </div>
+          )}
           {viewMode === "storyboard" ? (
             <div
               className="flex h-full gap-4 overflow-x-auto px-6 py-8"
@@ -2415,10 +2423,6 @@ export default function StudioPage() {
                     {selected.type === "text"
                       ? "Edit text content directly above; no generation job is required."
                       : "Video blocks are placeholders until a video capability is connected."}
-                  </p>
-                ) : generateError ? (
-                  <p role="alert" className="text-[11px] text-rose-400">
-                    {generateError}
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-500">
