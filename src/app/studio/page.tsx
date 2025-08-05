@@ -1662,9 +1662,21 @@ export default function StudioPage() {
           {generateError && (
             <div
               role="alert"
-              className="pointer-events-none absolute left-1/2 top-4 z-30 max-w-md -translate-x-1/2 rounded-lg border border-rose-500/40 bg-rose-950/90 px-4 py-2 text-center text-xs text-rose-200 shadow-xl"
+              className="absolute left-1/2 top-4 z-30 flex max-w-md -translate-x-1/2 items-start gap-3 rounded-lg border border-rose-500/40 bg-rose-950/90 px-4 py-2 text-xs text-rose-200 shadow-xl"
             >
-              {generateError}
+              <span>{generateError}</span>
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setGenerateError("");
+                }}
+                className="shrink-0 text-rose-300 hover:text-white"
+                aria-label="Dismiss canvas error"
+              >
+                ×
+              </button>
             </div>
           )}
           {viewMode === "storyboard" ? (
