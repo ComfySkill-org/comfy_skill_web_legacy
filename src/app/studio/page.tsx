@@ -1978,7 +1978,15 @@ export default function StudioPage() {
           })}
           </div>
 
-          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl">
+          <div
+            className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onAuxClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
             <button
               type="button"
               onClick={(e) => {
