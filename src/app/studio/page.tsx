@@ -916,6 +916,10 @@ export default function StudioPage() {
 
   function switchView(mode: StudioViewMode) {
     if ((project.viewMode ?? "workflow") === mode) return;
+    if (mode === "storyboard" && panToolActiveRef.current) {
+      panToolActiveRef.current = false;
+      setPanToolActive(false);
+    }
     commitChange((prev) => setViewMode(prev, mode));
   }
 
@@ -1591,6 +1595,7 @@ export default function StudioPage() {
             backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
           }}
           onClick={() => {
+            if (panToolActiveRef.current) return;
             if (consumeSuppressedCanvasClick()) return;
             setSelectedId(null);
             setSelectedEdgeId(null);
@@ -1729,6 +1734,7 @@ export default function StudioPage() {
                     className="pointer-events-auto cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (panToolActiveRef.current) return;
                       if (consumeSuppressedCanvasClick()) return;
                       setSelectedId(null);
                       setSelectedEdgeId(edge.id);
@@ -1782,11 +1788,13 @@ export default function StudioPage() {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (panToolActiveRef.current) return;
                   if (consumeSuppressedCanvasClick()) return;
                   selectBlock(block.id);
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
+                  if (panToolActiveRef.current) return;
                   setInspectId(block.id);
                 }}
                 onPointerDown={(e) => {
@@ -2834,7 +2842,7 @@ export default function StudioPage() {
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
-                Toggle the hand tool or temporarily pan without changing selection
+                Toggle selection-safe Hand mode or temporarily pan
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
