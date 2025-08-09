@@ -1491,6 +1491,9 @@ export default function StudioPage() {
     if (active) {
       linkSourceIdRef.current = null;
       setLinkSourceId(null);
+      requestAnimationFrame(() =>
+        canvasMainRef.current?.focus({ preventScroll: true }),
+      );
     }
   }
 
@@ -2224,8 +2227,15 @@ export default function StudioPage() {
                     aria-label={`Link from ${src.title} to ${tgt.title}`}
                     aria-pressed={selected}
                     aria-keyshortcuts="Enter Space Delete Backspace"
-                    className="pointer-events-auto cursor-pointer focus-visible:stroke-sky-300/30 focus-visible:outline-none"
+                    className={`pointer-events-auto focus-visible:stroke-sky-300/30 focus-visible:outline-none ${
+                      panToolActive ? "cursor-grab" : "cursor-pointer"
+                    }`}
                     onFocus={() => syncEdgeFocusSelection(edge.id)}
+                    onPointerDown={(e) => {
+                      if (!panToolActiveRef.current || e.button !== 0) return;
+                      e.stopPropagation();
+                      startCanvasPan(e, projectRef.current.viewport);
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (panToolActiveRef.current) return;
@@ -3550,8 +3560,9 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
-                Toggle selection-safe Hand mode or temporarily pan; Hand mode shows a canvas
-                status banner; pan undo applies only when the viewport moves
+                Toggle selection-safe Hand mode or temporarily pan; Hand mode pans over blocks
+                and links without changing selection; Hand mode shows a canvas status banner;
+                pan undo applies only when the viewport moves
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
