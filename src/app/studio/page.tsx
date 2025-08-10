@@ -1983,6 +1983,17 @@ export default function StudioPage() {
               </button>
             </div>
           )}
+          {panToolActive && viewMode === "workflow" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`pointer-events-none absolute left-1/2 z-20 max-w-md -translate-x-1/2 rounded-lg border border-sky-500/40 bg-sky-950/90 px-4 py-2 text-center text-xs text-sky-100 shadow-xl ${
+                generateError ? "top-16" : "top-4"
+              }`}
+            >
+              Hand tool active — pan without changing selection
+            </div>
+          )}
           {viewMode === "storyboard" ? (
             <div
               className="flex h-full gap-4 overflow-x-auto px-6 py-8"
@@ -2715,6 +2726,11 @@ export default function StudioPage() {
               title="Toggle hand tool (H)"
               aria-keyshortcuts="H"
               aria-pressed={panToolActive}
+              aria-label={
+                panToolActive
+                  ? "Hand tool active. Pan without changing selection."
+                  : "Toggle hand tool"
+              }
             >
               Hand
             </button>
@@ -3464,8 +3480,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
-                Toggle selection-safe Hand mode or temporarily pan; pan undo applies only when
-                the viewport moves
+                Toggle selection-safe Hand mode or temporarily pan; Hand mode shows a canvas
+                status banner; pan undo applies only when the viewport moves
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
