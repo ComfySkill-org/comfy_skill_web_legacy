@@ -1994,6 +1994,17 @@ export default function StudioPage() {
               Hand tool active — pan without changing selection
             </div>
           )}
+          {linkSourceBlock && viewMode === "workflow" && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`pointer-events-none absolute left-1/2 z-20 max-w-md -translate-x-1/2 rounded-lg border border-amber-500/40 bg-amber-950/90 px-4 py-2 text-center text-xs text-amber-100 shadow-xl ${
+                generateError ? "top-16" : "top-4"
+              }`}
+            >
+              Linking from {linkSourceBlock.title} — choose a target block
+            </div>
+          )}
           {viewMode === "storyboard" ? (
             <div
               className="flex h-full gap-4 overflow-x-auto px-6 py-8"
@@ -3476,7 +3487,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
-                Start or cancel linking; invalid targets keep Link mode active
+                Start or cancel linking; invalid targets keep Link mode active and show a canvas
+                status banner
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
