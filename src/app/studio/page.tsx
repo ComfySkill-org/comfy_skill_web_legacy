@@ -1623,6 +1623,9 @@ export default function StudioPage() {
     linkSourceIdRef.current = sourceId;
     setLinkSourceId(sourceId);
     setGenerateError("");
+    requestAnimationFrame(() =>
+      canvasMainRef.current?.focus({ preventScroll: true }),
+    );
   }
 
   function persistHandToolPreference(active: boolean) {
@@ -2655,7 +2658,7 @@ export default function StudioPage() {
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
-                  if (panToolActiveRef.current) return;
+                  if (panToolActiveRef.current || linkSourceIdRef.current) return;
                   setInspectId(block.id);
                 }}
                 onPointerDown={(e) => {
@@ -3035,7 +3038,9 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
-              disabled={viewMode !== "workflow"}
+              disabled={
+                viewMode !== "workflow" || (!linkSourceId && !selectedId)
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 startLinkMode();
@@ -3050,14 +3055,18 @@ export default function StudioPage() {
               aria-label={
                 linkSourceBlock
                   ? `Cancel linking from ${linkSourceBlock.title}`
-                  : "Start linking from the selected block"
+                  : !selectedId
+                    ? "Select a source block before linking"
+                    : "Start linking from the selected block"
               }
               title={
                 viewMode !== "workflow"
                   ? "Link mode is available in workflow view"
                   : linkSourceId
                     ? "Cancel link mode (L)"
-                    : "Start link mode (L); exits Hand mode"
+                    : !selectedId
+                      ? "Select a source block before linking"
+                      : "Start link mode (L); exits Hand mode"
               }
             >
               {linkSourceId ? "Pick target…" : "Link"}
