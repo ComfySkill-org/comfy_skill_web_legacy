@@ -1216,13 +1216,20 @@ export default function StudioPage() {
     setSelectedId(blockId);
     setSelectedEdgeId(null);
     setGenerateError("");
-    if (linkSourceId && linkSourceId !== blockId) {
-      const next = addEdgeBetween(projectRef.current, linkSourceId, blockId);
+    const sourceId = linkSourceIdRef.current;
+    if (sourceId === blockId) {
+      linkSourceIdRef.current = null;
+      setLinkSourceId(null);
+      return;
+    }
+    if (sourceId) {
+      const next = addEdgeBetween(projectRef.current, sourceId, blockId);
       if (next === projectRef.current) {
         setGenerateError("That link already exists or would create a workflow cycle.");
       } else {
         commitChange(() => next);
       }
+      linkSourceIdRef.current = null;
       setLinkSourceId(null);
     }
   }
@@ -1809,9 +1816,13 @@ export default function StudioPage() {
                 key={block.id}
                 role="button"
                 tabIndex={0}
-                className={`absolute cursor-grab rounded-lg border text-left shadow-lg transition active:cursor-grabbing ${
-                  active || isLinkSource
-                    ? "border-sky-400 ring-2 ring-sky-400/40"
+                className={`absolute rounded-lg border text-left shadow-lg transition ${
+                  linkSourceId ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"
+                } ${
+                  isLinkSource
+                    ? "border-amber-400 ring-2 ring-amber-400/40"
+                    : active
+                      ? "border-sky-400 ring-2 ring-sky-400/40"
                     : "border-slate-700 hover:border-slate-500"
                 } bg-slate-900/95`}
                 style={{
@@ -2878,7 +2889,9 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
               <dt className="font-medium text-slate-300">L</dt>
-              <dd className="text-slate-500">Start or cancel linking from the selected block</dd>
+              <dd className="text-slate-500">
+                Start or cancel linking; click the source again to cancel
+              </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
                 Toggle selection-safe Hand mode or temporarily pan
