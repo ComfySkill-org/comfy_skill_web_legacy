@@ -18,6 +18,7 @@ import {
   apiProjectToCanvas,
   applySkillTemplate,
   blockResultSummary,
+  blockLinkSummary,
   canvasProjectToApiPut,
   clearProjectLocal,
   createImageBlock,
@@ -984,6 +985,10 @@ export default function StudioPage() {
   const selected = useMemo(
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
+  );
+  const selectedLinkSummary = useMemo(
+    () => (selected ? blockLinkSummary(project, selected.id) : null),
+    [project, selected],
   );
   const projectCanvasStats = useMemo(
     () => ({
@@ -3560,6 +3565,43 @@ export default function StudioPage() {
                     onChange={(e) => updateSelected({ title: e.target.value })}
                   />
                 </label>
+                {viewMode === "workflow" && selectedLinkSummary && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs">
+                    <p className="font-medium text-slate-300">Flow links</p>
+                    {selectedLinkSummary.incoming.length === 0 &&
+                    selectedLinkSummary.outgoing.length === 0 ? (
+                      <p className="mt-1 text-slate-500">
+                        No links yet — connect this block to others on the canvas.
+                      </p>
+                    ) : (
+                      <div className="mt-1 space-y-1 text-slate-500">
+                        {selectedLinkSummary.incoming.length > 0 && (
+                          <p>
+                            <span className="text-slate-400">From:</span>{" "}
+                            {selectedLinkSummary.incoming.join(", ")}
+                          </p>
+                        )}
+                        {selectedLinkSummary.outgoing.length > 0 && (
+                          <p>
+                            <span className="text-slate-400">To:</span>{" "}
+                            {selectedLinkSummary.outgoing.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className={`mt-2 rounded border px-2 py-1 text-[11px] font-medium ${
+                        linkSourceId === selected.id
+                          ? "border-amber-500/50 text-amber-300"
+                          : "border-slate-700 text-slate-300 hover:border-slate-500"
+                      }`}
+                      onClick={() => startLinkMode()}
+                    >
+                      {linkSourceId === selected.id ? "Cancel linking" : "Link from this block"}
+                    </button>
+                  </div>
+                )}
                 {selected.type === "text" && (
                   <label className="block text-xs text-slate-400">
                     Body

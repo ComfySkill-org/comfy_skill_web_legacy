@@ -458,6 +458,28 @@ export function edgeLinkFailureReason(
   return null;
 }
 
+export function blockLinkSummary(
+  project: CanvasProject,
+  blockId: string,
+): { incoming: string[]; outgoing: string[] } {
+  const titleById = new Map(project.blocks.map((block) => [block.id, block.title]));
+  const incoming: string[] = [];
+  const outgoing: string[] = [];
+
+  for (const edge of project.edges) {
+    if (edge.targetBlockId === blockId) {
+      const title = titleById.get(edge.sourceBlockId);
+      if (title) incoming.push(title);
+    }
+    if (edge.sourceBlockId === blockId) {
+      const title = titleById.get(edge.targetBlockId);
+      if (title) outgoing.push(title);
+    }
+  }
+
+  return { incoming, outgoing };
+}
+
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,
