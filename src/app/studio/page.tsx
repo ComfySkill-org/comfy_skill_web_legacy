@@ -161,6 +161,8 @@ export default function StudioPage() {
   const viewModeRef = useRef<StudioViewMode>("workflow");
   const selectedIdRef = useRef<string | null>(null);
   const selectedEdgeIdRef = useRef<string | null>(null);
+  const linkSourceIdRef = useRef<string | null>(null);
+  linkSourceIdRef.current = linkSourceId;
   const inspectIdRef = useRef<string | null>(null);
   const inspectMediaCountRef = useRef(0);
   const projectsOpenRef = useRef(projectsOpen);
@@ -612,6 +614,19 @@ export default function StudioPage() {
         return;
       }
       if (
+        e.key.toLowerCase() === "l" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        startLinkMode();
+        return;
+      }
+      if (
         e.key === "Home" &&
         viewModeRef.current === "workflow" &&
         !e.metaKey &&
@@ -916,8 +931,10 @@ export default function StudioPage() {
 
   function switchView(mode: StudioViewMode) {
     if ((project.viewMode ?? "workflow") === mode) return;
-    if (mode === "storyboard" && panToolActiveRef.current) {
-      updatePanTool(false);
+    if (mode === "storyboard") {
+      if (panToolActiveRef.current) updatePanTool(false);
+      linkSourceIdRef.current = null;
+      setLinkSourceId(null);
     }
     commitChange((prev) => setViewMode(prev, mode));
   }
@@ -1211,19 +1228,30 @@ export default function StudioPage() {
   }
 
   function startLinkMode() {
-    if (!selectedId) {
+    if (linkSourceIdRef.current) {
+      linkSourceIdRef.current = null;
+      setLinkSourceId(null);
+      setGenerateError("");
+      return;
+    }
+    const sourceId = selectedIdRef.current;
+    if (!sourceId) {
       setGenerateError("Select a source block, then click Link and pick the target.");
       return;
     }
     updatePanTool(false);
-    setLinkSourceId(selectedId);
+    linkSourceIdRef.current = sourceId;
+    setLinkSourceId(sourceId);
     setGenerateError("");
   }
 
   function updatePanTool(active: boolean) {
     panToolActiveRef.current = active;
     setPanToolActive(active);
-    if (active) setLinkSourceId(null);
+    if (active) {
+      linkSourceIdRef.current = null;
+      setLinkSourceId(null);
+    }
   }
 
   function applyTemplate(templateId: string) {
@@ -1989,7 +2017,8 @@ export default function StudioPage() {
                   : "bg-slate-700 hover:bg-slate-600"
               }`}
               aria-pressed={Boolean(linkSourceId)}
-              title="Start link mode (exits Hand mode)"
+              aria-keyshortcuts="L"
+              title={linkSourceId ? "Cancel link mode (L)" : "Start link mode (L)"}
             >
               {linkSourceId ? "Pick target…" : "Link"}
             </button>
@@ -2848,6 +2877,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
+              <dt className="font-medium text-slate-300">L</dt>
+              <dd className="text-slate-500">Start or cancel linking from the selected block</dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
                 Toggle selection-safe Hand mode or temporarily pan
