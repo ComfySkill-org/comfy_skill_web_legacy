@@ -1503,6 +1503,7 @@ export default function StudioPage() {
   }
 
   function startLinkMode() {
+    if (viewModeRef.current !== "workflow") return;
     if (linkSourceIdRef.current) {
       cancelLinkMode();
       return;
@@ -2696,11 +2697,12 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={viewMode !== "workflow"}
               onClick={(e) => {
                 e.stopPropagation();
                 startLinkMode();
               }}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`rounded-full px-3 py-1 text-xs font-medium disabled:opacity-40 ${
                 linkSourceId
                   ? "bg-amber-500 text-slate-950"
                   : "bg-slate-700 hover:bg-slate-600"
@@ -2712,7 +2714,13 @@ export default function StudioPage() {
                   ? `Cancel linking from ${linkSourceBlock.title}`
                   : "Start linking from the selected block"
               }
-              title={linkSourceId ? "Cancel link mode (L)" : "Start link mode (L); exits Hand mode"}
+              title={
+                viewMode !== "workflow"
+                  ? "Link mode is available in workflow view"
+                  : linkSourceId
+                    ? "Cancel link mode (L)"
+                    : "Start link mode (L); exits Hand mode"
+              }
             >
               {linkSourceId ? "Pick target…" : "Link"}
             </button>
@@ -3613,9 +3621,9 @@ export default function StudioPage() {
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
-                Start or cancel linking; duplicate links and cycles report specific canvas
-                errors while Link mode stays active; Shift+click or Shift+Enter on a block to
-                change the link source
+                Start or cancel linking in workflow view; duplicate links and cycles report
+                specific canvas errors while Link mode stays active; Shift+click or Shift+Enter
+                on a block to change the link source
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
