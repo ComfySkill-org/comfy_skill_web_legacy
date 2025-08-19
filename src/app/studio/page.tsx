@@ -163,6 +163,8 @@ export default function StudioPage() {
   const selectedEdgeIdRef = useRef<string | null>(null);
   const linkSourceIdRef = useRef<string | null>(null);
   linkSourceIdRef.current = linkSourceId;
+  const generateErrorRef = useRef("");
+  generateErrorRef.current = generateError;
   const inspectIdRef = useRef<string | null>(null);
   const inspectMediaCountRef = useRef(0);
   const projectsOpenRef = useRef(projectsOpen);
@@ -482,6 +484,12 @@ export default function StudioPage() {
         if (dragRef.current || panRef.current) {
           e.preventDefault();
           cancelCanvasGesture();
+          return;
+        }
+        if (generateErrorRef.current) {
+          e.preventDefault();
+          generateErrorRef.current = "";
+          setGenerateError("");
           return;
         }
         if (panToolActiveRef.current) {
@@ -1670,6 +1678,7 @@ export default function StudioPage() {
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
+                  generateErrorRef.current = "";
                   setGenerateError("");
                 }}
                 className="shrink-0 text-rose-300 hover:text-white"
@@ -2970,7 +2979,7 @@ export default function StudioPage() {
               <dd className="text-slate-500">Remove the selected block</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
               <dd className="text-slate-500">
-                Cancel the active gesture, or close overlays and clear selection
+                Cancel the active gesture, dismiss errors, or close overlays
               </dd>
             </dl>
           </div>
