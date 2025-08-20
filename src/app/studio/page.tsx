@@ -755,6 +755,10 @@ export default function StudioPage() {
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
   );
+  const linkSourceBlock = useMemo(
+    () => project.blocks.find((block) => block.id === linkSourceId) ?? null,
+    [project.blocks, linkSourceId],
+  );
   selectedIdRef.current = selectedId;
   selectedEdgeIdRef.current = selectedEdgeId;
 
@@ -1816,6 +1820,13 @@ export default function StudioPage() {
                 key={block.id}
                 role="button"
                 tabIndex={0}
+                aria-label={
+                  linkSourceBlock
+                    ? isLinkSource
+                      ? `${block.title}, link source. Activate to cancel linking.`
+                      : `Link ${linkSourceBlock.title} to ${block.title}`
+                    : block.title
+                }
                 className={`absolute rounded-lg border text-left shadow-lg transition ${
                   linkSourceId ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"
                 } ${
@@ -2029,10 +2040,21 @@ export default function StudioPage() {
               }`}
               aria-pressed={Boolean(linkSourceId)}
               aria-keyshortcuts="L"
+              aria-label={
+                linkSourceBlock
+                  ? `Cancel linking from ${linkSourceBlock.title}`
+                  : "Start linking from the selected block"
+              }
               title={linkSourceId ? "Cancel link mode (L)" : "Start link mode (L)"}
             >
               {linkSourceId ? "Pick target…" : "Link"}
             </button>
+            {linkSourceBlock && (
+              <span role="status" aria-live="polite" className="sr-only">
+                Linking from {linkSourceBlock.title}. Choose a target block, or activate the
+                source again to cancel.
+              </span>
+            )}
             <button
               type="button"
               disabled={!selectedId}
