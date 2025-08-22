@@ -428,6 +428,12 @@ export default function StudioPage() {
     if (!el) return;
     function onWheel(e: WheelEvent) {
       if (viewModeRef.current !== "workflow") return;
+      if (
+        e.target instanceof Element &&
+        e.target.closest("[data-canvas-toolbar]")
+      ) {
+        return;
+      }
       e.preventDefault();
       const rect = el!.getBoundingClientRect();
       const ax = e.clientX - rect.left;
@@ -1988,7 +1994,10 @@ export default function StudioPage() {
           </div>
 
           <div
-            className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl"
+            role="toolbar"
+            aria-label="Canvas tools"
+            data-canvas-toolbar
+            className="absolute bottom-4 left-1/2 flex max-w-[calc(100%_-_2rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onAuxClick={(e) => {
