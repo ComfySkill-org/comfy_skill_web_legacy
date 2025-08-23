@@ -484,7 +484,7 @@ export default function StudioPage() {
         }
         if (panToolActiveRef.current) {
           e.preventDefault();
-          setPanToolActive(false);
+          updatePanTool(false);
           return;
         }
         setSelectedId(null);
@@ -608,7 +608,7 @@ export default function StudioPage() {
         !isTypingTarget(e.target)
       ) {
         e.preventDefault();
-        setPanToolActive((active) => !active);
+        updatePanTool(!panToolActiveRef.current);
         return;
       }
       if (
@@ -917,8 +917,7 @@ export default function StudioPage() {
   function switchView(mode: StudioViewMode) {
     if ((project.viewMode ?? "workflow") === mode) return;
     if (mode === "storyboard" && panToolActiveRef.current) {
-      panToolActiveRef.current = false;
-      setPanToolActive(false);
+      updatePanTool(false);
     }
     commitChange((prev) => setViewMode(prev, mode));
   }
@@ -1216,8 +1215,15 @@ export default function StudioPage() {
       setGenerateError("Select a source block, then click Link and pick the target.");
       return;
     }
+    updatePanTool(false);
     setLinkSourceId(selectedId);
     setGenerateError("");
+  }
+
+  function updatePanTool(active: boolean) {
+    panToolActiveRef.current = active;
+    setPanToolActive(active);
+    if (active) setLinkSourceId(null);
   }
 
   function applyTemplate(templateId: string) {
@@ -1982,6 +1988,8 @@ export default function StudioPage() {
                   ? "bg-amber-500 text-slate-950"
                   : "bg-slate-700 hover:bg-slate-600"
               }`}
+              aria-pressed={Boolean(linkSourceId)}
+              title="Start link mode (exits Hand mode)"
             >
               {linkSourceId ? "Pick target…" : "Link"}
             </button>
@@ -2110,7 +2118,7 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setPanToolActive((active) => !active);
+                updatePanTool(!panToolActiveRef.current);
               }}
               className={`rounded-full px-2 py-1 text-xs ${
                 panToolActive
