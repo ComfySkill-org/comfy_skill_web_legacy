@@ -1182,6 +1182,7 @@ export default function StudioPage() {
     }
     const nextBlock = block;
     commitChange((prev) => ({ ...prev, blocks: [...prev.blocks, nextBlock] }));
+    exitCanvasToolModes();
     setSelectedId(nextBlock.id);
   }
 
@@ -1486,6 +1487,11 @@ export default function StudioPage() {
     setGenerateError("");
   }
 
+  function exitCanvasToolModes() {
+    if (panToolActiveRef.current) updatePanTool(false);
+    if (linkSourceIdRef.current) cancelLinkMode();
+  }
+
   function startLinkMode() {
     if (linkSourceIdRef.current) {
       cancelLinkMode();
@@ -1618,7 +1624,7 @@ export default function StudioPage() {
       return snapCreatedBlock(next, blockId);
     });
     setSelectedId(createdId);
-    setLinkSourceId(null);
+    exitCanvasToolModes();
     setGenerateError("");
   }
 
@@ -1646,7 +1652,7 @@ export default function StudioPage() {
     });
     setDialoguePrompt("");
     setSelectedId(createdId);
-    setLinkSourceId(null);
+    exitCanvasToolModes();
     setGenerateError("");
   }
 
@@ -1855,6 +1861,7 @@ export default function StudioPage() {
     });
     setSelectedId(createdId);
     setAssetsOpen(false);
+    exitCanvasToolModes();
   }
 
   async function generateSelected() {
@@ -2680,7 +2687,7 @@ export default function StudioPage() {
                   ? `Cancel linking from ${linkSourceBlock.title}`
                   : "Start linking from the selected block"
               }
-              title={linkSourceId ? "Cancel link mode (L)" : "Start link mode (L)"}
+              title={linkSourceId ? "Cancel link mode (L)" : "Start link mode (L); exits Hand mode"}
             >
               {linkSourceId ? "Pick target…" : "Link"}
             </button>
@@ -2822,7 +2829,11 @@ export default function StudioPage() {
                   ? "bg-sky-500 text-slate-950"
                   : "bg-slate-800 hover:bg-slate-700"
               }`}
-              title="Toggle hand tool (H)"
+              title={
+                panToolActive
+                  ? "Exit hand tool (H)"
+                  : "Toggle hand tool (H); exits Link mode"
+              }
               aria-keyshortcuts="H"
               aria-pressed={panToolActive}
               aria-label={
