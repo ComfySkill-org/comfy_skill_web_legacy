@@ -1230,9 +1230,9 @@ export default function StudioPage() {
       const next = addEdgeBetween(projectRef.current, sourceId, blockId);
       if (next === projectRef.current) {
         setGenerateError("That link already exists or would create a workflow cycle.");
-      } else {
-        commitChange(() => next);
+        return;
       }
+      commitChange(() => next);
       linkSourceIdRef.current = null;
       setLinkSourceId(null);
     }
@@ -2417,7 +2417,9 @@ export default function StudioPage() {
                       : "Video blocks are placeholders until a video capability is connected."}
                   </p>
                 ) : generateError ? (
-                  <p className="text-[11px] text-rose-400">{generateError}</p>
+                  <p role="alert" className="text-[11px] text-rose-400">
+                    {generateError}
+                  </p>
                 ) : (
                   <p className="text-[11px] text-slate-500">
                     Runs POST /jobs and writes the result back onto this canvas block. Double-click
@@ -2912,7 +2914,7 @@ export default function StudioPage() {
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
-                Start or cancel linking; click the source again to cancel
+                Start or cancel linking; invalid targets keep Link mode active
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
