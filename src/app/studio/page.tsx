@@ -31,7 +31,9 @@ import {
   createTextBlock,
   createVideoBlock,
   duplicateBlock,
+  describeEdgeLinkFailure,
   edgeLinkFailureReason,
+  edgeLinkSummary,
   fitProjectInViewport,
   insertAssetBlock,
   loadProjectLocal,
@@ -983,6 +985,10 @@ export default function StudioPage() {
   const selectedLinkSummary = useMemo(
     () => (selected ? blockLinkSummary(project, selected.id) : null),
     [project, selected],
+  );
+  const selectedEdgeSummary = useMemo(
+    () => (selectedEdgeId ? edgeLinkSummary(project, selectedEdgeId) : null),
+    [project, selectedEdgeId],
   );
   const projectCanvasStats = useMemo(
     () => ({
@@ -2880,11 +2886,7 @@ export default function StudioPage() {
                     ? isLinkSource
                       ? `${block.title}, link source. Activate to cancel linking.`
                       : isInvalidLinkTarget
-                        ? `Cannot link ${linkSourceBlock.title} to ${block.title}: ${
-                            linkTargetFailure === "duplicate"
-                              ? "link already exists"
-                              : "would create a workflow cycle"
-                          }`
+                        ? `Cannot link ${linkSourceBlock.title} to ${block.title}: ${describeEdgeLinkFailure(linkTargetFailure)}`
                         : `Link ${linkSourceBlock.title} to ${block.title}. Shift+activate to use as link source instead.`
                     : block.title
                 }
@@ -3654,12 +3656,14 @@ export default function StudioPage() {
         <aside className="flex w-80 shrink-0 flex-col border-l border-slate-800 bg-slate-900">
           <div className="border-b border-slate-800 px-4 py-3">
             <h2 className="text-sm font-semibold">
-              {selected ? "Block params" : "New dialogue"}
+              {selected ? "Block params" : selectedEdgeSummary ? "Flow link" : "New dialogue"}
             </h2>
             <p className="mt-1 text-xs text-slate-500">
               {selected
                 ? "Edit this block on the right; canvas stays result-focused."
-                : "Select a block to edit params, or add a block from the toolbar."}
+                : selectedEdgeSummary
+                  ? "Review or remove the selected workflow link."
+                  : "Select a block to edit params, or add a block from the toolbar."}
             </p>
           </div>
 
@@ -3838,6 +3842,54 @@ export default function StudioPage() {
                     </ol>
                   </div>
                 )}
+              </div>
+            ) : selectedEdgeSummary ? (
+              <div className="space-y-4 text-xs">
+                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                  <p className="font-medium text-slate-300">Workflow link</p>
+                  <p className="mt-2 text-slate-400">
+                    <span className="font-semibold text-slate-200">
+                      {selectedEdgeSummary.sourceTitle}
+                    </span>
+                    {" → "}
+                    <span className="font-semibold text-slate-200">
+                      {selectedEdgeSummary.targetTitle}
+                    </span>
+                  </p>
+                  <p className="mt-2 text-slate-500">
+                    Directed edge between blocks on the workflow canvas. Press Delete or use the
+                    toolbar to remove.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deleteSelectedEdge()}
+                  className="w-full rounded-lg border border-rose-500/40 px-3 py-2 text-sm text-rose-200 hover:bg-rose-950/40"
+                >
+                  Delete link
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(selectedEdgeSummary.sourceBlockId);
+                      setSelectedEdgeId(null);
+                    }}
+                    className="flex-1 rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-sky-500/60"
+                  >
+                    Edit source
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(selectedEdgeSummary.targetBlockId);
+                      setSelectedEdgeId(null);
+                    }}
+                    className="flex-1 rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-sky-500/60"
+                  >
+                    Edit target
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

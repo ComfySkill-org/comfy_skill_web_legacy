@@ -458,6 +458,15 @@ export function alignProjectBlocksToGrid(
 /** Add a flow edge if both blocks exist and it keeps the workflow acyclic. */
 export type EdgeLinkFailureReason = "duplicate" | "cycle";
 
+export function describeEdgeLinkFailure(reason: EdgeLinkFailureReason): string {
+  switch (reason) {
+    case "duplicate":
+      return "link already exists";
+    case "cycle":
+      return "would create a workflow cycle";
+  }
+}
+
 export function edgeLinkFailureReason(
   project: CanvasProject,
   sourceBlockId: string,
@@ -495,6 +504,29 @@ export function blockLinkSummary(
   }
 
   return { incoming, outgoing };
+}
+
+export function edgeLinkSummary(
+  project: CanvasProject,
+  edgeId: string,
+): {
+  sourceTitle: string;
+  targetTitle: string;
+  sourceBlockId: string;
+  targetBlockId: string;
+} | null {
+  const edge = project.edges.find((item) => item.id === edgeId);
+  if (!edge) return null;
+  const titleById = new Map(project.blocks.map((block) => [block.id, block.title]));
+  const sourceTitle = titleById.get(edge.sourceBlockId);
+  const targetTitle = titleById.get(edge.targetBlockId);
+  if (!sourceTitle || !targetTitle) return null;
+  return {
+    sourceTitle,
+    targetTitle,
+    sourceBlockId: edge.sourceBlockId,
+    targetBlockId: edge.targetBlockId,
+  };
 }
 
 export function blockLinkCounts(
