@@ -2284,8 +2284,8 @@ export default function StudioPage() {
                 generateError ? "top-16" : "top-4"
               }`}
             >
-              Linking from {linkSourceBlock.title} — choose a target block (Shift+click to
-              change source)
+              Linking from {linkSourceBlock.title} — choose a highlighted target block (Shift+click
+              to change source)
             </div>
           )}
           {viewMode === "storyboard" ? (
@@ -2552,6 +2552,14 @@ export default function StudioPage() {
           {project.blocks.map((block) => {
             const active = block.id === selectedId;
             const isLinkSource = block.id === linkSourceId;
+            const linkTargetFailure =
+              linkSourceId && !isLinkSource
+                ? edgeLinkFailureReason(project, linkSourceId, block.id)
+                : null;
+            const isValidLinkTarget = Boolean(
+              linkSourceId && !isLinkSource && !linkTargetFailure,
+            );
+            const isInvalidLinkTarget = Boolean(linkSourceId && linkTargetFailure);
             return (
               <div
                 key={block.id}
@@ -2564,7 +2572,13 @@ export default function StudioPage() {
                   linkSourceBlock
                     ? isLinkSource
                       ? `${block.title}, link source. Activate to cancel linking.`
-                      : `Link ${linkSourceBlock.title} to ${block.title}. Shift+activate to use as link source instead.`
+                      : isInvalidLinkTarget
+                        ? `Cannot link ${linkSourceBlock.title} to ${block.title}: ${
+                            linkTargetFailure === "duplicate"
+                              ? "link already exists"
+                              : "would create a workflow cycle"
+                          }`
+                        : `Link ${linkSourceBlock.title} to ${block.title}. Shift+activate to use as link source instead.`
                     : block.title
                 }
                 className={`absolute rounded-lg border text-left shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50 ${
@@ -2574,7 +2588,11 @@ export default function StudioPage() {
                     ? "border-amber-400 ring-2 ring-amber-400/40"
                     : active
                       ? "border-sky-400 ring-2 ring-sky-400/40"
-                    : "border-slate-700 hover:border-slate-500"
+                      : isValidLinkTarget
+                        ? "border-sky-500/70 ring-1 ring-sky-400/35"
+                        : isInvalidLinkTarget
+                          ? "border-rose-500/40 opacity-80"
+                          : "border-slate-700 hover:border-slate-500"
                 } bg-slate-900/95`}
                 style={{
                   left: block.x,
@@ -3855,9 +3873,10 @@ export default function StudioPage() {
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
-                Start or cancel linking in workflow view; duplicate links and cycles report
-                specific canvas errors while Link mode stays active; Shift+click or Shift+Enter
-                on a block to change the link source
+                Start or cancel linking in workflow view; valid targets highlight in sky blue and
+                invalid targets fade in rose; duplicate links and cycles report specific canvas
+                errors while Link mode stays active; Shift+click or Shift+Enter on a block to
+                change the link source
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
