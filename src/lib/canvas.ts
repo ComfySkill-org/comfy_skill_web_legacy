@@ -529,6 +529,35 @@ export function edgeLinkSummary(
   };
 }
 
+export function blockEdgeSummaries(
+  project: CanvasProject,
+  blockId: string,
+): { edgeId: string; direction: "incoming" | "outgoing"; neighborTitle: string }[] {
+  const titleById = new Map(project.blocks.map((block) => [block.id, block.title]));
+  const summaries: {
+    edgeId: string;
+    direction: "incoming" | "outgoing";
+    neighborTitle: string;
+  }[] = [];
+
+  for (const edge of project.edges) {
+    if (edge.targetBlockId === blockId) {
+      const neighborTitle = titleById.get(edge.sourceBlockId);
+      if (neighborTitle) {
+        summaries.push({ edgeId: edge.id, direction: "incoming", neighborTitle });
+      }
+    }
+    if (edge.sourceBlockId === blockId) {
+      const neighborTitle = titleById.get(edge.targetBlockId);
+      if (neighborTitle) {
+        summaries.push({ edgeId: edge.id, direction: "outgoing", neighborTitle });
+      }
+    }
+  }
+
+  return summaries;
+}
+
 export function blockLinkCounts(
   project: CanvasProject,
   blockId: string,

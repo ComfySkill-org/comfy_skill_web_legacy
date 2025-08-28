@@ -20,6 +20,7 @@ import {
   BLOCK_STATUS_META,
   BLOCK_TYPE_LABELS,
   blockResultSummary,
+  blockEdgeSummaries,
   blockLinkSummary,
   blockLinkCounts,
   formatBlockLinkCounts,
@@ -985,6 +986,10 @@ export default function StudioPage() {
   );
   const selectedLinkSummary = useMemo(
     () => (selected ? blockLinkSummary(project, selected.id) : null),
+    [project, selected],
+  );
+  const selectedBlockEdges = useMemo(
+    () => (selected ? blockEdgeSummaries(project, selected.id) : []),
     [project, selected],
   );
   const selectedEdgeSummary = useMemo(
@@ -3721,6 +3726,31 @@ export default function StudioPage() {
                           </p>
                         )}
                       </div>
+                    )}
+                    {selectedBlockEdges.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {selectedBlockEdges.map(({ edgeId, direction, neighborTitle }) => (
+                          <li
+                            key={edgeId}
+                            className="flex items-center justify-between gap-2 text-slate-500"
+                          >
+                            <span>
+                              {direction === "incoming" ? "←" : "→"} {neighborTitle}
+                            </span>
+                            {viewMode === "workflow" && (
+                              <button
+                                type="button"
+                                className="text-rose-300 hover:text-rose-200"
+                                onClick={() =>
+                                  commitChange((prev) => removeEdge(prev, edgeId))
+                                }
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                     {viewMode === "workflow" ? (
                       <button
