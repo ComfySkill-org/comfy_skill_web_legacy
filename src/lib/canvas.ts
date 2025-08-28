@@ -523,6 +523,23 @@ export function formatBlockLinkCounts(counts: {
   return parts.join(" ");
 }
 
+export function countLinkTargets(
+  project: CanvasProject,
+  sourceBlockId: string,
+): { valid: number; invalid: number } {
+  let valid = 0;
+  let invalid = 0;
+
+  for (const block of project.blocks) {
+    if (block.id === sourceBlockId) continue;
+    const failure = edgeLinkFailureReason(project, sourceBlockId, block.id);
+    if (failure) invalid += 1;
+    else valid += 1;
+  }
+
+  return { valid, invalid };
+}
+
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,

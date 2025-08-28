@@ -26,6 +26,7 @@ import {
   canvasProjectToApiPut,
   clearProjectLocal,
   createImageBlock,
+  countLinkTargets,
   createStarterProject,
   createTextBlock,
   createVideoBlock,
@@ -1001,6 +1002,11 @@ export default function StudioPage() {
   const linkSourceBlock = useMemo(
     () => project.blocks.find((block) => block.id === linkSourceId) ?? null,
     [project.blocks, linkSourceId],
+  );
+  const linkTargetCounts = useMemo(
+    () =>
+      linkSourceId ? countLinkTargets(project, linkSourceId) : { valid: 0, invalid: 0 },
+    [project, linkSourceId],
   );
   selectedIdRef.current = selectedId;
   selectedEdgeIdRef.current = selectedEdgeId;
@@ -2488,8 +2494,14 @@ export default function StudioPage() {
                 generateError ? "top-16" : "top-4"
               }`}
             >
-              Linking from {linkSourceBlock.title} — choose a highlighted target block (Shift+click
-              to change source)
+              Linking from {linkSourceBlock.title} — {linkTargetCounts.valid} valid target
+              {linkTargetCounts.valid === 1 ? "" : "s"}
+              {linkTargetCounts.invalid > 0 && (
+                <>
+                  , {linkTargetCounts.invalid} blocked (duplicate or cycle)
+                </>
+              )}
+              . Choose a highlighted block (Shift+click to change source)
             </div>
           )}
           {snapToGrid &&
