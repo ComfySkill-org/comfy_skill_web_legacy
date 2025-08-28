@@ -1655,16 +1655,22 @@ export default function StudioPage() {
       }
       const failure = edgeLinkFailureReason(projectRef.current, sourceId, blockId);
       if (failure) {
-        setGenerateError(
-          failure === "duplicate"
-            ? "That link already exists between these blocks."
-            : "That link would create a workflow cycle.",
-        );
+        setGenerateError(`That link ${describeEdgeLinkFailure(failure)}.`);
         return;
       }
+      const sourceTitle =
+        projectRef.current.blocks.find((block) => block.id === sourceId)?.title ?? "block";
+      const targetTitle =
+        projectRef.current.blocks.find((block) => block.id === blockId)?.title ?? "block";
       commitChange(() => addEdgeBetween(projectRef.current, sourceId, blockId));
       linkSourceIdRef.current = null;
       setLinkSourceId(null);
+      setProjectFileNotice(`Linked ${sourceTitle} → ${targetTitle}.`);
+      window.setTimeout(() => {
+        setProjectFileNotice((current) =>
+          current === `Linked ${sourceTitle} → ${targetTitle}.` ? "" : current,
+        );
+      }, 3000);
     }
   }
 
@@ -3692,7 +3698,7 @@ export default function StudioPage() {
                     onChange={(e) => updateSelected({ title: e.target.value })}
                   />
                 </label>
-                {viewMode === "workflow" && selectedLinkSummary && (
+                {selectedLinkSummary && (
                   <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs">
                     <p className="font-medium text-slate-300">Flow links</p>
                     {selectedLinkSummary.incoming.length === 0 &&
@@ -3716,17 +3722,23 @@ export default function StudioPage() {
                         )}
                       </div>
                     )}
-                    <button
-                      type="button"
-                      className={`mt-2 rounded border px-2 py-1 text-[11px] font-medium ${
-                        linkSourceId === selected.id
-                          ? "border-amber-500/50 text-amber-300"
-                          : "border-slate-700 text-slate-300 hover:border-slate-500"
-                      }`}
-                      onClick={() => startLinkMode()}
-                    >
-                      {linkSourceId === selected.id ? "Cancel linking" : "Link from this block"}
-                    </button>
+                    {viewMode === "workflow" ? (
+                      <button
+                        type="button"
+                        className={`mt-2 rounded border px-2 py-1 text-[11px] font-medium ${
+                          linkSourceId === selected.id
+                            ? "border-amber-500/50 text-amber-300"
+                            : "border-slate-700 text-slate-300 hover:border-slate-500"
+                        }`}
+                        onClick={() => startLinkMode()}
+                      >
+                        {linkSourceId === selected.id ? "Cancel linking" : "Link from this block"}
+                      </button>
+                    ) : (
+                      <p className="mt-2 text-slate-500">
+                        Switch to workflow view to create or edit canvas links.
+                      </p>
+                    )}
                   </div>
                 )}
                 {selected.type === "text" && (
