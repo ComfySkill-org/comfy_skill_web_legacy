@@ -23,6 +23,7 @@ import {
   blockLinkSummary,
   blockLinkCounts,
   formatBlockLinkCounts,
+  formatLinkTargetCounts,
   canvasProjectToApiPut,
   clearProjectLocal,
   createImageBlock,
@@ -3368,12 +3369,15 @@ export default function StudioPage() {
                       : "Start link mode (L); exits Hand mode"
               }
             >
-              {linkSourceId ? "Pick target…" : "Link"}
+              {linkSourceId
+                ? `Pick · ${formatLinkTargetCounts(linkTargetCounts)}`
+                : "Link"}
             </button>
             {linkSourceBlock && (
               <span role="status" aria-live="polite" className="sr-only">
-                Linking from {linkSourceBlock.title}. Choose a target block, Shift+activate
-                another block to change the source, or activate the source again to cancel.
+                Linking from {linkSourceBlock.title}. {formatLinkTargetCounts(linkTargetCounts)}{" "}
+                targets. Choose a target block, Shift+activate another block to change the source,
+                or activate the source again to cancel.
               </span>
             )}
             <button

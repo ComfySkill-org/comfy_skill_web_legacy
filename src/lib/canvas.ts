@@ -572,6 +572,12 @@ export function countLinkTargets(
   return { valid, invalid };
 }
 
+export function formatLinkTargetCounts(counts: { valid: number; invalid: number }): string {
+  const parts = [`${counts.valid} valid`];
+  if (counts.invalid > 0) parts.push(`${counts.invalid} blocked`);
+  return parts.join(", ");
+}
+
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,
