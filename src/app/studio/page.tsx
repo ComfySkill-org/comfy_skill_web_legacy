@@ -1477,9 +1477,14 @@ export default function StudioPage() {
   }
 
   function centerSelectedBlock() {
+    const blockId = selectedIdRef.current;
+    if (blockId) centerBlockById(blockId);
+  }
+
+  function centerBlockById(blockId: string) {
     const canvas = canvasMainRef.current;
     const current = projectRef.current;
-    const block = current.blocks.find((item) => item.id === selectedIdRef.current);
+    const block = current.blocks.find((item) => item.id === blockId);
     if (!canvas || !block) return;
     const x =
       canvas.clientWidth / 2 -
@@ -1945,7 +1950,7 @@ export default function StudioPage() {
                 role="button"
                 tabIndex={0}
                 aria-pressed={active}
-                aria-keyshortcuts="Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
+                aria-keyshortcuts="C Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -2005,6 +2010,18 @@ export default function StudioPage() {
                   };
                 }}
                 onKeyDown={(e) => {
+                  if (
+                    e.key.toLowerCase() === "c" &&
+                    !e.metaKey &&
+                    !e.ctrlKey &&
+                    !e.altKey
+                  ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedId(block.id);
+                    centerBlockById(block.id);
+                    return;
+                  }
                   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
                     e.preventDefault();
                     e.stopPropagation();
@@ -3113,7 +3130,7 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">F</dt>
               <dd className="text-slate-500">Fit all workflow blocks in view</dd>
               <dt className="font-medium text-slate-300">C</dt>
-              <dd className="text-slate-500">Center the selected workflow block</dd>
+              <dd className="text-slate-500">Center the selected or focused workflow block</dd>
               <dt className="font-medium text-slate-300">Home</dt>
               <dd className="text-slate-500">Reset workflow canvas pan</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
