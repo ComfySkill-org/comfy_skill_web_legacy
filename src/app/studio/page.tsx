@@ -542,6 +542,11 @@ export default function StudioPage() {
           updatePanTool(false);
           return;
         }
+        if (linkSourceIdRef.current) {
+          e.preventDefault();
+          cancelLinkMode();
+          return;
+        }
         setSelectedId(null);
         setSelectedEdgeId(null);
         setLinkSourceId(null);
@@ -1455,11 +1460,16 @@ export default function StudioPage() {
     if (next !== projectRef.current) setProject(next);
   }
 
+  function cancelLinkMode() {
+    if (!linkSourceIdRef.current) return;
+    linkSourceIdRef.current = null;
+    setLinkSourceId(null);
+    setGenerateError("");
+  }
+
   function startLinkMode() {
     if (linkSourceIdRef.current) {
-      linkSourceIdRef.current = null;
-      setLinkSourceId(null);
-      setGenerateError("");
+      cancelLinkMode();
       return;
     }
     const sourceId = selectedIdRef.current;
@@ -1934,6 +1944,7 @@ export default function StudioPage() {
           onClick={() => {
             if (panToolActiveRef.current) return;
             if (consumeSuppressedCanvasClick()) return;
+            cancelLinkMode();
             setSelectedId(null);
             setSelectedEdgeId(null);
           }}
@@ -3517,7 +3528,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Select or remove a focused workflow link</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
               <dd className="text-slate-500">
-                Leave the toolbar, cancel a gesture, dismiss errors, or close overlays
+                Leave the toolbar, cancel a gesture, dismiss errors, exit Link mode, or close
+                overlays
               </dd>
             </dl>
           </div>
