@@ -1280,6 +1280,21 @@ export default function StudioPage() {
     }
   }
 
+  function syncBlockFocusSelection(blockId: string) {
+    if (panToolActiveRef.current || linkSourceIdRef.current) return;
+    if (selectedIdRef.current === blockId && !selectedEdgeIdRef.current) return;
+    setSelectedId(blockId);
+    setSelectedEdgeId(null);
+    setGenerateError("");
+  }
+
+  function syncEdgeFocusSelection(edgeId: string) {
+    if (panToolActiveRef.current) return;
+    if (selectedEdgeIdRef.current === edgeId && !selectedIdRef.current) return;
+    setSelectedId(null);
+    setSelectedEdgeId(edgeId);
+  }
+
   function startLinkMode() {
     if (linkSourceIdRef.current) {
       linkSourceIdRef.current = null;
@@ -1900,12 +1915,13 @@ export default function StudioPage() {
                     stroke="transparent"
                     strokeWidth={12}
                     fill="none"
-                    tabIndex={0}
+                    tabIndex={panToolActive ? -1 : 0}
                     role="button"
                     aria-label={`Link from ${src.title} to ${tgt.title}`}
                     aria-pressed={selected}
                     aria-keyshortcuts="Enter Space Delete Backspace"
                     className="pointer-events-auto cursor-pointer focus-visible:stroke-sky-300/30 focus-visible:outline-none"
+                    onFocus={() => syncEdgeFocusSelection(edge.id)}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (panToolActiveRef.current) return;
@@ -1964,7 +1980,7 @@ export default function StudioPage() {
                 key={block.id}
                 data-block-id={block.id}
                 role="button"
-                tabIndex={0}
+                tabIndex={panToolActive ? -1 : 0}
                 aria-pressed={active}
                 aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight C Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
                 aria-label={
@@ -1974,7 +1990,7 @@ export default function StudioPage() {
                       : `Link ${linkSourceBlock.title} to ${block.title}`
                     : block.title
                 }
-                className={`absolute rounded-lg border text-left shadow-lg transition ${
+                className={`absolute rounded-lg border text-left shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50 ${
                   linkSourceId ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"
                 } ${
                   isLinkSource
@@ -1989,6 +2005,7 @@ export default function StudioPage() {
                   width: block.width,
                   height: block.height,
                 }}
+                onFocus={() => syncBlockFocusSelection(block.id)}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (panToolActiveRef.current) return;
@@ -3190,6 +3207,10 @@ export default function StudioPage() {
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
               <dd className="text-slate-500">Remove the selected or focused block</dd>
+              <dt className="font-medium text-slate-300">Tab</dt>
+              <dd className="text-slate-500">
+                Move focus between workflow blocks and links; selection follows focus
+              </dd>
               <dt className="font-medium text-slate-300">Tab + Enter / Delete</dt>
               <dd className="text-slate-500">Select or remove a focused workflow link</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
