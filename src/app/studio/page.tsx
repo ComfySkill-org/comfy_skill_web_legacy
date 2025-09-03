@@ -35,6 +35,7 @@ import {
   resetViewportPan,
   resetWorkflowViewport,
   revealBlockInViewport,
+  revealEdgeInViewport,
   saveProjectLocal,
   setViewMode,
   unlinkBlock,
@@ -1320,9 +1321,19 @@ export default function StudioPage() {
 
   function syncEdgeFocusSelection(edgeId: string) {
     if (panToolActiveRef.current) return;
-    if (selectedEdgeIdRef.current === edgeId && !selectedIdRef.current) return;
-    setSelectedId(null);
-    setSelectedEdgeId(edgeId);
+    if (selectedEdgeIdRef.current !== edgeId || selectedIdRef.current) {
+      setSelectedId(null);
+      setSelectedEdgeId(edgeId);
+    }
+    const canvas = canvasMainRef.current;
+    if (!canvas || viewModeRef.current !== "workflow") return;
+    const next = revealEdgeInViewport(
+      projectRef.current,
+      edgeId,
+      canvas.clientWidth,
+      canvas.clientHeight,
+    );
+    if (next !== projectRef.current) setProject(next);
   }
 
   function startLinkMode() {
@@ -3332,7 +3343,7 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Tab</dt>
               <dd className="text-slate-500">
                 Move focus between workflow blocks and links; selection follows focus and
-                off-screen blocks pan into view
+                off-screen items pan into view
               </dd>
               <dt className="font-medium text-slate-300">Tab + Enter / Delete</dt>
               <dd className="text-slate-500">Select or remove a focused workflow link</dd>

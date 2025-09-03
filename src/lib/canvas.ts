@@ -609,23 +609,25 @@ export function fitProjectInViewport(
   };
 }
 
-/** Pan just enough to keep one block visible without changing zoom. */
-export function revealBlockInViewport(
+/** Pan just enough to keep canvas bounds visible without changing zoom. */
+function revealBoundsInViewport(
   project: CanvasProject,
-  blockId: string,
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
   viewportWidth: number,
   viewportHeight: number,
   padding = 32,
 ): CanvasProject {
-  const block = project.blocks.find((item) => item.id === blockId);
-  if (!block || viewportWidth <= 0 || viewportHeight <= 0) return project;
+  if (viewportWidth <= 0 || viewportHeight <= 0) return project;
 
   const { x: vx, y: vy, zoom } = project.viewport;
   const z = zoom || 1;
-  const left = block.x * z + vx;
-  const top = block.y * z + vy;
-  const right = (block.x + block.width) * z + vx;
-  const bottom = (block.y + block.height) * z + vy;
+  const left = minX * z + vx;
+  const top = minY * z + vy;
+  const right = maxX * z + vx;
+  const bottom = maxY * z + vy;
 
   let nextX = vx;
   let nextY = vy;
@@ -648,6 +650,53 @@ export function revealBlockInViewport(
     ...project,
     viewport: { ...project.viewport, x: nextX, y: nextY },
   };
+}
+
+/** Pan just enough to keep one block visible without changing zoom. */
+export function revealBlockInViewport(
+  project: CanvasProject,
+  blockId: string,
+  viewportWidth: number,
+  viewportHeight: number,
+  padding = 32,
+): CanvasProject {
+  const block = project.blocks.find((item) => item.id === blockId);
+  if (!block) return project;
+  return revealBoundsInViewport(
+    project,
+    block.x,
+    block.y,
+    block.x + block.width,
+    block.y + block.height,
+    viewportWidth,
+    viewportHeight,
+    padding,
+  );
+}
+
+/** Pan just enough to keep a workflow link and its blocks visible without changing zoom. */
+export function revealEdgeInViewport(
+  project: CanvasProject,
+  edgeId: string,
+  viewportWidth: number,
+  viewportHeight: number,
+  padding = 32,
+): CanvasProject {
+  const edge = project.edges.find((item) => item.id === edgeId);
+  if (!edge) return project;
+  const src = project.blocks.find((block) => block.id === edge.sourceBlockId);
+  const tgt = project.blocks.find((block) => block.id === edge.targetBlockId);
+  if (!src || !tgt) return project;
+  return revealBoundsInViewport(
+    project,
+    Math.min(src.x, tgt.x),
+    Math.min(src.y, tgt.y),
+    Math.max(src.x + src.width, tgt.x + tgt.width),
+    Math.max(src.y + src.height, tgt.y + tgt.height),
+    viewportWidth,
+    viewportHeight,
+    padding,
+  );
 }
 
 /** Read-only summary for the result inspect overlay (PRD-legacy C12). */
