@@ -599,6 +599,47 @@ export function fitProjectInViewport(
   };
 }
 
+/** Pan just enough to keep one block visible without changing zoom. */
+export function revealBlockInViewport(
+  project: CanvasProject,
+  blockId: string,
+  viewportWidth: number,
+  viewportHeight: number,
+  padding = 32,
+): CanvasProject {
+  const block = project.blocks.find((item) => item.id === blockId);
+  if (!block || viewportWidth <= 0 || viewportHeight <= 0) return project;
+
+  const { x: vx, y: vy, zoom } = project.viewport;
+  const z = zoom || 1;
+  const left = block.x * z + vx;
+  const top = block.y * z + vy;
+  const right = (block.x + block.width) * z + vx;
+  const bottom = (block.y + block.height) * z + vy;
+
+  let nextX = vx;
+  let nextY = vy;
+
+  if (left < padding) {
+    nextX += padding - left;
+  } else if (right > viewportWidth - padding) {
+    nextX -= right - (viewportWidth - padding);
+  }
+
+  if (top < padding) {
+    nextY += padding - top;
+  } else if (bottom > viewportHeight - padding) {
+    nextY -= bottom - (viewportHeight - padding);
+  }
+
+  if (nextX === vx && nextY === vy) return project;
+
+  return {
+    ...project,
+    viewport: { ...project.viewport, x: nextX, y: nextY },
+  };
+}
+
 /** Read-only summary for the result inspect overlay (PRD-legacy C12). */
 export function blockResultSummary(block: CanvasBlock): {
   title: string;
