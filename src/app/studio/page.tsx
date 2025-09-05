@@ -1499,6 +1499,22 @@ export default function StudioPage() {
     }));
   }
 
+  function nudgeBlockById(
+    blockId: string,
+    dx: number,
+    dy: number,
+    recordHistory: boolean,
+  ) {
+    if (dx === 0 && dy === 0) return;
+    if (recordHistory) {
+      historyRef.current.record(projectRef.current);
+      setHistoryTick((n) => n + 1);
+    }
+    setSelectedId(blockId);
+    setSelectedEdgeId(null);
+    setProject((prev) => nudgeBlock(prev, blockId, dx, dy));
+  }
+
   function resetWorkflowPan() {
     const viewport = projectRef.current.viewport;
     if (viewport.x === 0 && viewport.y === 0) return;
@@ -1950,7 +1966,7 @@ export default function StudioPage() {
                 role="button"
                 tabIndex={0}
                 aria-pressed={active}
-                aria-keyshortcuts="C Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
+                aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight C Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -2010,6 +2026,30 @@ export default function StudioPage() {
                   };
                 }}
                 onKeyDown={(e) => {
+                  const arrow =
+                    e.key === "ArrowLeft" ||
+                    e.key === "ArrowRight" ||
+                    e.key === "ArrowUp" ||
+                    e.key === "ArrowDown";
+                  if (arrow && viewModeRef.current === "workflow") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const step = e.shiftKey ? 20 : 4;
+                    const dx =
+                      e.key === "ArrowLeft"
+                        ? -step
+                        : e.key === "ArrowRight"
+                          ? step
+                          : 0;
+                    const dy =
+                      e.key === "ArrowUp"
+                        ? -step
+                        : e.key === "ArrowDown"
+                          ? step
+                          : 0;
+                    nudgeBlockById(block.id, dx, dy, !e.repeat);
+                    return;
+                  }
                   if (
                     e.key.toLowerCase() === "c" &&
                     !e.metaKey &&
@@ -3135,7 +3175,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Reset workflow canvas pan</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
-                Nudge in workflow; navigate storyboard; browse retained outputs in result detail
+                Nudge the selected or focused workflow block; navigate storyboard; browse
+                retained outputs in result detail
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>
