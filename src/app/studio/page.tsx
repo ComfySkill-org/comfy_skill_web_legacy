@@ -692,6 +692,21 @@ export default function StudioPage() {
         return;
       }
       if (
+        e.key.toLowerCase() === "i" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !isTypingTarget(e.target)
+      ) {
+        const blockId = resolveFocusedWorkflowBlockId() ?? selectedIdRef.current;
+        if (!blockId) return;
+        e.preventDefault();
+        openBlockInspect(blockId);
+        return;
+      }
+      if (
         e.key.toLowerCase() === "h" &&
         viewModeRef.current === "workflow" &&
         !e.metaKey &&
@@ -1812,6 +1827,21 @@ export default function StudioPage() {
     if (blockId) centerBlockById(blockId);
   }
 
+  function openBlockInspect(blockId: string) {
+    setSelectedId(blockId);
+    setSelectedEdgeId(null);
+    setGenerateError("");
+    setInspectId(blockId);
+  }
+
+  function resolveFocusedWorkflowBlockId(): string | null {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return null;
+    const blockEl = active.closest("[data-block-id]");
+    if (!(blockEl instanceof HTMLElement)) return null;
+    return blockEl.dataset.blockId ?? null;
+  }
+
   function centerBlockById(blockId: string) {
     const canvas = canvasMainRef.current;
     const current = projectRef.current;
@@ -2400,7 +2430,7 @@ export default function StudioPage() {
                 role="button"
                 tabIndex={panToolActive ? -1 : 0}
                 aria-pressed={active}
-                aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight C Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
+                aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight C I Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -2497,6 +2527,17 @@ export default function StudioPage() {
                     centerBlockById(block.id);
                     return;
                   }
+                  if (
+                    e.key.toLowerCase() === "i" &&
+                    !e.metaKey &&
+                    !e.ctrlKey &&
+                    !e.altKey
+                  ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openBlockInspect(block.id);
+                    return;
+                  }
                   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
                     e.preventDefault();
                     e.stopPropagation();
@@ -2526,8 +2567,7 @@ export default function StudioPage() {
                   ) {
                     e.preventDefault();
                     e.stopPropagation();
-                    selectBlock(block.id);
-                    setInspectId(block.id);
+                    openBlockInspect(block.id);
                     return;
                   }
                   if (e.key === "Enter" || e.key === " ") {
@@ -3718,6 +3758,10 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">C</dt>
               <dd className="text-slate-500">Center the selected or focused workflow block</dd>
+              <dt className="font-medium text-slate-300">I</dt>
+              <dd className="text-slate-500">
+                Inspect the selected or focused workflow block result overlay
+              </dd>
               <dt className="font-medium text-slate-300">Home</dt>
               <dd className="text-slate-500">
                 Reset workflow canvas pan; disabled when already at the origin
