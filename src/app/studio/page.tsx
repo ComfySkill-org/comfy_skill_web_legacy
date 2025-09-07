@@ -1945,7 +1945,7 @@ export default function StudioPage() {
                 role="button"
                 tabIndex={0}
                 aria-pressed={active}
-                aria-keyshortcuts="Enter Space Delete Backspace Meta+D Control+D"
+                aria-keyshortcuts="Enter Shift+Enter Space Delete Backspace Meta+D Control+D"
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -2031,6 +2031,17 @@ export default function StudioPage() {
                     }
                     if (inspectIdRef.current === block.id) setInspectId(null);
                     requestAnimationFrame(() => canvasMainRef.current?.focus());
+                    return;
+                  }
+                  if (
+                    e.key === "Enter" &&
+                    e.shiftKey &&
+                    !linkSourceIdRef.current
+                  ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectBlock(block.id);
+                    setInspectId(block.id);
                     return;
                   }
                   if (e.key === "Enter" || e.key === " ") {
@@ -3115,6 +3126,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Focus the canvas toolbar</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
+              <dt className="font-medium text-slate-300">Shift + Enter</dt>
+              <dd className="text-slate-500">Inspect the focused workflow block</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
