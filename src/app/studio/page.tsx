@@ -744,18 +744,24 @@ export default function StudioPage() {
       }
       if (
         e.key.toLowerCase() === "i" &&
-        viewModeRef.current === "workflow" &&
         !e.metaKey &&
         !e.ctrlKey &&
         !e.altKey &&
         !e.repeat &&
         !isTypingTarget(e.target)
       ) {
-        const blockId = resolveFocusedWorkflowBlockId() ?? selectedIdRef.current;
-        if (!blockId) return;
-        e.preventDefault();
-        openBlockInspect(blockId);
-        return;
+        if (viewModeRef.current === "storyboard" && selectedIdRef.current) {
+          e.preventDefault();
+          openBlockInspect(selectedIdRef.current);
+          return;
+        }
+        if (viewModeRef.current === "workflow") {
+          const blockId = resolveFocusedWorkflowBlockId() ?? selectedIdRef.current;
+          if (!blockId) return;
+          e.preventDefault();
+          openBlockInspect(blockId);
+          return;
+        }
       }
       if (
         e.key.toLowerCase() === "h" &&
@@ -2436,7 +2442,7 @@ export default function StudioPage() {
                         outOfOrder ? ", outside main workflow order" : ""
                       }`}
                       aria-pressed={active}
-                      aria-keyshortcuts="Enter Shift+Enter O ArrowLeft ArrowRight Delete Backspace"
+                      aria-keyshortcuts="Enter Shift+Enter I O ArrowLeft ArrowRight Delete Backspace"
                       onClick={() => selectBlock(block.id)}
                       onDoubleClick={() => setInspectId(block.id)}
                       onKeyDown={(e) => {
@@ -4102,7 +4108,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Center the selected or focused workflow block</dd>
               <dt className="font-medium text-slate-300">I</dt>
               <dd className="text-slate-500">
-                Inspect the selected or focused workflow block result overlay
+                Inspect the selected or focused workflow block, or the selected storyboard card,
+                in the result overlay
               </dd>
               <dt className="font-medium text-slate-300">Home</dt>
               <dd className="text-slate-500">
