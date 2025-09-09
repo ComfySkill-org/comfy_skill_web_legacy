@@ -625,9 +625,48 @@ export function setViewMode(
   return { ...project, viewMode };
 }
 
-/** Storyboard order: left-to-right, then top-to-bottom. */
+/** Storyboard order follows workflow dependencies, with canvas position as a stable tie-breaker. */
 export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
-  return [...project.blocks].sort((a, b) => a.x - b.x || a.y - b.y);
+  const byPosition = (a: CanvasBlock, b: CanvasBlock) =>
+    a.x - b.x || a.y - b.y || a.id.localeCompare(b.id);
+  const blocksById = new Map(project.blocks.map((block) => [block.id, block]));
+  const incoming = new Map(project.blocks.map((block) => [block.id, 0]));
+  const outgoing = new Map<string, string[]>();
+
+  for (const edge of project.edges) {
+    if (!blocksById.has(edge.sourceBlockId) || !blocksById.has(edge.targetBlockId)) continue;
+    incoming.set(edge.targetBlockId, (incoming.get(edge.targetBlockId) ?? 0) + 1);
+    outgoing.set(edge.sourceBlockId, [
+      ...(outgoing.get(edge.sourceBlockId) ?? []),
+      edge.targetBlockId,
+    ]);
+  }
+
+  const available = project.blocks
+    .filter((block) => incoming.get(block.id) === 0)
+    .sort(byPosition);
+  const ordered: CanvasBlock[] = [];
+  const emitted = new Set<string>();
+  while (available.length > 0) {
+    const block = available.shift();
+    if (!block) continue;
+    ordered.push(block);
+    emitted.add(block.id);
+    for (const targetId of outgoing.get(block.id) ?? []) {
+      const nextIncoming = (incoming.get(targetId) ?? 0) - 1;
+      incoming.set(targetId, nextIncoming);
+      if (nextIncoming === 0) {
+        const target = blocksById.get(targetId);
+        if (target) {
+          available.push(target);
+          available.sort(byPosition);
+        }
+      }
+    }
+  }
+
+  const unresolved = project.blocks.filter((block) => !emitted.has(block.id)).sort(byPosition);
+  return [...ordered, ...unresolved];
 }
 
 export function cloneProject(project: CanvasProject): CanvasProject {
