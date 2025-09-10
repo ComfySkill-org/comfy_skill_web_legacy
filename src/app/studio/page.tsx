@@ -1122,6 +1122,18 @@ export default function StudioPage() {
     return shiftKey ? 20 : 4;
   }
 
+  function focusStoryboardCard(blockId: string) {
+    requestAnimationFrame(() => {
+      const card = document.getElementById(`storyboard-card-${blockId}`);
+      card?.focus({ preventScroll: true });
+      card?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    });
+  }
+
   function switchView(mode: StudioViewMode) {
     if ((project.viewMode ?? "workflow") === mode) return;
     if (mode === "storyboard") {
@@ -1130,6 +1142,19 @@ export default function StudioPage() {
       setLinkSourceId(null);
     }
     commitChange((prev) => setViewMode(prev, mode));
+    if (mode === "storyboard") {
+      const blocks = storyboardOrderedBlocks(projectRef.current);
+      if (blocks.length === 0) return;
+      const currentSelection = selectedIdRef.current;
+      const nextId =
+        currentSelection &&
+        blocks.some((block) => block.id === currentSelection)
+          ? currentSelection
+          : blocks[0].id;
+      setSelectedId(nextId);
+      setSelectedEdgeId(null);
+      focusStoryboardCard(nextId);
+    }
   }
 
   function focusWorkflowBlock(blockId: string) {
@@ -1449,6 +1474,9 @@ export default function StudioPage() {
     setSelectedId(blockId);
     setSelectedEdgeId(null);
     setGenerateError("");
+    if (viewModeRef.current === "storyboard") {
+      focusStoryboardCard(blockId);
+    }
     const sourceId = linkSourceIdRef.current;
     if (sourceId === blockId) {
       linkSourceIdRef.current = null;
@@ -3813,8 +3841,9 @@ export default function StudioPage() {
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
               <dt className="font-medium text-slate-300">Storyboard view</dt>
               <dd className="text-slate-500">
-                Cards follow workflow link order; amber Out of order badges mark cards outside
-                the main sequence, usually from cycles or missing links
+                Cards follow workflow link order; entering storyboard selects the first
+                workflow-ordered card or keeps the current shot in view; amber Out of order
+                badges mark cards outside the main sequence, usually from cycles or missing links
               </dd>
               <dt className="font-medium text-slate-300">Enter</dt>
               <dd className="text-slate-500">
