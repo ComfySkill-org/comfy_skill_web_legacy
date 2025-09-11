@@ -791,7 +791,10 @@ export function setViewMode(
 }
 
 /** Storyboard order follows workflow dependencies, with canvas position as a stable tie-breaker. */
-export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
+export function storyboardBlockLayout(project: CanvasProject): {
+  blocks: CanvasBlock[];
+  unresolvedBlockIds: ReadonlySet<string>;
+} {
   const byPosition = (a: CanvasBlock, b: CanvasBlock) =>
     a.x - b.x || a.y - b.y || a.id.localeCompare(b.id);
   const blocksById = new Map(project.blocks.map((block) => [block.id, block]));
@@ -831,7 +834,14 @@ export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
   }
 
   const unresolved = project.blocks.filter((block) => !emitted.has(block.id)).sort(byPosition);
-  return [...ordered, ...unresolved];
+  return {
+    blocks: [...ordered, ...unresolved],
+    unresolvedBlockIds: new Set(unresolved.map((block) => block.id)),
+  };
+}
+
+export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
+  return storyboardBlockLayout(project).blocks;
 }
 
 export function cloneProject(project: CanvasProject): CanvasProject {

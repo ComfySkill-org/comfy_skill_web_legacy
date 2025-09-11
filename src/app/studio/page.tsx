@@ -45,6 +45,7 @@ import {
   snapCanvasCoordinate,
   unlinkBlock,
   zoomViewportAt,
+  storyboardBlockLayout,
   storyboardOrderedBlocks,
   SKILL_TEMPLATES,
   type CanvasBlock,
@@ -993,10 +994,9 @@ export default function StudioPage() {
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
   viewModeRef.current = viewMode;
-  const storyboardBlocks = useMemo(
-    () => storyboardOrderedBlocks(project),
-    [project],
-  );
+  const storyboardLayout = useMemo(() => storyboardBlockLayout(project), [project]);
+  const storyboardBlocks = storyboardLayout.blocks;
+  const storyboardUnresolvedIds = storyboardLayout.unresolvedBlockIds;
   const storyboardPredecessors = useMemo(() => {
     const positions = new Map(storyboardBlocks.map((block, index) => [block.id, index + 1]));
     const incoming = new Map<string, number[]>();
@@ -2187,21 +2187,35 @@ export default function StudioPage() {
           )}
           {viewMode === "storyboard" ? (
             <div
-              className="flex h-full gap-4 overflow-x-auto px-6 py-8"
+              className="relative flex h-full gap-4 overflow-x-auto px-6 py-8"
               onClick={(e) => e.stopPropagation()}
             >
+              {storyboardUnresolvedIds.size > 0 && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="pointer-events-none absolute left-1/2 top-4 z-20 max-w-md -translate-x-1/2 rounded-lg border border-amber-500/40 bg-amber-950/90 px-4 py-2 text-center text-xs text-amber-100 shadow-xl"
+                >
+                  {storyboardUnresolvedIds.size} card
+                  {storyboardUnresolvedIds.size === 1 ? "" : "s"} sit outside the main workflow
+                  order — check for cycles or missing links
+                </div>
+              )}
               {storyboardBlocks.length === 0 ? (
                 <p className="text-sm text-slate-500">Add blocks to build the storyboard.</p>
               ) : (
                 storyboardBlocks.map((block, index) => {
                   const active = block.id === selectedId;
                   const predecessors = storyboardPredecessors.get(block.id) ?? [];
+                  const outOfOrder = storyboardUnresolvedIds.has(block.id);
                   return (
                     <button
                       key={block.id}
                       id={`storyboard-card-${block.id}`}
                       type="button"
-                      aria-label={`Storyboard card ${index + 1}, ${block.title}`}
+                      aria-label={`Storyboard card ${index + 1}, ${block.title}${
+                        outOfOrder ? ", outside main workflow order" : ""
+                      }`}
                       aria-pressed={active}
                       aria-keyshortcuts="Enter Shift+Enter O ArrowLeft ArrowRight Delete Backspace"
                       onClick={() => selectBlock(block.id)}
@@ -2262,14 +2276,26 @@ export default function StudioPage() {
                       className={`flex w-56 shrink-0 flex-col overflow-hidden rounded-xl border text-left shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 ${
                         active
                           ? "border-sky-400 ring-2 ring-sky-400/40"
-                          : "border-slate-700 hover:border-slate-500"
+                          : outOfOrder
+                            ? "border-amber-500/60 hover:border-amber-400/80"
+                            : "border-slate-700 hover:border-slate-500"
                       } bg-slate-900/95`}
                     >
                       <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
                         <span className="text-xs font-medium">
                           {index + 1}. {block.title}
                         </span>
-                        <span className="text-[10px] uppercase text-slate-500">{block.type}</span>
+                        <div className="flex items-center gap-2">
+                          {outOfOrder && (
+                            <span
+                              className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300"
+                              title="This card could not be placed in the main workflow order"
+                            >
+                              Out of order
+                            </span>
+                          )}
+                          <span className="text-[10px] uppercase text-slate-500">{block.type}</span>
+                        </div>
                       </div>
                       <div className="flex h-36 items-center justify-center bg-slate-950 p-2">
                         {block.mediaUrls[0] ? (
@@ -3785,6 +3811,11 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
+              <dt className="font-medium text-slate-300">Storyboard view</dt>
+              <dd className="text-slate-500">
+                Cards follow workflow link order; amber Out of order badges mark cards outside
+                the main sequence, usually from cycles or missing links
+              </dd>
               <dt className="font-medium text-slate-300">Enter</dt>
               <dd className="text-slate-500">
                 On a focused storyboard card, open the shot on the workflow canvas
