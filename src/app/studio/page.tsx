@@ -192,6 +192,9 @@ export default function StudioPage() {
   const spaceHeldRef = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
+  const [panToolActive, setPanToolActive] = useState(false);
+  const panToolActiveRef = useRef(false);
+  panToolActiveRef.current = panToolActive;
   const [snapToGrid, setSnapToGrid] = useState(false);
   const snapToGridRef = useRef(false);
   snapToGridRef.current = snapToGrid;
@@ -479,6 +482,11 @@ export default function StudioPage() {
           cancelCanvasGesture();
           return;
         }
+        if (panToolActiveRef.current) {
+          e.preventDefault();
+          setPanToolActive(false);
+          return;
+        }
         setSelectedId(null);
         setSelectedEdgeId(null);
         setLinkSourceId(null);
@@ -588,6 +596,19 @@ export default function StudioPage() {
       ) {
         e.preventDefault();
         centerSelectedBlock();
+        return;
+      }
+      if (
+        e.key.toLowerCase() === "h" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        setPanToolActive((active) => !active);
         return;
       }
       if (
@@ -1557,7 +1578,11 @@ export default function StudioPage() {
         <main
           ref={canvasMainRef}
           className={`relative min-w-0 flex-1 overflow-hidden ${
-            panning ? "cursor-grabbing" : spaceHeld ? "cursor-grab" : "cursor-default"
+            panning
+              ? "cursor-grabbing"
+              : spaceHeld || panToolActive
+                ? "cursor-grab"
+                : "cursor-default"
           }`}
           style={{
             backgroundImage:
@@ -1572,7 +1597,10 @@ export default function StudioPage() {
           }}
           onPointerDown={(e) => {
             if (viewMode !== "workflow") return;
-            if (e.button === 1 || (e.button === 0 && spaceHeldRef.current)) {
+            if (
+              e.button === 1 ||
+              (e.button === 0 && (spaceHeldRef.current || panToolActiveRef.current))
+            ) {
               startCanvasPan(e, project.viewport);
             }
           }}
@@ -1768,7 +1796,7 @@ export default function StudioPage() {
                     return;
                   }
                   if (e.button !== 0) return;
-                  if (spaceHeldRef.current) {
+                  if (spaceHeldRef.current || panToolActiveRef.current) {
                     startCanvasPan(e, projectRef.current.viewport);
                     return;
                   }
@@ -2074,13 +2102,30 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                setPanToolActive((active) => !active);
+              }}
+              className={`rounded-full px-2 py-1 text-xs ${
+                panToolActive
+                  ? "bg-sky-500 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700"
+              }`}
+              title="Toggle hand tool (H)"
+              aria-keyshortcuts="H"
+              aria-pressed={panToolActive}
+            >
+              Hand
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
                 resetWorkflowPan();
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
               title="Reset pan (Home)"
               aria-keyshortcuts="Home"
             >
-              Pan
+              Origin
             </button>
             <button
               type="button"
@@ -2787,9 +2832,9 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
-              <dt className="font-medium text-slate-300">Space / middle drag</dt>
+              <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
-                Pan from any point without changing the current selection
+                Toggle the hand tool or temporarily pan without changing selection
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
