@@ -68,6 +68,7 @@ const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
 };
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
+const HAND_TOOL_KEY = "comfyskill.studio.hand-tool";
 const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
 const PROJECT_LIST_PREFERENCE_KEY = "comfyskill.studio.project-list";
 type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
@@ -994,6 +995,10 @@ export default function StudioPage() {
     for (const predecessors of incoming.values()) predecessors.sort((a, b) => a - b);
     return incoming;
   }, [project.edges, storyboardBlocks]);
+  useEffect(() => {
+    if (viewMode !== "workflow") return;
+    restoreHandToolPreference();
+  }, [viewMode]);
   const canUndo = historyRef.current.canUndo;
   const canRedo = historyRef.current.canRedo;
   void historyTick;
@@ -1105,7 +1110,7 @@ export default function StudioPage() {
   function switchView(mode: StudioViewMode) {
     if ((project.viewMode ?? "workflow") === mode) return;
     if (mode === "storyboard") {
-      if (panToolActiveRef.current) updatePanTool(false);
+      if (panToolActiveRef.current) updatePanTool(false, false);
       linkSourceIdRef.current = null;
       setLinkSourceId(null);
     }
@@ -1520,9 +1525,28 @@ export default function StudioPage() {
     setGenerateError("");
   }
 
-  function updatePanTool(active: boolean) {
+  function persistHandToolPreference(active: boolean) {
+    try {
+      sessionStorage.setItem(HAND_TOOL_KEY, active ? "1" : "0");
+    } catch {
+      // Storage can be unavailable in private browsing modes.
+    }
+  }
+
+  function restoreHandToolPreference() {
+    if (viewModeRef.current !== "workflow") return;
+    try {
+      if (sessionStorage.getItem(HAND_TOOL_KEY) !== "1") return;
+    } catch {
+      return;
+    }
+    updatePanTool(true, false);
+  }
+
+  function updatePanTool(active: boolean, persist = true) {
     panToolActiveRef.current = active;
     setPanToolActive(active);
+    if (persist) persistHandToolPreference(active);
     if (active) {
       linkSourceIdRef.current = null;
       setLinkSourceId(null);
@@ -3645,8 +3669,9 @@ export default function StudioPage() {
               <dd className="text-slate-500">
                 Toggle selection-safe Hand mode or temporarily pan; Hand mode pans over blocks
                 and links without changing selection; Hand mode shows a canvas status banner;
-                completed pans keep the current selection; pan undo applies only when the
-                viewport moves
+                the Hand preference is remembered for this session and restores when you return
+                to workflow view; completed pans keep the current selection; pan undo applies
+                only when the viewport moves
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
