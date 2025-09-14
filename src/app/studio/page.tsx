@@ -492,6 +492,19 @@ export default function StudioPage() {
     () => storyboardOrderedBlocks(project),
     [project],
   );
+  const storyboardPredecessors = useMemo(() => {
+    const positions = new Map(storyboardBlocks.map((block, index) => [block.id, index + 1]));
+    const incoming = new Map<string, number[]>();
+    for (const edge of project.edges) {
+      const sourcePosition = positions.get(edge.sourceBlockId);
+      if (!sourcePosition || !positions.has(edge.targetBlockId)) continue;
+      const predecessors = incoming.get(edge.targetBlockId) ?? [];
+      if (!predecessors.includes(sourcePosition)) predecessors.push(sourcePosition);
+      incoming.set(edge.targetBlockId, predecessors);
+    }
+    for (const predecessors of incoming.values()) predecessors.sort((a, b) => a - b);
+    return incoming;
+  }, [project.edges, storyboardBlocks]);
   const canUndo = historyRef.current.canUndo;
   const canRedo = historyRef.current.canRedo;
   void historyTick;
@@ -1096,6 +1109,7 @@ export default function StudioPage() {
               ) : (
                 storyboardBlocks.map((block, index) => {
                   const active = block.id === selectedId;
+                  const predecessors = storyboardPredecessors.get(block.id) ?? [];
                   return (
                     <button
                       key={block.id}
@@ -1128,11 +1142,23 @@ export default function StudioPage() {
                           </p>
                         )}
                       </div>
-                      <div className="border-t border-slate-800 px-3 py-2">
+                      <div className="flex items-center justify-between gap-2 border-t border-slate-800 px-3 py-2">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${BLOCK_STATUS_META[block.status].className}`}
                         >
                           {BLOCK_STATUS_META[block.status].label}
+                        </span>
+                        <span
+                          className="truncate text-[10px] text-slate-500"
+                          title={
+                            predecessors.length > 0
+                              ? `Depends on cards ${predecessors.join(", ")}`
+                              : "Workflow start"
+                          }
+                        >
+                          {predecessors.length > 0
+                            ? `After ${predecessors.join(", ")}`
+                            : "Start"}
                         </span>
                       </div>
                     </button>
