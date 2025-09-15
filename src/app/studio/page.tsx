@@ -693,6 +693,19 @@ export default function StudioPage() {
         return;
       }
       if (
+        e.key.toLowerCase() === "o" &&
+        viewModeRef.current === "storyboard" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.repeat &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        openSelectionInWorkflow();
+        return;
+      }
+      if (
         e.key === "Home" &&
         viewModeRef.current === "workflow" &&
         !e.metaKey &&
@@ -1004,6 +1017,36 @@ export default function StudioPage() {
       setLinkSourceId(null);
     }
     commitChange((prev) => setViewMode(prev, mode));
+  }
+
+  function focusWorkflowBlock(blockId: string) {
+    requestAnimationFrame(() => {
+      canvasMainRef.current
+        ?.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(blockId)}"]`)
+        ?.focus({ preventScroll: true });
+    });
+  }
+
+  function openSelectionInWorkflow(blockId?: string) {
+    const id = blockId ?? selectedIdRef.current;
+    if (!id) return;
+    const canvas = canvasMainRef.current;
+    const reveal = (prev: CanvasProject) => {
+      if (!canvas) return prev;
+      return revealBlockInViewport(prev, id, canvas.clientWidth, canvas.clientHeight);
+    };
+
+    setSelectedId(id);
+    setSelectedEdgeId(null);
+    setGenerateError("");
+
+    if (viewModeRef.current === "workflow") {
+      const next = reveal(projectRef.current);
+      if (next !== projectRef.current) setProject(next);
+    } else {
+      commitChange((prev) => reveal(setViewMode(prev, "workflow")));
+    }
+    focusWorkflowBlock(id);
   }
 
   function patchBlock(
@@ -1869,10 +1912,21 @@ export default function StudioPage() {
                       type="button"
                       aria-label={`Storyboard card ${index + 1}, ${block.title}`}
                       aria-pressed={active}
-                      aria-keyshortcuts="Enter Shift+Enter ArrowLeft ArrowRight Delete Backspace"
+                      aria-keyshortcuts="Enter Shift+Enter O ArrowLeft ArrowRight Delete Backspace"
                       onClick={() => selectBlock(block.id)}
                       onDoubleClick={() => setInspectId(block.id)}
                       onKeyDown={(e) => {
+                        if (
+                          e.key.toLowerCase() === "o" &&
+                          !e.metaKey &&
+                          !e.ctrlKey &&
+                          !e.altKey
+                        ) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openSelectionInWorkflow(block.id);
+                          return;
+                        }
                         if (e.key === "Enter" && e.shiftKey) {
                           e.preventDefault();
                           e.stopPropagation();
@@ -3332,6 +3386,10 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Shift + Enter</dt>
               <dd className="text-slate-500">
                 Inspect the focused workflow block or storyboard card
+              </dd>
+              <dt className="font-medium text-slate-300">O</dt>
+              <dd className="text-slate-500">
+                Open the selected or focused storyboard card on the workflow canvas
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
