@@ -2148,6 +2148,12 @@ export default function StudioPage() {
                           openSelectionInWorkflow(block.id);
                           return;
                         }
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openSelectionInWorkflow(block.id);
+                          return;
+                        }
                         if (e.key === "Enter" && e.shiftKey) {
                           e.preventDefault();
                           e.stopPropagation();
@@ -3653,6 +3659,10 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
+              <dt className="font-medium text-slate-300">Enter</dt>
+              <dd className="text-slate-500">
+                On a focused storyboard card, open the shot on the workflow canvas
+              </dd>
               <dt className="font-medium text-slate-300">Shift + Enter</dt>
               <dd className="text-slate-500">
                 Inspect the focused workflow block or storyboard card
