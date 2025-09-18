@@ -579,6 +579,18 @@ export default function StudioPage() {
         return;
       }
       if (
+        e.key.toLowerCase() === "c" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        centerSelectedBlock();
+        return;
+      }
+      if (
         e.key === "Home" &&
         viewModeRef.current === "workflow" &&
         !e.metaKey &&
@@ -1311,6 +1323,24 @@ export default function StudioPage() {
       return;
     }
     commitChange(() => next);
+  }
+
+  function centerSelectedBlock() {
+    const canvas = canvasMainRef.current;
+    const current = projectRef.current;
+    const block = current.blocks.find((item) => item.id === selectedIdRef.current);
+    if (!canvas || !block) return;
+    const x =
+      canvas.clientWidth / 2 -
+      (block.x + block.width / 2) * current.viewport.zoom;
+    const y =
+      canvas.clientHeight / 2 -
+      (block.y + block.height / 2) * current.viewport.zoom;
+    if (x === current.viewport.x && y === current.viewport.y) return;
+    commitChange((prev) => ({
+      ...prev,
+      viewport: { ...prev.viewport, x, y },
+    }));
   }
 
   function resetWorkflowPan() {
@@ -2066,6 +2096,19 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={!selectedId}
+              onClick={(e) => {
+                e.stopPropagation();
+                centerSelectedBlock();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Center selected block (C)"
+              aria-keyshortcuts="C"
+            >
+              Center
+            </button>
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setHelpOpen(true);
@@ -2758,6 +2801,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
               <dt className="font-medium text-slate-300">F</dt>
               <dd className="text-slate-500">Fit all workflow blocks in view</dd>
+              <dt className="font-medium text-slate-300">C</dt>
+              <dd className="text-slate-500">Center the selected workflow block</dd>
               <dt className="font-medium text-slate-300">Home</dt>
               <dd className="text-slate-500">Reset workflow canvas pan</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
