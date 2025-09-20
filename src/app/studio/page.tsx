@@ -1841,9 +1841,48 @@ export default function StudioPage() {
                       key={block.id}
                       id={`storyboard-card-${block.id}`}
                       type="button"
+                      aria-label={`Storyboard card ${index + 1}, ${block.title}`}
+                      aria-pressed={active}
+                      aria-keyshortcuts="Enter Shift+Enter ArrowLeft ArrowRight Delete Backspace"
                       onClick={() => selectBlock(block.id)}
                       onDoubleClick={() => setInspectId(block.id)}
-                      className={`flex w-56 shrink-0 flex-col overflow-hidden rounded-xl border text-left shadow-lg ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && e.shiftKey) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          selectBlock(block.id);
+                          setInspectId(block.id);
+                          return;
+                        }
+                        if (e.key === "Delete" || e.key === "Backspace") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const blocks = storyboardOrderedBlocks(projectRef.current);
+                          const currentIndex = blocks.findIndex(
+                            (item) => item.id === block.id,
+                          );
+                          commitChange((prev) => removeBlock(prev, block.id));
+                          if (selectedIdRef.current === block.id) setSelectedId(null);
+                          if (inspectIdRef.current === block.id) setInspectId(null);
+                          const remaining = blocks.filter((item) => item.id !== block.id);
+                          const next =
+                            remaining[
+                              Math.min(
+                                Math.max(currentIndex, 0),
+                                Math.max(remaining.length - 1, 0),
+                              )
+                            ];
+                          if (next) {
+                            setSelectedId(next.id);
+                            requestAnimationFrame(() => {
+                              document
+                                .getElementById(`storyboard-card-${next.id}`)
+                                ?.focus({ preventScroll: true });
+                            });
+                          }
+                        }
+                      }}
+                      className={`flex w-56 shrink-0 flex-col overflow-hidden rounded-xl border text-left shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 ${
                         active
                           ? "border-sky-400 ring-2 ring-sky-400/40"
                           : "border-slate-700 hover:border-slate-500"
@@ -3246,11 +3285,16 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected or focused block</dd>
               <dt className="font-medium text-slate-300">Shift + Enter</dt>
-              <dd className="text-slate-500">Inspect the focused workflow block</dd>
+              <dd className="text-slate-500">
+                Inspect the focused workflow block or storyboard card
+              </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
-              <dd className="text-slate-500">Remove the selected or focused block</dd>
+              <dd className="text-slate-500">
+                Remove the selected or focused block; in storyboard, focus moves to the next
+                card
+              </dd>
               <dt className="font-medium text-slate-300">Tab</dt>
               <dd className="text-slate-500">
                 Move focus between workflow blocks and links; selection follows focus and
