@@ -85,6 +85,7 @@ export default function StudioPage() {
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [mediaLinkCopied, setMediaLinkCopied] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -499,6 +500,9 @@ export default function StudioPage() {
     setInspectMediaIndex(0);
     setPromptCopied(false);
   }, [inspectId]);
+  useEffect(() => {
+    setMediaLinkCopied(false);
+  }, [inspectId, inspectMediaIndex]);
 
   const inspectMedia = inspectBlock?.mediaUrls[inspectMediaIndex] ?? null;
   const filteredAssets = useMemo(() => {
@@ -2213,14 +2217,28 @@ export default function StudioPage() {
               )}
               <div className="mt-auto space-y-2">
                 {inspectMedia && (
-                  <a
-                    href={inspectMedia}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded-lg border border-slate-700 px-3 py-2 text-center text-sm text-slate-300 hover:border-slate-500 hover:text-white"
-                  >
-                    Open original
-                  </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={inspectMedia}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg border border-slate-700 px-3 py-2 text-center text-sm text-slate-300 hover:border-slate-500 hover:text-white"
+                    >
+                      Open original
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard
+                          .writeText(inspectMedia)
+                          .then(() => setMediaLinkCopied(true))
+                          .catch(() => setMediaLinkCopied(false));
+                      }}
+                      className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white"
+                    >
+                      {mediaLinkCopied ? "Link copied" : "Copy link"}
+                    </button>
+                  </div>
                 )}
                 <button
                   type="button"
