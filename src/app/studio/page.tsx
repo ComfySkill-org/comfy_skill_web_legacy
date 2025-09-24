@@ -767,19 +767,15 @@ export default function StudioPage() {
           (selectedIdRef.current || selectedEdgeIdRef.current)
         ) {
           e.preventDefault();
-          historyRef.current.record(projectRef.current);
           const blockId = selectedIdRef.current;
           const edgeId = selectedEdgeIdRef.current;
-          setProject((prev) => {
-            if (blockId) return removeBlock(prev, blockId);
-            if (edgeId) return removeEdge(prev, edgeId);
-            return prev;
-          });
-          setHistoryTick((n) => n + 1);
-          setSelectedId(null);
-          setSelectedEdgeId(null);
-          setLinkSourceId(null);
-          requestAnimationFrame(() => canvasMainRef.current?.focus());
+          if (blockId) {
+            deleteBlockById(blockId);
+          } else if (edgeId) {
+            commitChange((prev) => removeEdge(prev, edgeId));
+            setSelectedEdgeId(null);
+            requestAnimationFrame(() => canvasMainRef.current?.focus());
+          }
           return;
         }
         const arrow =
@@ -1654,12 +1650,31 @@ export default function StudioPage() {
     setGenerateError("");
   }
 
+  function deleteBlockById(blockId: string, options?: { focusCanvas?: boolean }) {
+    const selectedEdge = projectRef.current.edges.find(
+      (edge) => edge.id === selectedEdgeIdRef.current,
+    );
+    commitChange((prev) => removeBlock(prev, blockId));
+    if (selectedIdRef.current === blockId) setSelectedId(null);
+    if (
+      selectedEdge?.sourceBlockId === blockId ||
+      selectedEdge?.targetBlockId === blockId
+    ) {
+      setSelectedEdgeId(null);
+    }
+    if (linkSourceIdRef.current === blockId) {
+      linkSourceIdRef.current = null;
+      setLinkSourceId(null);
+    }
+    if (inspectIdRef.current === blockId) setInspectId(null);
+    if (options?.focusCanvas !== false) {
+      requestAnimationFrame(() => canvasMainRef.current?.focus());
+    }
+  }
+
   function deleteSelected() {
     if (!selectedId) return;
-    const id = selectedId;
-    commitChange((prev) => removeBlock(prev, id));
-    setSelectedId(null);
-    setLinkSourceId(null);
+    deleteBlockById(selectedId, { focusCanvas: false });
   }
 
   function duplicateSelected() {
@@ -2424,23 +2439,7 @@ export default function StudioPage() {
                   if (e.key === "Delete" || e.key === "Backspace") {
                     e.preventDefault();
                     e.stopPropagation();
-                    const selectedEdge = projectRef.current.edges.find(
-                      (edge) => edge.id === selectedEdgeIdRef.current,
-                    );
-                    commitChange((prev) => removeBlock(prev, block.id));
-                    if (selectedIdRef.current === block.id) setSelectedId(null);
-                    if (
-                      selectedEdge?.sourceBlockId === block.id ||
-                      selectedEdge?.targetBlockId === block.id
-                    ) {
-                      setSelectedEdgeId(null);
-                    }
-                    if (linkSourceIdRef.current === block.id) {
-                      linkSourceIdRef.current = null;
-                      setLinkSourceId(null);
-                    }
-                    if (inspectIdRef.current === block.id) setInspectId(null);
-                    requestAnimationFrame(() => canvasMainRef.current?.focus());
+                    deleteBlockById(block.id);
                     return;
                   }
                   if (
@@ -3638,8 +3637,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">Delete</dt>
               <dd className="text-slate-500">
-                Remove the selected or focused block; in storyboard, focus moves to the next
-                card
+                Remove the selected or focused block and close its inspect overlay; clears
+                related link selection; in storyboard, focus moves to the next card
               </dd>
               <dt className="font-medium text-slate-300">Tab</dt>
               <dd className="text-slate-500">
