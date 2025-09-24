@@ -1937,6 +1937,7 @@ export default function StudioPage() {
                 role="button"
                 tabIndex={0}
                 aria-pressed={active}
+                aria-keyshortcuts="Enter Space Delete Backspace"
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -1996,6 +1997,28 @@ export default function StudioPage() {
                   };
                 }}
                 onKeyDown={(e) => {
+                  if (e.key === "Delete" || e.key === "Backspace") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const selectedEdge = projectRef.current.edges.find(
+                      (edge) => edge.id === selectedEdgeIdRef.current,
+                    );
+                    commitChange((prev) => removeBlock(prev, block.id));
+                    if (selectedIdRef.current === block.id) setSelectedId(null);
+                    if (
+                      selectedEdge?.sourceBlockId === block.id ||
+                      selectedEdge?.targetBlockId === block.id
+                    ) {
+                      setSelectedEdgeId(null);
+                    }
+                    if (linkSourceIdRef.current === block.id) {
+                      linkSourceIdRef.current = null;
+                      setLinkSourceId(null);
+                    }
+                    if (inspectIdRef.current === block.id) setInspectId(null);
+                    requestAnimationFrame(() => canvasMainRef.current?.focus());
+                    return;
+                  }
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     selectBlock(block.id);
@@ -3081,7 +3104,7 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
-              <dd className="text-slate-500">Remove the selected block</dd>
+              <dd className="text-slate-500">Remove the selected or focused block</dd>
               <dt className="font-medium text-slate-300">Tab + Enter / Delete</dt>
               <dd className="text-slate-500">Select or remove a focused workflow link</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
