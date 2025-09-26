@@ -1390,13 +1390,20 @@ export default function StudioPage() {
 
   function duplicateSelected() {
     if (!selectedId) return;
-    let createdId = "";
-    commitChange((prev) => {
-      const { project: next, blockId } = duplicateBlock(prev, selectedId);
-      createdId = blockId ?? "";
-      return next;
+    duplicateBlockById(selectedId);
+  }
+
+  function duplicateBlockById(blockId: string) {
+    const result = duplicateBlock(projectRef.current, blockId);
+    const createdId = result.blockId;
+    if (!createdId) return;
+    commitChange(() => result.project);
+    setSelectedId(createdId);
+    requestAnimationFrame(() => {
+      canvasMainRef.current
+        ?.querySelector<HTMLElement>(`[data-block-id="${CSS.escape(createdId)}"]`)
+        ?.focus();
     });
-    if (createdId) setSelectedId(createdId);
   }
 
   function unlinkSelected() {
@@ -1934,10 +1941,11 @@ export default function StudioPage() {
             return (
               <div
                 key={block.id}
+                data-block-id={block.id}
                 role="button"
                 tabIndex={0}
                 aria-pressed={active}
-                aria-keyshortcuts="Enter Space Delete Backspace"
+                aria-keyshortcuts="Enter Space Delete Backspace Meta+D Control+D"
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -1997,6 +2005,12 @@ export default function StudioPage() {
                   };
                 }}
                 onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    duplicateBlockById(block.id);
+                    return;
+                  }
                   if (e.key === "Delete" || e.key === "Backspace") {
                     e.preventDefault();
                     e.stopPropagation();
@@ -3100,7 +3114,7 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">T</dt>
               <dd className="text-slate-500">Focus the canvas toolbar</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
-              <dd className="text-slate-500">Duplicate the selected block</dd>
+              <dd className="text-slate-500">Duplicate the selected or focused block</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
