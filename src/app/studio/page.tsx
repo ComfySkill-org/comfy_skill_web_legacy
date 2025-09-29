@@ -698,16 +698,22 @@ export default function StudioPage() {
       }
       if (
         e.key.toLowerCase() === "o" &&
-        viewModeRef.current === "storyboard" &&
         !e.metaKey &&
         !e.ctrlKey &&
         !e.altKey &&
         !e.repeat &&
         !isTypingTarget(e.target)
       ) {
-        e.preventDefault();
-        openSelectionInWorkflow();
-        return;
+        if (inspectIdRef.current) {
+          e.preventDefault();
+          openInspectedBlockInWorkflow();
+          return;
+        }
+        if (viewModeRef.current === "storyboard" && selectedIdRef.current) {
+          e.preventDefault();
+          openSelectionInWorkflow();
+          return;
+        }
       }
       if (
         e.key === "Home" &&
@@ -1051,6 +1057,13 @@ export default function StudioPage() {
       commitChange((prev) => reveal(setViewMode(prev, "workflow")));
     }
     focusWorkflowBlock(id);
+  }
+
+  function openInspectedBlockInWorkflow() {
+    const blockId = inspectIdRef.current;
+    if (!blockId) return;
+    setInspectId(null);
+    openSelectionInWorkflow(blockId);
   }
 
   function patchBlock(
@@ -3404,7 +3417,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">O</dt>
               <dd className="text-slate-500">
-                Open the selected or focused storyboard card on the workflow canvas
+                Open the inspected block, or the selected storyboard card, on the workflow
+                canvas
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
@@ -3433,6 +3447,18 @@ export default function StudioPage() {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
           onClick={() => setInspectId(null)}
+          onKeyDown={(e) => {
+            if (
+              e.key.toLowerCase() === "o" &&
+              !e.metaKey &&
+              !e.ctrlKey &&
+              !e.altKey
+            ) {
+              e.preventDefault();
+              e.stopPropagation();
+              openInspectedBlockInWorkflow();
+            }
+          }}
         >
           <div
             className="flex max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
@@ -3552,10 +3578,20 @@ export default function StudioPage() {
                 )}
                 <button
                   type="button"
+                  className="w-full rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:border-slate-500 hover:text-white"
+                  onClick={openInspectedBlockInWorkflow}
+                >
+                  View on canvas
+                </button>
+                <button
+                  type="button"
                   className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500"
                   onClick={() => {
                     setSelectedId(inspectBlock.id);
                     setInspectId(null);
+                    if ((projectRef.current.viewMode ?? "workflow") !== "workflow") {
+                      commitChange((prev) => setViewMode(prev, "workflow"));
+                    }
                   }}
                 >
                   Edit in side panel
