@@ -1920,36 +1920,45 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={project.viewport.zoom <= 0.35}
               onClick={(e) => {
                 e.stopPropagation();
                 zoomBy(-0.1);
               }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
               title="Zoom out from canvas center (−)"
+              aria-label="Zoom out"
+              aria-keyshortcuts="-"
             >
               −
             </button>
             <button
               type="button"
+              disabled={project.viewport.zoom >= 2}
               onClick={(e) => {
                 e.stopPropagation();
                 zoomBy(0.1);
               }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
               title="Zoom in toward canvas center (+)"
+              aria-label="Zoom in"
+              aria-keyshortcuts="+"
             >
               +
             </button>
             <button
               type="button"
+              disabled={Math.abs(project.viewport.zoom - 1) < 0.001}
               onClick={(e) => {
                 e.stopPropagation();
                 resetZoomTo100();
               }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              className="min-w-12 rounded-full bg-slate-800 px-2 py-1 text-xs tabular-nums hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
               title="Reset zoom to 100% (0)"
+              aria-label={`Current zoom ${Math.round(project.viewport.zoom * 100)}%. Reset to 100%`}
+              aria-keyshortcuts="0"
             >
-              100%
+              {Math.round(project.viewport.zoom * 100)}%
             </button>
             <button
               type="button"
