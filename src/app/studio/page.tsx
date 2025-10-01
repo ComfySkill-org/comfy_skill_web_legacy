@@ -504,6 +504,19 @@ export default function StudioPage() {
         fitWorkflowInView();
         return;
       }
+      if (
+        e.key === "Home" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.shiftKey &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        resetWorkflowPan();
+        return;
+      }
       if (!isTypingTarget(e.target)) {
         if (
           (e.key === "Delete" || e.key === "Backspace") &&
@@ -1226,6 +1239,12 @@ export default function StudioPage() {
     commitChange(() => next);
   }
 
+  function resetWorkflowPan() {
+    const viewport = projectRef.current.viewport;
+    if (viewport.x === 0 && viewport.y === 0) return;
+    commitChange((prev) => resetViewportPan(prev));
+  }
+
   function startCanvasPan(e: ReactPointerEvent, vp: { x: number; y: number }) {
     e.preventDefault();
     panRef.current = {
@@ -1936,10 +1955,11 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                commitChange((prev) => resetViewportPan(prev));
+                resetWorkflowPan();
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
-              title="Reset pan"
+              title="Reset pan (Home)"
+              aria-keyshortcuts="Home"
             >
               Pan
             </button>
@@ -2645,6 +2665,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
               <dt className="font-medium text-slate-300">F</dt>
               <dd className="text-slate-500">Fit all workflow blocks in view</dd>
+              <dt className="font-medium text-slate-300">Home</dt>
+              <dd className="text-slate-500">Reset workflow canvas pan</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
                 Nudge in workflow; navigate storyboard; browse retained outputs in result detail
