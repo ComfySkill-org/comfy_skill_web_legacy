@@ -119,6 +119,7 @@ export default function StudioPage() {
   const inspectMediaCountRef = useRef(0);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const syncRequestRef = useRef(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const dragRef = useRef<{
     id: string;
@@ -190,14 +191,20 @@ export default function StudioPage() {
     if (!hydrated) return;
     saveProjectLocal(project);
     if (!isStudioAuthed()) {
+      syncRequestRef.current += 1;
       setSyncLabel("local");
       return;
     }
+    const syncRequest = ++syncRequestRef.current;
     setSyncLabel("saving");
     const timer = setTimeout(() => {
       void queueRemoteSave(project)
-        .then(() => setSyncLabel("cloud"))
-        .catch(() => setSyncLabel("local*"));
+        .then(() => {
+          if (syncRequestRef.current === syncRequest) setSyncLabel("cloud");
+        })
+        .catch(() => {
+          if (syncRequestRef.current === syncRequest) setSyncLabel("local*");
+        });
     }, 800);
     autosaveTimerRef.current = timer;
     return () => {
@@ -553,6 +560,7 @@ export default function StudioPage() {
 
   async function resetProject() {
     setResetConfirmOpen(false);
+    syncRequestRef.current += 1;
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
@@ -597,6 +605,7 @@ export default function StudioPage() {
   async function switchProject(projectId: string) {
     setProjectsLoading(true);
     setProjectsError("");
+    syncRequestRef.current += 1;
     try {
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
@@ -673,6 +682,7 @@ export default function StudioPage() {
         clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
       }
+      syncRequestRef.current += 1;
       if (isStudioAuthed()) {
         setSyncLabel("saving");
         await queueRemoteSave(projectRef.current).catch(() => undefined);
@@ -796,12 +806,13 @@ export default function StudioPage() {
       clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
     }
+    const syncRequest = ++syncRequestRef.current;
     setSyncLabel("saving");
     try {
       await queueRemoteSave(projectRef.current);
-      setSyncLabel("cloud");
+      if (syncRequestRef.current === syncRequest) setSyncLabel("cloud");
     } catch {
-      setSyncLabel("local*");
+      if (syncRequestRef.current === syncRequest) setSyncLabel("local*");
     }
   }
 
