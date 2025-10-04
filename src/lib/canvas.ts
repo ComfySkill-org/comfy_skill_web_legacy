@@ -560,6 +560,16 @@ export function resetViewportPan(project: CanvasProject): CanvasProject {
   };
 }
 
+/** Reset pan and zoom to the default workflow viewport. */
+export function resetWorkflowViewport(project: CanvasProject): CanvasProject {
+  const { x, y, zoom } = project.viewport;
+  if (x === 0 && y === 0 && Math.abs(zoom - 1) < 0.001) return project;
+  return {
+    ...project,
+    viewport: { x: 0, y: 0, zoom: 1 },
+  };
+}
+
 /** Center every result block inside the visible workflow area (PRD-legacy C1/C10). */
 export function fitProjectInViewport(
   project: CanvasProject,

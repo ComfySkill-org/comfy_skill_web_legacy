@@ -33,6 +33,7 @@ import {
   removeBlock,
   removeEdge,
   resetViewportPan,
+  resetWorkflowViewport,
   revealBlockInViewport,
   saveProjectLocal,
   setViewMode,
@@ -596,7 +597,11 @@ export default function StudioPage() {
         !isTypingTarget(e.target)
       ) {
         e.preventDefault();
-        resetZoomTo100();
+        if (e.shiftKey) {
+          resetStudioViewport();
+        } else {
+          resetZoomTo100();
+        }
         return;
       }
       if (
@@ -1569,6 +1574,10 @@ export default function StudioPage() {
     commitChange((prev) => resetViewportPan(prev));
   }
 
+  function resetStudioViewport() {
+    commitChange((prev) => resetWorkflowViewport(prev));
+  }
+
   function startCanvasPan(e: ReactPointerEvent, vp: { x: number; y: number }) {
     e.preventDefault();
     panRef.current = {
@@ -2537,6 +2546,23 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={
+                project.viewport.x === 0 &&
+                project.viewport.y === 0 &&
+                Math.abs(project.viewport.zoom - 1) < 0.001
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                resetStudioViewport();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Reset pan and zoom (Shift+0)"
+              aria-keyshortcuts="Shift+0"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 resetWorkflowPan();
@@ -3269,6 +3295,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Zoom around the workflow canvas center</dd>
               <dt className="font-medium text-slate-300">0</dt>
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
+              <dt className="font-medium text-slate-300">Shift + 0</dt>
+              <dd className="text-slate-500">Reset workflow pan and zoom to defaults</dd>
               <dt className="font-medium text-slate-300">F</dt>
               <dd className="text-slate-500">Fit all workflow blocks in view</dd>
               <dt className="font-medium text-slate-300">C</dt>
