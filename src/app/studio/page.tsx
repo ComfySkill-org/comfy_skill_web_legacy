@@ -1842,10 +1842,24 @@ export default function StudioPage() {
     const viewport = projectRef.current.viewport;
     if (viewport.x === 0 && viewport.y === 0) return;
     commitChange((prev) => resetViewportPan(prev));
+    requestAnimationFrame(() =>
+      canvasMainRef.current?.focus({ preventScroll: true }),
+    );
   }
 
   function resetStudioViewport() {
+    const viewport = projectRef.current.viewport;
+    if (
+      viewport.x === 0 &&
+      viewport.y === 0 &&
+      Math.abs(viewport.zoom - 1) < 0.001
+    ) {
+      return;
+    }
     commitChange((prev) => resetWorkflowViewport(prev));
+    requestAnimationFrame(() =>
+      canvasMainRef.current?.focus({ preventScroll: true }),
+    );
   }
 
   function startCanvasPan(e: ReactPointerEvent, vp: { x: number; y: number }) {
@@ -2936,24 +2950,34 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={project.viewport.x === 0 && project.viewport.y === 0}
               onClick={(e) => {
                 e.stopPropagation();
                 resetWorkflowPan();
               }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
-              title="Reset pan (Home)"
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title={
+                project.viewport.x === 0 && project.viewport.y === 0
+                  ? "Workflow pan is already at the origin"
+                  : "Reset pan (Home)"
+              }
               aria-keyshortcuts="Home"
             >
               Origin
             </button>
             <button
               type="button"
+              disabled={project.blocks.length === 0}
               onClick={(e) => {
                 e.stopPropagation();
                 fitWorkflowInView();
               }}
-              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
-              title="Fit all blocks in view (F)"
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title={
+                project.blocks.length === 0
+                  ? "Add blocks to fit the workflow in view"
+                  : "Fit all blocks in view (F)"
+              }
               aria-keyshortcuts="F"
             >
               Fit
@@ -3685,13 +3709,19 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">0</dt>
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
               <dt className="font-medium text-slate-300">Shift + 0</dt>
-              <dd className="text-slate-500">Reset workflow pan and zoom to defaults</dd>
+              <dd className="text-slate-500">
+                Reset workflow pan and zoom to defaults; returns focus to the canvas
+              </dd>
               <dt className="font-medium text-slate-300">F</dt>
-              <dd className="text-slate-500">Fit all workflow blocks in view</dd>
+              <dd className="text-slate-500">
+                Fit all workflow blocks in view; disabled until the canvas has blocks
+              </dd>
               <dt className="font-medium text-slate-300">C</dt>
               <dd className="text-slate-500">Center the selected or focused workflow block</dd>
               <dt className="font-medium text-slate-300">Home</dt>
-              <dd className="text-slate-500">Reset workflow canvas pan</dd>
+              <dd className="text-slate-500">
+                Reset workflow canvas pan; disabled when already at the origin
+              </dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
                 Nudge the selected or focused workflow block as one undo step per burst;
