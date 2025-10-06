@@ -702,10 +702,20 @@ export default function StudioPage() {
         !e.altKey &&
         !isTypingTarget(e.target)
       ) {
-        e.preventDefault();
+        const viewport = projectRef.current.viewport;
         if (e.shiftKey) {
+          if (
+            viewport.x === 0 &&
+            viewport.y === 0 &&
+            Math.abs(viewport.zoom - 1) < 0.001
+          ) {
+            return;
+          }
+          e.preventDefault();
           resetStudioViewport();
         } else {
+          if (Math.abs(viewport.zoom - 1) < 0.001) return;
+          e.preventDefault();
           resetZoomTo100();
         }
         return;
@@ -718,8 +728,15 @@ export default function StudioPage() {
         !e.altKey &&
         !isTypingTarget(e.target)
       ) {
+        const delta = e.key === "-" ? -0.1 : 0.1;
+        const currentZoom = projectRef.current.viewport.zoom;
+        const nextZoom = Math.min(
+          2,
+          Math.max(0.35, Math.round((currentZoom + delta) * 100) / 100),
+        );
+        if (nextZoom === currentZoom) return;
         e.preventDefault();
-        zoomBy(e.key === "-" ? -0.1 : 0.1);
+        zoomBy(delta);
         return;
       }
       if (
@@ -730,6 +747,21 @@ export default function StudioPage() {
         !e.altKey &&
         !isTypingTarget(e.target)
       ) {
+        const canvas = canvasMainRef.current;
+        const current = projectRef.current;
+        if (!canvas || current.blocks.length === 0) return;
+        const next = fitProjectInViewport(
+          current,
+          canvas.clientWidth,
+          canvas.clientHeight,
+        );
+        if (
+          next.viewport.x === current.viewport.x &&
+          next.viewport.y === current.viewport.y &&
+          next.viewport.zoom === current.viewport.zoom
+        ) {
+          return;
+        }
         e.preventDefault();
         fitWorkflowInView();
         return;
@@ -843,6 +875,8 @@ export default function StudioPage() {
         !e.shiftKey &&
         !isTypingTarget(e.target)
       ) {
+        const viewport = projectRef.current.viewport;
+        if (viewport.x === 0 && viewport.y === 0) return;
         e.preventDefault();
         resetWorkflowPan();
         return;
@@ -3333,7 +3367,13 @@ export default function StudioPage() {
                 resetStudioViewport();
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-              title="Reset pan and zoom (Shift+0)"
+              title={
+                project.viewport.x === 0 &&
+                project.viewport.y === 0 &&
+                Math.abs(project.viewport.zoom - 1) < 0.001
+                  ? "Workflow pan and zoom are already at defaults"
+                  : "Reset pan and zoom (Shift+0)"
+              }
               aria-keyshortcuts="Shift+0"
             >
               Reset
@@ -4162,14 +4202,18 @@ export default function StudioPage() {
                 these keys
               </dd>
               <dt className="font-medium text-slate-300">0</dt>
-              <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
+              <dd className="text-slate-500">
+                Reset workflow zoom to 100%; ignored when zoom is already at 100%
+              </dd>
               <dt className="font-medium text-slate-300">Shift + 0</dt>
               <dd className="text-slate-500">
-                Reset workflow pan and zoom to defaults; returns focus to the canvas
+                Reset workflow pan and zoom to defaults; ignored when already at defaults;
+                returns focus to the canvas
               </dd>
               <dt className="font-medium text-slate-300">F</dt>
               <dd className="text-slate-500">
-                Fit all workflow blocks in view; disabled until the canvas has blocks
+                Fit all workflow blocks in view; ignored when the canvas is empty or already
+                framed
               </dd>
               <dt className="font-medium text-slate-300">C</dt>
               <dd className="text-slate-500">Center the selected or focused workflow block</dd>
