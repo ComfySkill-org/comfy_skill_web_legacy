@@ -1659,13 +1659,7 @@ export default function StudioPage() {
             onPointerDown={(e) => {
               if (e.target !== e.currentTarget) return;
               if (e.button !== 0 && e.button !== 1) return;
-              if (e.button === 0 && spaceHeldRef.current) {
-                startCanvasPan(e, projectRef.current.viewport);
-                return;
-              }
-              if (e.button === 0) {
-                startCanvasPan(e, projectRef.current.viewport);
-              }
+              startCanvasPan(e, projectRef.current.viewport);
             }}
           >
           {project.blocks.map((block) => {
@@ -1696,6 +1690,11 @@ export default function StudioPage() {
                   setInspectId(block.id);
                 }}
                 onPointerDown={(e) => {
+                  if (e.button === 1) {
+                    e.stopPropagation();
+                    startCanvasPan(e, projectRef.current.viewport);
+                    return;
+                  }
                   if (e.button !== 0) return;
                   if (spaceHeldRef.current) {
                     startCanvasPan(e, projectRef.current.viewport);
@@ -2702,9 +2701,9 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
-              <dt className="font-medium text-slate-300">Space + drag</dt>
+              <dt className="font-medium text-slate-300">Space / middle drag</dt>
               <dd className="text-slate-500">
-                Pan the workflow canvas as one undoable gesture
+                Pan from any point as one undoable gesture
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
