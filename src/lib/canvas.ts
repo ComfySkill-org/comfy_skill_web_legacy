@@ -146,6 +146,54 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function hasDirectedPath(
+  edges: CanvasEdge[],
+  startBlockId: string,
+  targetBlockId: string,
+): boolean {
+  const outgoing = new Map<string, string[]>();
+  for (const edge of edges) {
+    const targets = outgoing.get(edge.sourceBlockId) ?? [];
+    targets.push(edge.targetBlockId);
+    outgoing.set(edge.sourceBlockId, targets);
+  }
+  const pending = [startBlockId];
+  const visited = new Set<string>();
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current || visited.has(current)) continue;
+    if (current === targetBlockId) return true;
+    visited.add(current);
+    pending.push(...(outgoing.get(current) ?? []));
+  }
+  return false;
+}
+
+function hasDirectedCycle(blockIds: Set<string>, edges: CanvasEdge[]): boolean {
+  const incoming = new Map([...blockIds].map((id) => [id, 0]));
+  const outgoing = new Map<string, string[]>();
+  for (const edge of edges) {
+    incoming.set(edge.targetBlockId, (incoming.get(edge.targetBlockId) ?? 0) + 1);
+    outgoing.set(edge.sourceBlockId, [
+      ...(outgoing.get(edge.sourceBlockId) ?? []),
+      edge.targetBlockId,
+    ]);
+  }
+  const pending = [...blockIds].filter((id) => incoming.get(id) === 0);
+  let visitedCount = 0;
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current) continue;
+    visitedCount += 1;
+    for (const target of outgoing.get(current) ?? []) {
+      const nextIncoming = (incoming.get(target) ?? 0) - 1;
+      incoming.set(target, nextIncoming);
+      if (nextIncoming === 0) pending.push(target);
+    }
+  }
+  return visitedCount !== blockIds.size;
+}
+
 /** Validate exported/local canvas JSON before it reaches rendering or cloud persistence. */
 export function parseCanvasProjectJson(raw: string): CanvasProject | null {
   try {
@@ -156,6 +204,8 @@ export function parseCanvasProjectJson(raw: string): CanvasProject | null {
     if (!isRecord(value.viewport) || !Array.isArray(value.blocks) || !Array.isArray(value.edges)) {
       return null;
     }
+    const blocks = value.blocks;
+    const edges = value.edges;
     const finite = (item: unknown): item is number =>
       typeof item === "number" && Number.isFinite(item);
     if (
@@ -203,13 +253,24 @@ export function parseCanvasProjectJson(raw: string): CanvasProject | null {
       typeof item.id === "string" &&
       typeof item.sourceBlockId === "string" &&
       typeof item.targetBlockId === "string";
-    if (!value.blocks.every(isBlock) || !value.edges.every(isEdge)) return null;
+    if (!blocks.every(isBlock) || !edges.every(isEdge)) return null;
 
-    const blockIds = new Set(value.blocks.map((block) => block.id));
+    const blockIds = new Set(blocks.map((block) => block.id));
+    const edgeIds = new Set(edges.map((edge) => edge.id));
+    const edgePairs = new Set(
+      edges.map((edge) => `${edge.sourceBlockId}\u0000${edge.targetBlockId}`),
+    );
     if (
-      value.edges.some(
-        (edge) => !blockIds.has(edge.sourceBlockId) || !blockIds.has(edge.targetBlockId),
-      )
+      blockIds.size !== blocks.length ||
+      edgeIds.size !== edges.length ||
+      edgePairs.size !== edges.length ||
+      edges.some(
+        (edge) =>
+          edge.sourceBlockId === edge.targetBlockId ||
+          !blockIds.has(edge.sourceBlockId) ||
+          !blockIds.has(edge.targetBlockId),
+      ) ||
+      hasDirectedCycle(blockIds, edges)
     ) {
       return null;
     }
@@ -220,8 +281,8 @@ export function parseCanvasProjectJson(raw: string): CanvasProject | null {
     return {
       id: value.id,
       title: value.title,
-      blocks: value.blocks,
-      edges: value.edges,
+      blocks,
+      edges,
       viewport: {
         x: value.viewport.x,
         y: value.viewport.y,
@@ -302,21 +363,7 @@ export function addEdgeBetween(
     (e) => e.sourceBlockId === sourceBlockId && e.targetBlockId === targetBlockId,
   );
   if (exists) return project;
-  const outgoing = new Map<string, string[]>();
-  for (const edge of project.edges) {
-    const targets = outgoing.get(edge.sourceBlockId) ?? [];
-    targets.push(edge.targetBlockId);
-    outgoing.set(edge.sourceBlockId, targets);
-  }
-  const pending = [targetBlockId];
-  const visited = new Set<string>();
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (!current || visited.has(current)) continue;
-    if (current === sourceBlockId) return project;
-    visited.add(current);
-    pending.push(...(outgoing.get(current) ?? []));
-  }
+  if (hasDirectedPath(project.edges, targetBlockId, sourceBlockId)) return project;
   return {
     ...project,
     edges: [
