@@ -212,6 +212,10 @@ export function billingRefundHref(jobId: string): string {
   return `/settings/billing?${params.toString()}`;
 }
 
+export function isRefundableFailedJob(status: string): boolean {
+  return status === "failed";
+}
+
 export function hasActiveJobListFilters(state: JobListQueryState): boolean {
   return (
     state.status !== "all" ||

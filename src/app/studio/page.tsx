@@ -97,6 +97,10 @@ import {
   hasStudioDeepLink,
   parseStudioDeepLink,
 } from "@/lib/studioNavigation";
+import {
+  billingRefundHref,
+  isRefundableFailedJob,
+} from "@/lib/jobs";
 
 const CANVAS_GRID_SIZE = 24;
 const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
@@ -3992,6 +3996,15 @@ export default function StudioPage() {
                         >
                           View in history
                         </Link>
+                        {isRefundableFailedJob(selected.status) && (
+                          <Link
+                            href={billingRefundHref(selected.jobId!)}
+                            data-testid="studio-refund-link"
+                            className="text-sky-400 underline hover:text-sky-300"
+                          >
+                            View refund
+                          </Link>
+                        )}
                       </div>
                     </div>
                     {jobEvents.length === 0 ? (
@@ -4770,6 +4783,15 @@ export default function StudioPage() {
                   >
                     View in history
                   </Link>
+                  {isRefundableFailedJob(inspectSummary.status) && (
+                    <Link
+                      href={billingRefundHref(inspectSummary.jobId!)}
+                      data-testid="studio-refund-link"
+                      className="text-sky-400 underline hover:text-sky-300"
+                    >
+                      View refund
+                    </Link>
+                  )}
                 </div>
               )}
               <p className="mt-4 text-xs leading-relaxed text-slate-300">

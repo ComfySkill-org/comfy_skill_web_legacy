@@ -22,7 +22,7 @@ import {
   QUALITY_CREDITS,
   QUALITY_TIER_OPTIONS,
 } from "@/lib/credits";
-import { formatJobCreditsLabel } from "@/lib/jobs";
+import { billingRefundHref, formatJobCreditsLabel, isRefundableFailedJob } from "@/lib/jobs";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import { readDefaultQualityTier, writeDefaultQualityTier } from "@/lib/studioPreferences";
 
@@ -299,6 +299,17 @@ export default function AppPage() {
                   </Link>
                 </>
               )}
+            </p>
+          )}
+          {isRefundableFailedJob(job.status) && (
+            <p className="text-sm">
+              <Link
+                href={billingRefundHref(job.id)}
+                className="underline hover:text-skill-ink"
+                data-testid="quick-form-refund-link"
+              >
+                View refund
+              </Link>
             </p>
           )}
           {job && (
