@@ -369,7 +369,36 @@ export default function StudioPage() {
           e.key === "ArrowRight" ||
           e.key === "ArrowUp" ||
           e.key === "ArrowDown";
-        if (arrow && selectedIdRef.current) {
+        if (
+          viewModeRef.current === "storyboard" &&
+          (e.key === "ArrowLeft" || e.key === "ArrowRight")
+        ) {
+          e.preventDefault();
+          const blocks = storyboardOrderedBlocks(projectRef.current);
+          if (blocks.length === 0) return;
+          const currentIndex = blocks.findIndex((block) => block.id === selectedIdRef.current);
+          const direction = e.key === "ArrowLeft" ? -1 : 1;
+          const nextIndex =
+            currentIndex < 0
+              ? direction < 0
+                ? blocks.length - 1
+                : 0
+              : (currentIndex + direction + blocks.length) % blocks.length;
+          const nextId = blocks[nextIndex].id;
+          setSelectedId(nextId);
+          setSelectedEdgeId(null);
+          requestAnimationFrame(() => {
+            const nextCard = document.getElementById(`storyboard-card-${nextId}`);
+            nextCard?.focus({ preventScroll: true });
+            nextCard?.scrollIntoView({
+              behavior: "smooth",
+              block: "nearest",
+              inline: "nearest",
+            });
+          });
+          return;
+        }
+        if (arrow && selectedIdRef.current && viewModeRef.current === "workflow") {
           e.preventDefault();
           const step = e.shiftKey ? 20 : 4;
           const dx =
@@ -1113,6 +1142,7 @@ export default function StudioPage() {
                   return (
                     <button
                       key={block.id}
+                      id={`storyboard-card-${block.id}`}
                       type="button"
                       onClick={() => selectBlock(block.id)}
                       onDoubleClick={() => setInspectId(block.id)}
@@ -2070,7 +2100,7 @@ export default function StudioPage() {
               <dd className="text-slate-500">Zoom toward the pointer</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
-                Nudge a block; in result detail, browse retained outputs
+                Nudge in workflow; navigate storyboard; browse retained outputs in result detail
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected block</dd>
