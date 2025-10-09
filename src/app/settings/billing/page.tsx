@@ -65,6 +65,7 @@ export default function BillingPage() {
   const [embeddedClientSecret, setEmbeddedClientSecret] = useState("");
   const [planId, setPlanId] = useState<"standard" | "creator" | "pro">("standard");
   const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>("all");
+  const [highlightJobId, setHighlightJobId] = useState<string | null>(null);
 
   function selectPlan(id: "standard" | "creator" | "pro") {
     setPlanId(id);
@@ -75,13 +76,18 @@ export default function BillingPage() {
     const parsed = parseBillingSearchParams(window.location.search);
     if (parsed.plan) setPlanId(parsed.plan);
     setTransactionFilter(parsed.ledger);
+    if (parsed.highlightJobId) setHighlightJobId(parsed.highlightJobId);
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const current = new URLSearchParams(window.location.search);
     const params = new URLSearchParams(
-      buildBillingSearchParams({ plan: planId, ledger: transactionFilter }).replace(/^\?/, ""),
+      buildBillingSearchParams({
+        plan: planId,
+        ledger: transactionFilter,
+        highlightJobId,
+      }).replace(/^\?/, ""),
     );
     for (const key of ["success", "session_id", "canceled"] as const) {
       const value = current.get(key);
@@ -93,7 +99,14 @@ export default function BillingPage() {
     if (nextUrl !== currentUrl) {
       window.history.replaceState(null, "", nextUrl);
     }
-  }, [planId, transactionFilter]);
+  }, [planId, transactionFilter, highlightJobId]);
+
+  useEffect(() => {
+    if (!highlightJobId) return;
+    const row = document.getElementById(`billing-job-${highlightJobId}`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightJobId, transactions, transactionFilter]);
 
   useEffect(() => {
     async function loadBilling() {
@@ -493,7 +506,12 @@ export default function BillingPage() {
                 filteredTransactions.slice(0, 8).map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-start justify-between gap-4 rounded-xl border border-skill-blue/10 p-3 text-sm"
+                  id={tx.job_id ? `billing-job-${tx.job_id}` : undefined}
+                  className={`flex items-start justify-between gap-4 rounded-xl border border-skill-blue/10 p-3 text-sm ${
+                    highlightJobId && tx.job_id === highlightJobId
+                      ? "ring-2 ring-skill-blue-dark"
+                      : ""
+                  }`}
                 >
                   <div className="min-w-0">
                     <p className="font-semibold">{formatTransactionType(tx.type)}</p>

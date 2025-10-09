@@ -141,6 +141,7 @@ export function summarizeRefundsForMonth(
 export type BillingSearchState = {
   plan?: "standard" | "creator" | "pro";
   ledger: TransactionFilter;
+  highlightJobId?: string | null;
 };
 
 const BILLING_PLAN_VALUES = ["standard", "creator", "pro"] as const;
@@ -166,6 +167,7 @@ export function parseBillingSearchParams(
     ledger: BILLING_LEDGER_VALUES.includes(ledger as TransactionFilter)
       ? (ledger as TransactionFilter)
       : "all",
+    highlightJobId: params.get("job"),
   };
 }
 
@@ -173,6 +175,7 @@ export function buildBillingSearchParams(state: BillingSearchState): string {
   const params = new URLSearchParams();
   if (state.plan) params.set("plan", state.plan);
   if (state.ledger !== "all") params.set("ledger", state.ledger);
+  if (state.highlightJobId) params.set("job", state.highlightJobId);
   const query = params.toString();
   return query ? `?${query}` : "";
 }

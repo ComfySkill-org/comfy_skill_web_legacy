@@ -205,6 +205,11 @@ export function buildJobListSearchParams(
   return query ? `?${query}` : "";
 }
 
+export function billingRefundHref(jobId: string): string {
+  const params = new URLSearchParams({ ledger: "refund", job: jobId });
+  return `/settings/billing?${params.toString()}`;
+}
+
 export function hasActiveJobListFilters(state: JobListQueryState): boolean {
   return (
     state.status !== "all" ||

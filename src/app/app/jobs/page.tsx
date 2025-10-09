@@ -8,6 +8,7 @@ import { isJobInsufficientCreditsError, isLowCreditBalance, qualityTierLabel } f
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
   buildJobListSearchParams,
+  billingRefundHref,
   countJobsByQualityFilter,
   countJobsBySourceFilter,
   formatJobCreditsLabel,
@@ -525,6 +526,14 @@ export default function AppJobsPage() {
                   >
                     {copiedJobId === job.id ? "Prompt copied" : "Copy prompt"}
                   </button>
+                  {job.status === "failed" && (
+                    <Link
+                      href={billingRefundHref(job.id)}
+                      className="underline hover:text-skill-ink"
+                    >
+                      View refund
+                    </Link>
+                  )}
                   {job.output_url && (
                     <a
                       href={job.output_url}
