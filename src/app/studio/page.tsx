@@ -170,6 +170,7 @@ export default function StudioPage() {
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const syncRequestRef = useRef(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const wheelHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -378,12 +379,33 @@ export default function StudioPage() {
       const ax = e.clientX - rect.left;
       const ay = e.clientY - rect.top;
       const factor = e.deltaY > 0 ? 0.92 : 1.08;
+      const current = projectRef.current;
+      if (
+        zoomViewportAt(current, current.viewport.zoom * factor, ax, ay) === current
+      ) {
+        return;
+      }
+      if (!wheelHistoryTimerRef.current) {
+        historyRef.current.record(current);
+        setHistoryTick((n) => n + 1);
+      } else {
+        clearTimeout(wheelHistoryTimerRef.current);
+      }
+      wheelHistoryTimerRef.current = setTimeout(() => {
+        wheelHistoryTimerRef.current = null;
+      }, 300);
       setProject((prev) =>
         zoomViewportAt(prev, prev.viewport.zoom * factor, ax, ay),
       );
     }
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (wheelHistoryTimerRef.current) {
+        clearTimeout(wheelHistoryTimerRef.current);
+        wheelHistoryTimerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -2667,7 +2689,9 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Space + drag</dt>
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
-              <dd className="text-slate-500">Zoom toward the pointer</dd>
+              <dd className="text-slate-500">
+                Zoom toward the pointer; each continuous gesture is one undo step
+              </dd>
               <dt className="font-medium text-slate-300">+ / −</dt>
               <dd className="text-slate-500">Zoom around the workflow canvas center</dd>
               <dt className="font-medium text-slate-300">0</dt>
