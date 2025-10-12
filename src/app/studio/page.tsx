@@ -178,6 +178,7 @@ export default function StudioPage() {
     origX: number;
     origY: number;
     moved: boolean;
+    before: CanvasProject;
   } | null>(null);
   const panRef = useRef<{
     startClientX: number;
@@ -185,6 +186,7 @@ export default function StudioPage() {
     origX: number;
     origY: number;
     moved: boolean;
+    before: CanvasProject;
   } | null>(null);
   const spaceHeldRef = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -251,6 +253,30 @@ export default function StudioPage() {
     historyRef.current.record(projectRef.current);
     setProject(mutate);
     setHistoryTick((n) => n + 1);
+  }
+
+  function endCanvasGesture(recordHistory: boolean) {
+    const drag = dragRef.current;
+    const pan = panRef.current;
+    const gesture = drag ?? pan;
+    if (gesture?.moved && recordHistory) {
+      historyRef.current.record(gesture.before);
+      setHistoryTick((n) => n + 1);
+    } else if (drag?.moved) {
+      setProject((prev) => moveBlock(prev, drag.id, drag.origX, drag.origY));
+    } else if (pan?.moved) {
+      setProject((prev) => ({
+        ...prev,
+        viewport: { ...prev.viewport, x: pan.origX, y: pan.origY },
+      }));
+    }
+    dragRef.current = null;
+    panRef.current = null;
+    if (pan) setPanning(false);
+  }
+
+  function cancelCanvasGesture() {
+    endCanvasGesture(false);
   }
 
   useEffect(() => {
@@ -333,12 +359,8 @@ export default function StudioPage() {
       if (pan) {
         const dx = e.clientX - pan.startClientX;
         const dy = e.clientY - pan.startClientY;
-        if (dx === 0 && dy === 0) return;
-        if (!pan.moved) {
-          historyRef.current.record(projectRef.current);
-          setHistoryTick((n) => n + 1);
-          pan.moved = true;
-        }
+        if (dx === 0 && dy === 0 && !pan.moved) return;
+        pan.moved = dx !== 0 || dy !== 0;
         setProject((prev) => ({
           ...prev,
           viewport: {
@@ -360,20 +382,12 @@ export default function StudioPage() {
       const y = snapToGridRef.current && !e.altKey
         ? Math.round(nextY / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
         : nextY;
-      if (x === drag.origX && y === drag.origY) return;
-      if (!drag.moved) {
-        historyRef.current.record(projectRef.current);
-        setHistoryTick((n) => n + 1);
-        drag.moved = true;
-      }
+      if (x === drag.origX && y === drag.origY && !drag.moved) return;
+      drag.moved = x !== drag.origX || y !== drag.origY;
       setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
     function finishPointerGesture() {
-      dragRef.current = null;
-      if (panRef.current) {
-        panRef.current = null;
-        setPanning(false);
-      }
+      endCanvasGesture(true);
     }
     function onWindowBlur() {
       finishPointerGesture();
@@ -382,12 +396,12 @@ export default function StudioPage() {
     }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", finishPointerGesture);
-    window.addEventListener("pointercancel", finishPointerGesture);
+    window.addEventListener("pointercancel", cancelCanvasGesture);
     window.addEventListener("blur", onWindowBlur);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", finishPointerGesture);
-      window.removeEventListener("pointercancel", finishPointerGesture);
+      window.removeEventListener("pointercancel", cancelCanvasGesture);
       window.removeEventListener("blur", onWindowBlur);
     };
   }, []);
@@ -450,6 +464,11 @@ export default function StudioPage() {
         return;
       }
       if (e.key === "Escape") {
+        if (dragRef.current || panRef.current) {
+          e.preventDefault();
+          cancelCanvasGesture();
+          return;
+        }
         setSelectedId(null);
         setSelectedEdgeId(null);
         setLinkSourceId(null);
@@ -1298,6 +1317,7 @@ export default function StudioPage() {
       origX: vp.x,
       origY: vp.y,
       moved: false,
+      before: projectRef.current,
     };
     setPanning(true);
   }
@@ -1720,6 +1740,7 @@ export default function StudioPage() {
                     origX: block.x,
                     origY: block.y,
                     moved: false,
+                    before: projectRef.current,
                   };
                 }}
                 onKeyDown={(e) => {
@@ -2737,7 +2758,9 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Delete</dt>
               <dd className="text-slate-500">Remove the selected block</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
-              <dd className="text-slate-500">Close overlays and clear selection</dd>
+              <dd className="text-slate-500">
+                Cancel the active gesture, or close overlays and clear selection
+              </dd>
             </dl>
           </div>
         </div>
