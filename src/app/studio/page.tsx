@@ -368,18 +368,27 @@ export default function StudioPage() {
       }
       setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
-    function onPointerUp() {
+    function finishPointerGesture() {
       dragRef.current = null;
       if (panRef.current) {
         panRef.current = null;
         setPanning(false);
       }
     }
+    function onWindowBlur() {
+      finishPointerGesture();
+      spaceHeldRef.current = false;
+      setSpaceHeld(false);
+    }
     window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointerup", finishPointerGesture);
+    window.addEventListener("pointercancel", finishPointerGesture);
+    window.addEventListener("blur", onWindowBlur);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointerup", finishPointerGesture);
+      window.removeEventListener("pointercancel", finishPointerGesture);
+      window.removeEventListener("blur", onWindowBlur);
     };
   }, []);
 
