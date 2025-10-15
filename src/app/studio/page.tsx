@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
@@ -1279,6 +1280,27 @@ export default function StudioPage() {
     }
   }
 
+  function navigateCanvasToolbar(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const buttons = Array.from(
+      e.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+    );
+    const current = (e.target as HTMLElement).closest("button");
+    const index = current ? buttons.indexOf(current as HTMLButtonElement) : -1;
+    if (index < 0 || buttons.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const nextIndex =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? buttons.length - 1
+          : (index + (e.key === "ArrowRight" ? 1 : -1) + buttons.length) %
+            buttons.length;
+    buttons[nextIndex]?.focus();
+    buttons[nextIndex]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
   function applyTemplate(templateId: string) {
     const template = SKILL_TEMPLATES.find((t) => t.id === templateId);
     if (!template) return;
@@ -1996,8 +2018,10 @@ export default function StudioPage() {
           <div
             role="toolbar"
             aria-label="Canvas tools"
+            aria-orientation="horizontal"
             data-canvas-toolbar
-            className="absolute bottom-4 left-1/2 flex max-w-[calc(100%_-_2rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0"
+            className="absolute bottom-4 left-1/2 flex max-w-[calc(100%_-_2rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl [&>button]:shrink-0 [&>button:focus-visible]:outline [&>button:focus-visible]:outline-2 [&>button:focus-visible]:outline-sky-400"
+            onKeyDown={navigateCanvasToolbar}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onAuxClick={(e) => {
@@ -2980,6 +3004,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">
                 Nudge in workflow; navigate storyboard; browse retained outputs in result detail
               </dd>
+              <dt className="font-medium text-slate-300">Toolbar arrows</dt>
+              <dd className="text-slate-500">Move focus between available canvas tools</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected block</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
