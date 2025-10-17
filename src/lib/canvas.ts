@@ -289,7 +289,7 @@ export function nudgeBlock(
   return moveBlock(project, blockId, block.x + dx, block.y + dy);
 }
 
-/** Add a flow edge if both blocks exist and the pair is not already linked. */
+/** Add a flow edge if both blocks exist and it keeps the workflow acyclic. */
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,
@@ -302,6 +302,21 @@ export function addEdgeBetween(
     (e) => e.sourceBlockId === sourceBlockId && e.targetBlockId === targetBlockId,
   );
   if (exists) return project;
+  const outgoing = new Map<string, string[]>();
+  for (const edge of project.edges) {
+    const targets = outgoing.get(edge.sourceBlockId) ?? [];
+    targets.push(edge.targetBlockId);
+    outgoing.set(edge.sourceBlockId, targets);
+  }
+  const pending = [targetBlockId];
+  const visited = new Set<string>();
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current || visited.has(current)) continue;
+    if (current === sourceBlockId) return project;
+    visited.add(current);
+    pending.push(...(outgoing.get(current) ?? []));
+  }
   return {
     ...project,
     edges: [

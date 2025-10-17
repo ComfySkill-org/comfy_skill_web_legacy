@@ -745,13 +745,15 @@ export default function StudioPage() {
     setSelectedId(blockId);
     setSelectedEdgeId(null);
     setGenerateError("");
-    setLinkSourceId((prev) => {
-      if (prev && prev !== blockId) {
-        commitChange((p) => addEdgeBetween(p, prev, blockId));
-        return null;
+    if (linkSourceId && linkSourceId !== blockId) {
+      const next = addEdgeBetween(projectRef.current, linkSourceId, blockId);
+      if (next === projectRef.current) {
+        setGenerateError("That link already exists or would create a workflow cycle.");
+      } else {
+        commitChange(() => next);
       }
-      return prev;
-    });
+      setLinkSourceId(null);
+    }
   }
 
   function startLinkMode() {
