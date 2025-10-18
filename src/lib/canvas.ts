@@ -369,19 +369,31 @@ export function alignProjectBlocksToGrid(
 }
 
 /** Add a flow edge if both blocks exist and it keeps the workflow acyclic. */
+export type EdgeLinkFailureReason = "duplicate" | "cycle";
+
+export function edgeLinkFailureReason(
+  project: CanvasProject,
+  sourceBlockId: string,
+  targetBlockId: string,
+): EdgeLinkFailureReason | null {
+  if (sourceBlockId === targetBlockId) return null;
+  const ids = new Set(project.blocks.map((block) => block.id));
+  if (!ids.has(sourceBlockId) || !ids.has(targetBlockId)) return null;
+  const exists = project.edges.some(
+    (edge) =>
+      edge.sourceBlockId === sourceBlockId && edge.targetBlockId === targetBlockId,
+  );
+  if (exists) return "duplicate";
+  if (hasDirectedPath(project.edges, targetBlockId, sourceBlockId)) return "cycle";
+  return null;
+}
+
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,
   targetBlockId: string,
 ): CanvasProject {
-  if (sourceBlockId === targetBlockId) return project;
-  const ids = new Set(project.blocks.map((b) => b.id));
-  if (!ids.has(sourceBlockId) || !ids.has(targetBlockId)) return project;
-  const exists = project.edges.some(
-    (e) => e.sourceBlockId === sourceBlockId && e.targetBlockId === targetBlockId,
-  );
-  if (exists) return project;
-  if (hasDirectedPath(project.edges, targetBlockId, sourceBlockId)) return project;
+  if (edgeLinkFailureReason(project, sourceBlockId, targetBlockId)) return project;
   return {
     ...project,
     edges: [

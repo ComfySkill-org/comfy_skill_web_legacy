@@ -24,6 +24,7 @@ import {
   createTextBlock,
   createVideoBlock,
   duplicateBlock,
+  edgeLinkFailureReason,
   fitProjectInViewport,
   insertAssetBlock,
   loadProjectLocal,
@@ -1414,12 +1415,16 @@ export default function StudioPage() {
       return;
     }
     if (sourceId) {
-      const next = addEdgeBetween(projectRef.current, sourceId, blockId);
-      if (next === projectRef.current) {
-        setGenerateError("That link already exists or would create a workflow cycle.");
+      const failure = edgeLinkFailureReason(projectRef.current, sourceId, blockId);
+      if (failure) {
+        setGenerateError(
+          failure === "duplicate"
+            ? "That link already exists between these blocks."
+            : "That link would create a workflow cycle.",
+        );
         return;
       }
-      commitChange(() => next);
+      commitChange(() => addEdgeBetween(projectRef.current, sourceId, blockId));
       linkSourceIdRef.current = null;
       setLinkSourceId(null);
     }
@@ -3487,8 +3492,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
-                Start or cancel linking; invalid targets keep Link mode active and show a canvas
-                status banner
+                Start or cancel linking; duplicate links and cycles report specific canvas
+                errors while Link mode stays active
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
