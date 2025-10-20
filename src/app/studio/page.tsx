@@ -1401,7 +1401,7 @@ export default function StudioPage() {
     }
   }
 
-  function selectBlock(blockId: string) {
+  function selectBlock(blockId: string, retargetLink = false) {
     setSelectedId(blockId);
     setSelectedEdgeId(null);
     setGenerateError("");
@@ -1412,6 +1412,11 @@ export default function StudioPage() {
       return;
     }
     if (sourceId) {
+      if (retargetLink) {
+        linkSourceIdRef.current = blockId;
+        setLinkSourceId(blockId);
+        return;
+      }
       const failure = edgeLinkFailureReason(projectRef.current, sourceId, blockId);
       if (failure) {
         setGenerateError(
@@ -2004,7 +2009,8 @@ export default function StudioPage() {
                 generateError ? "top-16" : "top-4"
               }`}
             >
-              Linking from {linkSourceBlock.title} — choose a target block
+              Linking from {linkSourceBlock.title} — choose a target block (Shift+click to
+              change source)
             </div>
           )}
           {viewMode === "storyboard" ? (
@@ -2246,7 +2252,7 @@ export default function StudioPage() {
                   linkSourceBlock
                     ? isLinkSource
                       ? `${block.title}, link source. Activate to cancel linking.`
-                      : `Link ${linkSourceBlock.title} to ${block.title}`
+                      : `Link ${linkSourceBlock.title} to ${block.title}. Shift+activate to use as link source instead.`
                     : block.title
                 }
                 className={`absolute rounded-lg border text-left shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50 ${
@@ -2269,7 +2275,7 @@ export default function StudioPage() {
                   e.stopPropagation();
                   if (panToolActiveRef.current) return;
                   if (consumeSuppressedCanvasClick()) return;
-                  selectBlock(block.id);
+                  selectBlock(block.id, e.shiftKey);
                 }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
@@ -2289,7 +2295,7 @@ export default function StudioPage() {
                   }
                   e.stopPropagation();
                   const wasLinking = Boolean(linkSourceId);
-                  selectBlock(block.id);
+                  selectBlock(block.id, e.shiftKey);
                   if (wasLinking) return;
                   dragRef.current = {
                     id: block.id,
@@ -2364,6 +2370,16 @@ export default function StudioPage() {
                     }
                     if (inspectIdRef.current === block.id) setInspectId(null);
                     requestAnimationFrame(() => canvasMainRef.current?.focus());
+                    return;
+                  }
+                  if (
+                    e.key === "Enter" &&
+                    e.shiftKey &&
+                    linkSourceIdRef.current
+                  ) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectBlock(block.id, true);
                     return;
                   }
                   if (
@@ -2600,8 +2616,8 @@ export default function StudioPage() {
             </button>
             {linkSourceBlock && (
               <span role="status" aria-live="polite" className="sr-only">
-                Linking from {linkSourceBlock.title}. Choose a target block, or activate the
-                source again to cancel.
+                Linking from {linkSourceBlock.title}. Choose a target block, Shift+activate
+                another block to change the source, or activate the source again to cancel.
               </span>
             )}
             <button
@@ -3490,7 +3506,8 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
                 Start or cancel linking; duplicate links and cycles report specific canvas
-                errors while Link mode stays active
+                errors while Link mode stays active; Shift+click or Shift+Enter on a block to
+                change the link source
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
