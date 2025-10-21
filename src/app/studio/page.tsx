@@ -171,6 +171,7 @@ export default function StudioPage() {
   const syncRequestRef = useRef(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const wheelHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressCanvasClickUntilRef = useRef(0);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -255,7 +256,7 @@ export default function StudioPage() {
     setHistoryTick((n) => n + 1);
   }
 
-  function endCanvasGesture(recordHistory: boolean) {
+  function endCanvasGesture(recordHistory: boolean, suppressClick = false) {
     const drag = dragRef.current;
     const pan = panRef.current;
     const gesture = drag ?? pan;
@@ -270,6 +271,9 @@ export default function StudioPage() {
         viewport: { ...prev.viewport, x: pan.origX, y: pan.origY },
       }));
     }
+    if (pan?.moved && suppressClick) {
+      suppressCanvasClickUntilRef.current = performance.now() + 100;
+    }
     dragRef.current = null;
     panRef.current = null;
     if (pan) setPanning(false);
@@ -277,6 +281,12 @@ export default function StudioPage() {
 
   function cancelCanvasGesture() {
     endCanvasGesture(false);
+  }
+
+  function consumeSuppressedCanvasClick() {
+    if (performance.now() > suppressCanvasClickUntilRef.current) return false;
+    suppressCanvasClickUntilRef.current = 0;
+    return true;
   }
 
   useEffect(() => {
@@ -386,8 +396,8 @@ export default function StudioPage() {
       drag.moved = x !== drag.origX || y !== drag.origY;
       setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
-    function finishPointerGesture() {
-      endCanvasGesture(true);
+    function finishPointerGesture(e?: PointerEvent) {
+      endCanvasGesture(true, e?.type === "pointerup" && e.button === 0);
     }
     function onWindowBlur() {
       finishPointerGesture();
@@ -1526,6 +1536,7 @@ export default function StudioPage() {
             backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
           }}
           onClick={() => {
+            if (consumeSuppressedCanvasClick()) return;
             setSelectedId(null);
             setSelectedEdgeId(null);
           }}
@@ -1660,6 +1671,7 @@ export default function StudioPage() {
                     className="pointer-events-auto cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (consumeSuppressedCanvasClick()) return;
                       setSelectedId(null);
                       setSelectedEdgeId(edge.id);
                     }}
@@ -1712,6 +1724,7 @@ export default function StudioPage() {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (consumeSuppressedCanvasClick()) return;
                   selectBlock(block.id);
                 }}
                 onDoubleClick={(e) => {
@@ -2733,7 +2746,7 @@ export default function StudioPage() {
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
               <dt className="font-medium text-slate-300">Space / middle drag</dt>
               <dd className="text-slate-500">
-                Pan from any point as one undoable gesture
+                Pan from any point without changing the current selection
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
