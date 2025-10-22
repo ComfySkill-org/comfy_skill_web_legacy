@@ -1872,11 +1872,22 @@ export default function StudioPage() {
                     stroke="transparent"
                     strokeWidth={12}
                     fill="none"
-                    className="pointer-events-auto cursor-pointer"
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Link from ${src.title} to ${tgt.title}`}
+                    aria-pressed={selected}
+                    className="pointer-events-auto cursor-pointer focus-visible:stroke-sky-300/30 focus-visible:outline-none"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (panToolActiveRef.current) return;
                       if (consumeSuppressedCanvasClick()) return;
+                      setSelectedId(null);
+                      setSelectedEdgeId(edge.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      e.stopPropagation();
                       setSelectedId(null);
                       setSelectedEdgeId(edge.id);
                     }}
@@ -1916,6 +1927,7 @@ export default function StudioPage() {
                 key={block.id}
                 role="button"
                 tabIndex={0}
+                aria-pressed={active}
                 aria-label={
                   linkSourceBlock
                     ? isLinkSource
@@ -3061,6 +3073,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
               <dd className="text-slate-500">Remove the selected block</dd>
+              <dt className="font-medium text-slate-300">Tab + Enter</dt>
+              <dd className="text-slate-500">Focus and select workflow links</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
               <dd className="text-slate-500">
                 Leave the toolbar, cancel a gesture, dismiss errors, or close overlays
