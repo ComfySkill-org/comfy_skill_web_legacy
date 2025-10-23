@@ -779,6 +779,7 @@ export default function StudioPage() {
           setSelectedId(null);
           setSelectedEdgeId(null);
           setLinkSourceId(null);
+          requestAnimationFrame(() => canvasMainRef.current?.focus());
           return;
         }
         const arrow =
@@ -2263,8 +2264,7 @@ export default function StudioPage() {
                       e.stopPropagation();
                       if (panToolActiveRef.current) return;
                       if (consumeSuppressedCanvasClick()) return;
-                      setSelectedId(null);
-                      setSelectedEdgeId(edge.id);
+                      syncEdgeFocusSelection(edge.id);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Delete" || e.key === "Backspace") {
@@ -2278,8 +2278,7 @@ export default function StudioPage() {
                       if (e.key !== "Enter" && e.key !== " ") return;
                       e.preventDefault();
                       e.stopPropagation();
-                      setSelectedId(null);
-                      setSelectedEdgeId(edge.id);
+                      syncEdgeFocusSelection(edge.id);
                     }}
                   />
                   <path
@@ -3648,7 +3647,10 @@ export default function StudioPage() {
                 off-screen items pan into view
               </dd>
               <dt className="font-medium text-slate-300">Tab + Enter / Delete</dt>
-              <dd className="text-slate-500">Select or remove a focused workflow link</dd>
+              <dd className="text-slate-500">
+                Select or remove a focused workflow link; clicking a link also reveals it in
+                view when needed
+              </dd>
               <dt className="font-medium text-slate-300">Esc</dt>
               <dd className="text-slate-500">
                 Leave the toolbar, cancel a gesture, dismiss errors, exit Link mode, or close
