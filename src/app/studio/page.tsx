@@ -1876,6 +1876,7 @@ export default function StudioPage() {
                     role="button"
                     aria-label={`Link from ${src.title} to ${tgt.title}`}
                     aria-pressed={selected}
+                    aria-keyshortcuts="Enter Space Delete Backspace"
                     className="pointer-events-auto cursor-pointer focus-visible:stroke-sky-300/30 focus-visible:outline-none"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1885,6 +1886,14 @@ export default function StudioPage() {
                       setSelectedEdgeId(edge.id);
                     }}
                     onKeyDown={(e) => {
+                      if (e.key === "Delete" || e.key === "Backspace") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        commitChange((prev) => removeEdge(prev, edge.id));
+                        setSelectedEdgeId(null);
+                        requestAnimationFrame(() => canvasMainRef.current?.focus());
+                        return;
+                      }
                       if (e.key !== "Enter" && e.key !== " ") return;
                       e.preventDefault();
                       e.stopPropagation();
@@ -3073,8 +3082,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Undo; add Shift to redo</dd>
               <dt className="font-medium text-slate-300">Delete</dt>
               <dd className="text-slate-500">Remove the selected block</dd>
-              <dt className="font-medium text-slate-300">Tab + Enter</dt>
-              <dd className="text-slate-500">Focus and select workflow links</dd>
+              <dt className="font-medium text-slate-300">Tab + Enter / Delete</dt>
+              <dd className="text-slate-500">Select or remove a focused workflow link</dd>
               <dt className="font-medium text-slate-300">Esc</dt>
               <dd className="text-slate-500">
                 Leave the toolbar, cancel a gesture, dismiss errors, or close overlays
