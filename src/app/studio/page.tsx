@@ -183,6 +183,7 @@ export default function StudioPage() {
     startClientY: number;
     origX: number;
     origY: number;
+    moved: boolean;
   } | null>(null);
   const spaceHeldRef = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -331,6 +332,12 @@ export default function StudioPage() {
       if (pan) {
         const dx = e.clientX - pan.startClientX;
         const dy = e.clientY - pan.startClientY;
+        if (dx === 0 && dy === 0) return;
+        if (!pan.moved) {
+          historyRef.current.record(projectRef.current);
+          setHistoryTick((n) => n + 1);
+          pan.moved = true;
+        }
         setProject((prev) => ({
           ...prev,
           viewport: {
@@ -1274,6 +1281,7 @@ export default function StudioPage() {
       startClientY: e.clientY,
       origX: vp.x,
       origY: vp.y,
+      moved: false,
     };
     setPanning(true);
   }
@@ -2687,7 +2695,9 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
               <dt className="font-medium text-slate-300">Space + drag</dt>
-              <dd className="text-slate-500">Pan the workflow canvas</dd>
+              <dd className="text-slate-500">
+                Pan the workflow canvas as one undoable gesture
+              </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
                 Zoom toward the pointer; each continuous gesture is one undo step
