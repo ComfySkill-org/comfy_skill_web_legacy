@@ -443,7 +443,10 @@ export default function StudioPage() {
       setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
     function finishPointerGesture(e?: PointerEvent) {
-      endCanvasGesture(true, e?.type === "pointerup" && e.button === 0);
+      const shouldSuppressClick =
+        e?.type === "pointerup" &&
+        Boolean(panRef.current?.moved);
+      endCanvasGesture(true, shouldSuppressClick);
     }
     function onWindowBlur() {
       finishPointerGesture();
@@ -3583,7 +3586,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">
                 Toggle selection-safe Hand mode or temporarily pan; Hand mode pans over blocks
                 and links without changing selection; Hand mode shows a canvas status banner;
-                pan undo applies only when the viewport moves
+                completed pans keep the current selection; pan undo applies only when the
+                viewport moves
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
