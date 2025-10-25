@@ -15,6 +15,7 @@ import {
   apiProjectToCanvas,
   applySkillTemplate,
   blockResultSummary,
+  canvasProjectToApiPut,
   clearProjectLocal,
   createImageBlock,
   createStarterProject,
@@ -93,6 +94,7 @@ export default function StudioPage() {
   const [projectQuery, setProjectQuery] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
   const [projectDeleteLoading, setProjectDeleteLoading] = useState(false);
+  const [projectActionId, setProjectActionId] = useState<string | null>(null);
   const [projectFileError, setProjectFileError] = useState("");
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
@@ -646,6 +648,39 @@ export default function StudioPage() {
       setProjectsError(error instanceof Error ? error.message : "Could not delete project.");
     } finally {
       setProjectDeleteLoading(false);
+    }
+  }
+
+  async function duplicateCloudProject(summary: ProjectSummary) {
+    setProjectActionId(summary.id);
+    setProjectsError("");
+    try {
+      const source = await apiClient.getProject(summary.id);
+      const title = `${source.title} copy`;
+      const created = await apiClient.createProject(title);
+      const duplicate: CanvasProject = {
+        ...apiProjectToCanvas(source),
+        id: created.id,
+        title,
+      };
+      const saved = await apiClient.putProject(
+        created.id,
+        canvasProjectToApiPut(duplicate),
+      );
+      setProjectSummaries((projects) => [
+        {
+          id: saved.id,
+          title: saved.title,
+          view_mode: saved.view_mode,
+          updated_at: saved.updated_at,
+          block_count: saved.blocks.length,
+        },
+        ...projects,
+      ]);
+    } catch (error) {
+      setProjectsError(error instanceof Error ? error.message : "Could not duplicate project.");
+    } finally {
+      setProjectActionId(null);
     }
   }
 
@@ -1865,11 +1900,21 @@ export default function StudioPage() {
                           </span>
                         </div>
                       </button>
+                      <button
+                        type="button"
+                        disabled={projectActionId !== null}
+                        onClick={() => void duplicateCloudProject(summary)}
+                        className="border-l border-slate-800 px-3 text-xs text-slate-500 hover:bg-sky-500/10 hover:text-sky-300 disabled:opacity-50"
+                        aria-label={`Duplicate ${summary.title}`}
+                      >
+                        {projectActionId === summary.id ? "Copying…" : "Duplicate"}
+                      </button>
                       {summary.id !== activeRemoteProjectId && (
                         <button
                           type="button"
+                          disabled={projectActionId !== null}
                           onClick={() => setProjectPendingDelete(summary)}
-                          className="border-l border-slate-800 px-3 text-xs text-slate-500 hover:bg-rose-500/10 hover:text-rose-300"
+                          className="border-l border-slate-800 px-3 text-xs text-slate-500 hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-50"
                           aria-label={`Delete ${summary.title}`}
                         >
                           Delete
