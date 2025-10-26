@@ -179,6 +179,7 @@ export default function StudioPage() {
   const syncRequestRef = useRef(0);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const wheelHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nudgeHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressCanvasClickUntilRef = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -265,6 +266,18 @@ export default function StudioPage() {
     historyRef.current.record(projectRef.current);
     setProject(mutate);
     setHistoryTick((n) => n + 1);
+  }
+
+  function beginNudgeHistory() {
+    if (!nudgeHistoryTimerRef.current) {
+      historyRef.current.record(projectRef.current);
+      setHistoryTick((n) => n + 1);
+    } else {
+      clearTimeout(nudgeHistoryTimerRef.current);
+    }
+    nudgeHistoryTimerRef.current = setTimeout(() => {
+      nudgeHistoryTimerRef.current = null;
+    }, 300);
   }
 
   function endCanvasGesture(recordHistory: boolean, suppressClick = false) {
@@ -468,6 +481,10 @@ export default function StudioPage() {
       if (wheelHistoryTimerRef.current) {
         clearTimeout(wheelHistoryTimerRef.current);
         wheelHistoryTimerRef.current = null;
+      }
+      if (nudgeHistoryTimerRef.current) {
+        clearTimeout(nudgeHistoryTimerRef.current);
+        nudgeHistoryTimerRef.current = null;
       }
     };
   }, []);
@@ -743,10 +760,7 @@ export default function StudioPage() {
             e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
           const dy =
             e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-          if (!e.repeat) {
-            historyRef.current.record(projectRef.current);
-            setHistoryTick((n) => n + 1);
-          }
+          beginNudgeHistory();
           const id = selectedIdRef.current;
           setProject((prev) => nudgeBlock(prev, id, dx, dy));
           return;
@@ -1541,17 +1555,9 @@ export default function StudioPage() {
     }));
   }
 
-  function nudgeBlockById(
-    blockId: string,
-    dx: number,
-    dy: number,
-    recordHistory: boolean,
-  ) {
+  function nudgeBlockById(blockId: string, dx: number, dy: number) {
     if (dx === 0 && dy === 0) return;
-    if (recordHistory) {
-      historyRef.current.record(projectRef.current);
-      setHistoryTick((n) => n + 1);
-    }
+    beginNudgeHistory();
     setSelectedId(blockId);
     setSelectedEdgeId(null);
     setProject((prev) => nudgeBlock(prev, blockId, dx, dy));
@@ -2130,7 +2136,7 @@ export default function StudioPage() {
                         : e.key === "ArrowDown"
                           ? step
                           : 0;
-                    nudgeBlockById(block.id, dx, dy, !e.repeat);
+                    nudgeBlockById(block.id, dx, dy);
                     return;
                   }
                   if (
@@ -2628,7 +2634,7 @@ export default function StudioPage() {
               New project
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}% · Arrows nudge · Wheel zoom ·{" "}
+              {Math.round(project.viewport.zoom * 100)}% · Arrows nudge (one undo burst) · Wheel zoom ·{" "}
               {syncLabel === "local*" ? (
                 <button
                   type="button"
@@ -3271,8 +3277,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Reset workflow canvas pan</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
-                Nudge the selected or focused workflow block; navigate storyboard; browse
-                retained outputs in result detail
+                Nudge the selected or focused workflow block as one undo step per burst;
+                navigate storyboard; browse retained outputs in result detail
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>
