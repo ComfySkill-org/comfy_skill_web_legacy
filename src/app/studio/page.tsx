@@ -824,16 +824,10 @@ export default function StudioPage() {
       }
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        const prev = historyRef.current.undo(projectRef.current);
-        if (!prev) return;
-        setProject(prev);
-        setHistoryTick((n) => n + 1);
+        undo();
       } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
         e.preventDefault();
-        const next = historyRef.current.redo(projectRef.current);
-        if (!next) return;
-        setProject(next);
-        setHistoryTick((n) => n + 1);
+        redo();
       }
     }
     function onKeyUp(e: KeyboardEvent) {
@@ -982,6 +976,7 @@ export default function StudioPage() {
     const prev = historyRef.current.undo(projectRef.current);
     if (!prev) return;
     setProject(prev);
+    reconcileCanvasSelection(prev);
     setHistoryTick((n) => n + 1);
   }
 
@@ -989,7 +984,32 @@ export default function StudioPage() {
     const next = historyRef.current.redo(projectRef.current);
     if (!next) return;
     setProject(next);
+    reconcileCanvasSelection(next);
     setHistoryTick((n) => n + 1);
+  }
+
+  function reconcileCanvasSelection(project: CanvasProject) {
+    const blockIds = new Set(project.blocks.map((block) => block.id));
+    if (selectedIdRef.current && !blockIds.has(selectedIdRef.current)) {
+      setSelectedId(null);
+    }
+    if (selectedEdgeIdRef.current) {
+      const edge = project.edges.find((item) => item.id === selectedEdgeIdRef.current);
+      if (
+        !edge ||
+        !blockIds.has(edge.sourceBlockId) ||
+        !blockIds.has(edge.targetBlockId)
+      ) {
+        setSelectedEdgeId(null);
+      }
+    }
+    if (linkSourceIdRef.current && !blockIds.has(linkSourceIdRef.current)) {
+      linkSourceIdRef.current = null;
+      setLinkSourceId(null);
+    }
+    if (inspectIdRef.current && !blockIds.has(inspectIdRef.current)) {
+      setInspectId(null);
+    }
   }
 
   function toggleSnapToGrid() {
@@ -3464,7 +3484,9 @@ export default function StudioPage() {
                 canvas
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
-              <dd className="text-slate-500">Undo; add Shift to redo</dd>
+              <dd className="text-slate-500">
+                Undo; add Shift to redo; clears stale block, link, and inspect selection
+              </dd>
               <dt className="font-medium text-slate-300">Delete</dt>
               <dd className="text-slate-500">
                 Remove the selected or focused block; in storyboard, focus moves to the next
