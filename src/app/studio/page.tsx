@@ -177,6 +177,7 @@ export default function StudioPage() {
     startClientY: number;
     origX: number;
     origY: number;
+    moved: boolean;
   } | null>(null);
   const panRef = useRef<{
     startClientX: number;
@@ -359,6 +360,12 @@ export default function StudioPage() {
       const y = snapToGridRef.current && !e.altKey
         ? Math.round(nextY / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
         : nextY;
+      if (x === drag.origX && y === drag.origY) return;
+      if (!drag.moved) {
+        historyRef.current.record(projectRef.current);
+        setHistoryTick((n) => n + 1);
+        drag.moved = true;
+      }
       setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
     function onPointerUp() {
@@ -1695,15 +1702,16 @@ export default function StudioPage() {
                     return;
                   }
                   e.stopPropagation();
+                  const wasLinking = Boolean(linkSourceId);
                   selectBlock(block.id);
-                  historyRef.current.record(projectRef.current);
-                  setHistoryTick((n) => n + 1);
+                  if (wasLinking) return;
                   dragRef.current = {
                     id: block.id,
                     startClientX: e.clientX,
                     startClientY: e.clientY,
                     origX: block.x,
                     origY: block.y,
+                    moved: false,
                   };
                 }}
                 onKeyDown={(e) => {
@@ -2690,7 +2698,7 @@ export default function StudioPage() {
             <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-xs">
               <dt className="font-medium text-slate-300">Drag block</dt>
               <dd className="text-slate-500">
-                Reposition a shot; hold Alt to bypass active grid snapping
+                Reposition as one undo step; hold Alt to bypass active grid snapping
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
