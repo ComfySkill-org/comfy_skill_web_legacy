@@ -289,8 +289,22 @@ export default function StudioPage() {
     const pan = panRef.current;
     const gesture = drag ?? pan;
     if (gesture?.moved && recordHistory) {
-      historyRef.current.record(gesture.before);
-      setHistoryTick((n) => n + 1);
+      let shouldRecord = true;
+      if (drag) {
+        const block = projectRef.current.blocks.find((item) => item.id === drag.id);
+        if (block && block.x === drag.origX && block.y === drag.origY) {
+          shouldRecord = false;
+        }
+      } else if (pan) {
+        const viewport = projectRef.current.viewport;
+        if (viewport.x === pan.origX && viewport.y === pan.origY) {
+          shouldRecord = false;
+        }
+      }
+      if (shouldRecord) {
+        historyRef.current.record(gesture.before);
+        setHistoryTick((n) => n + 1);
+      }
     } else if (drag?.moved) {
       setProject((prev) => moveBlock(prev, drag.id, drag.origX, drag.origY));
     } else if (pan?.moved) {
@@ -3424,7 +3438,8 @@ export default function StudioPage() {
             <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-xs">
               <dt className="font-medium text-slate-300">Drag block</dt>
               <dd className="text-slate-500">
-                Reposition as one undo step; hold Alt to bypass active grid snapping
+                Reposition as one undo step when the block moves; hold Alt to bypass active
+                grid snapping
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">
@@ -3438,7 +3453,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">H / Space / middle drag</dt>
               <dd className="text-slate-500">
-                Toggle selection-safe Hand mode or temporarily pan
+                Toggle selection-safe Hand mode or temporarily pan; pan undo applies only when
+                the viewport moves
               </dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">
