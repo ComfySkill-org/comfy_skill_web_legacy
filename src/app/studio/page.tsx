@@ -93,6 +93,8 @@ export default function StudioPage() {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState("");
   const [projectQuery, setProjectQuery] = useState("");
+  const [projectPendingRename, setProjectPendingRename] = useState<ProjectSummary | null>(null);
+  const [projectRenameValue, setProjectRenameValue] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
   const [projectDeleteLoading, setProjectDeleteLoading] = useState(false);
   const [projectActionId, setProjectActionId] = useState<string | null>(null);
@@ -317,6 +319,7 @@ export default function StudioPage() {
         setHelpOpen(false);
         setResetConfirmOpen(false);
         setProjectsOpen(false);
+        setProjectPendingRename(null);
         setProjectPendingDelete(null);
         return;
       }
@@ -725,6 +728,38 @@ export default function StudioPage() {
       ]);
     } catch (error) {
       setProjectsError(error instanceof Error ? error.message : "Could not duplicate project.");
+    } finally {
+      setProjectActionId(null);
+    }
+  }
+
+  async function renameCloudProject() {
+    if (!projectPendingRename || projectPendingRename.id === activeRemoteProjectId) return;
+    const title = projectRenameValue.trim();
+    if (!title) return;
+    const projectId = projectPendingRename.id;
+    setProjectActionId(projectId);
+    setProjectsError("");
+    try {
+      const source = await apiClient.getProject(projectId);
+      const saved = await apiClient.putProject(
+        projectId,
+        canvasProjectToApiPut({
+          ...apiProjectToCanvas(source),
+          title,
+        }),
+      );
+      setProjectSummaries((projects) =>
+        projects.map((project) =>
+          project.id === projectId
+            ? { ...project, title: saved.title, updated_at: saved.updated_at }
+            : project,
+        ),
+      );
+      setProjectPendingRename(null);
+    } catch (error) {
+      setProjectPendingRename(null);
+      setProjectsError(error instanceof Error ? error.message : "Could not rename project.");
     } finally {
       setProjectActionId(null);
     }
@@ -1962,6 +1997,20 @@ export default function StudioPage() {
                           </span>
                         </div>
                       </button>
+                      {summary.id !== activeRemoteProjectId && (
+                        <button
+                          type="button"
+                          disabled={projectActionId !== null}
+                          onClick={() => {
+                            setProjectPendingRename(summary);
+                            setProjectRenameValue(summary.title);
+                          }}
+                          className="border-l border-slate-800 px-3 text-xs text-slate-500 hover:bg-sky-500/10 hover:text-sky-300 disabled:opacity-50"
+                          aria-label={`Rename ${summary.title}`}
+                        >
+                          Rename
+                        </button>
+                      )}
                       <button
                         type="button"
                         disabled={projectActionId !== null}
@@ -1969,7 +2018,7 @@ export default function StudioPage() {
                         className="border-l border-slate-800 px-3 text-xs text-slate-500 hover:bg-sky-500/10 hover:text-sky-300 disabled:opacity-50"
                         aria-label={`Duplicate ${summary.title}`}
                       >
-                        {projectActionId === summary.id ? "Copying…" : "Duplicate"}
+                        {projectActionId === summary.id ? "Working…" : "Duplicate"}
                       </button>
                       {summary.id !== activeRemoteProjectId && (
                         <button
@@ -1988,6 +2037,61 @@ export default function StudioPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {projectPendingRename && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-6"
+          onClick={() => {
+            if (projectActionId !== projectPendingRename.id) setProjectPendingRename(null);
+          }}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rename-project-title"
+            className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void renameCloudProject();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="rename-project-title" className="text-sm font-semibold">
+              Rename cloud project
+            </h3>
+            <label className="mt-4 block text-xs text-slate-400">
+              Project title
+              <input
+                autoFocus
+                maxLength={120}
+                value={projectRenameValue}
+                onChange={(e) => setProjectRenameValue(e.target.value)}
+                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-sky-500"
+              />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={projectActionId === projectPendingRename.id}
+                onClick={() => setProjectPendingRename(null)}
+                className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={
+                  !projectRenameValue.trim() ||
+                  projectActionId === projectPendingRename.id
+                }
+                className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+              >
+                {projectActionId === projectPendingRename.id ? "Renaming…" : "Rename"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
