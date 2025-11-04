@@ -72,6 +72,25 @@ const BLOCK_STATUS_META: Record<
   failed: { label: "Failed", className: "bg-rose-500/15 text-rose-300" },
 };
 
+function projectUpdatedTimestamp(updatedAt: string | null): number {
+  if (!updatedAt) return 0;
+  const timestamp = Date.parse(updatedAt);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function sortProjectSummaries(projects: readonly ProjectSummary[]): ProjectSummary[] {
+  return [...projects].sort(
+    (a, b) =>
+      projectUpdatedTimestamp(b.updated_at) - projectUpdatedTimestamp(a.updated_at),
+  );
+}
+
+function formatProjectUpdatedAt(updatedAt: string | null): string {
+  if (!updatedAt) return "Not saved yet";
+  const timestamp = projectUpdatedTimestamp(updatedAt);
+  return timestamp ? new Date(timestamp).toLocaleString() : "Update time unavailable";
+}
+
 /**
  * Studio shell — Phase 1 canvas MVP (PRD-legacy).
  * Center: flow + results. Right: params when a block is selected.
@@ -695,13 +714,7 @@ export default function StudioPage() {
     setProjectsError("");
     try {
       const projects = await apiClient.listProjects();
-      setProjectSummaries(
-        [...projects].sort(
-          (a, b) =>
-            (b.updated_at ? Date.parse(b.updated_at) : 0) -
-            (a.updated_at ? Date.parse(a.updated_at) : 0),
-        ),
-      );
+      setProjectSummaries(sortProjectSummaries(projects));
     } catch (error) {
       setProjectsError(error instanceof Error ? error.message : "Could not load projects.");
     } finally {
@@ -778,16 +791,18 @@ export default function StudioPage() {
         created.id,
         canvasProjectToApiPut(duplicate),
       );
-      setProjectSummaries((projects) => [
-        {
-          id: saved.id,
-          title: saved.title,
-          view_mode: saved.view_mode,
-          updated_at: saved.updated_at,
-          block_count: saved.blocks.length,
-        },
-        ...projects,
-      ]);
+      setProjectSummaries((projects) =>
+        sortProjectSummaries([
+          {
+            id: saved.id,
+            title: saved.title,
+            view_mode: saved.view_mode,
+            updated_at: saved.updated_at,
+            block_count: saved.blocks.length,
+          },
+          ...projects,
+        ]),
+      );
     } catch (error) {
       setProjectsError(error instanceof Error ? error.message : "Could not duplicate project.");
     } finally {
@@ -812,10 +827,12 @@ export default function StudioPage() {
         }),
       );
       setProjectSummaries((projects) =>
-        projects.map((project) =>
-          project.id === projectId
-            ? { ...project, title: saved.title, updated_at: saved.updated_at }
-            : project,
+        sortProjectSummaries(
+          projects.map((project) =>
+            project.id === projectId
+              ? { ...project, title: saved.title, updated_at: saved.updated_at }
+              : project,
+          ),
         ),
       );
       setProjectPendingRename(null);
@@ -2090,9 +2107,7 @@ export default function StudioPage() {
                             {summary.title}
                           </p>
                           <p className="mt-1 text-[11px] text-slate-500">
-                            {summary.updated_at
-                              ? new Date(summary.updated_at).toLocaleString()
-                              : "Not saved yet"}
+                            {formatProjectUpdatedAt(summary.updated_at)}
                           </p>
                         </div>
                         <div className="ml-4 flex shrink-0 items-center gap-2">
