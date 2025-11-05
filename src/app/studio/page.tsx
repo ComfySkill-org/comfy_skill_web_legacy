@@ -91,6 +91,21 @@ function formatProjectUpdatedAt(updatedAt: string | null): string {
   return timestamp ? new Date(timestamp).toLocaleString() : "Update time unavailable";
 }
 
+function uniqueProjectCopyTitle(
+  sourceTitle: string,
+  projects: readonly ProjectSummary[],
+): string {
+  const source = sourceTitle.trim() || "Untitled project";
+  const existing = new Set(projects.map((project) => project.title.trim().toLocaleLowerCase()));
+  let copyNumber = 1;
+  while (true) {
+    const suffix = copyNumber === 1 ? " copy" : ` copy ${copyNumber}`;
+    const candidate = `${source.slice(0, 120 - suffix.length).trimEnd()}${suffix}`;
+    if (!existing.has(candidate.toLocaleLowerCase())) return candidate;
+    copyNumber += 1;
+  }
+}
+
 /**
  * Studio shell — Phase 1 canvas MVP (PRD-legacy).
  * Center: flow + results. Right: params when a block is selected.
@@ -780,7 +795,7 @@ export default function StudioPage() {
     setProjectsError("");
     try {
       const source = await apiClient.getProject(summary.id);
-      const title = `${source.title} copy`;
+      const title = uniqueProjectCopyTitle(source.title, projectSummaries);
       const created = await apiClient.createProject(title);
       const duplicate: CanvasProject = {
         ...apiProjectToCanvas(source),
@@ -814,6 +829,10 @@ export default function StudioPage() {
     if (!projectPendingRename || projectPendingRename.id === activeRemoteProjectId) return;
     const title = projectRenameValue.trim();
     if (!title) return;
+    if (title === projectPendingRename.title.trim()) {
+      setProjectPendingRename(null);
+      return;
+    }
     const projectId = projectPendingRename.id;
     setProjectActionId(projectId);
     setProjectsError("");
@@ -2208,6 +2227,7 @@ export default function StudioPage() {
                 type="submit"
                 disabled={
                   !projectRenameValue.trim() ||
+                  projectRenameValue.trim() === projectPendingRename.title.trim() ||
                   projectActionId === projectPendingRename.id
                 }
                 className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
