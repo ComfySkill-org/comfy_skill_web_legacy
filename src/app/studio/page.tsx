@@ -591,6 +591,17 @@ export default function StudioPage() {
     );
   }, [projectQuery, projectSummaries]);
   const activeRemoteProjectId = hydrated ? getRemoteProjectId() : null;
+  const normalizedRenameTitle = projectRenameValue.trim().toLocaleLowerCase();
+  const projectRenameConflict = Boolean(
+    projectPendingRename &&
+      normalizedRenameTitle &&
+      normalizedRenameTitle !== projectPendingRename.title.trim().toLocaleLowerCase() &&
+      projectSummaries.some(
+        (summary) =>
+          summary.id !== projectPendingRename.id &&
+          summary.title.trim().toLocaleLowerCase() === normalizedRenameTitle,
+      ),
+  );
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
   viewModeRef.current = viewMode;
@@ -829,6 +840,7 @@ export default function StudioPage() {
     if (!projectPendingRename || projectPendingRename.id === activeRemoteProjectId) return;
     const title = projectRenameValue.trim();
     if (!title) return;
+    if (projectRenameConflict) return;
     if (title === projectPendingRename.title.trim()) {
       setProjectPendingRename(null);
       return;
@@ -2211,9 +2223,20 @@ export default function StudioPage() {
                 maxLength={120}
                 value={projectRenameValue}
                 onChange={(e) => setProjectRenameValue(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-sky-500"
+                aria-invalid={projectRenameConflict}
+                aria-describedby={projectRenameConflict ? "rename-project-error" : undefined}
+                className={`mt-2 w-full rounded-lg border bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none ${
+                  projectRenameConflict
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-slate-700 focus:border-sky-500"
+                }`}
               />
             </label>
+            {projectRenameConflict && (
+              <p id="rename-project-error" className="mt-2 text-xs text-rose-400">
+                Another cloud project already uses this title.
+              </p>
+            )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
@@ -2228,6 +2251,7 @@ export default function StudioPage() {
                 disabled={
                   !projectRenameValue.trim() ||
                   projectRenameValue.trim() === projectPendingRename.title.trim() ||
+                  projectRenameConflict ||
                   projectActionId === projectPendingRename.id
                 }
                 className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
