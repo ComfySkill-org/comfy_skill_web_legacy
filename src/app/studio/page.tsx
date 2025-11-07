@@ -128,6 +128,7 @@ export default function StudioPage() {
   const [projectSummaries, setProjectSummaries] = useState<ProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState("");
+  const [projectsNotice, setProjectsNotice] = useState("");
   const [projectQuery, setProjectQuery] = useState("");
   const [projectPendingRename, setProjectPendingRename] = useState<ProjectSummary | null>(null);
   const [projectRenameValue, setProjectRenameValue] = useState("");
@@ -738,6 +739,7 @@ export default function StudioPage() {
   async function loadProjects() {
     setProjectsLoading(true);
     setProjectsError("");
+    setProjectsNotice("");
     try {
       const projects = await apiClient.listProjects();
       setProjectSummaries(sortProjectSummaries(projects));
@@ -785,14 +787,17 @@ export default function StudioPage() {
 
   async function deleteCloudProject() {
     if (!projectPendingDelete || projectPendingDelete.id === activeRemoteProjectId) return;
+    const deletedTitle = projectPendingDelete.title;
     setProjectDeleteLoading(true);
     setProjectsError("");
+    setProjectsNotice("");
     try {
       await apiClient.deleteProject(projectPendingDelete.id);
       setProjectSummaries((projects) =>
         projects.filter((project) => project.id !== projectPendingDelete.id),
       );
       setProjectPendingDelete(null);
+      setProjectsNotice(`Deleted “${deletedTitle}”.`);
     } catch (error) {
       setProjectPendingDelete(null);
       setProjectsError(error instanceof Error ? error.message : "Could not delete project.");
@@ -804,6 +809,7 @@ export default function StudioPage() {
   async function duplicateCloudProject(summary: ProjectSummary) {
     setProjectActionId(summary.id);
     setProjectsError("");
+    setProjectsNotice("");
     try {
       const source = await apiClient.getProject(summary.id);
       const title = uniqueProjectCopyTitle(source.title, projectSummaries);
@@ -829,6 +835,7 @@ export default function StudioPage() {
           ...projects,
         ]),
       );
+      setProjectsNotice(`Created “${saved.title}”.`);
     } catch (error) {
       setProjectsError(error instanceof Error ? error.message : "Could not duplicate project.");
     } finally {
@@ -848,6 +855,7 @@ export default function StudioPage() {
     const projectId = projectPendingRename.id;
     setProjectActionId(projectId);
     setProjectsError("");
+    setProjectsNotice("");
     try {
       const source = await apiClient.getProject(projectId);
       const saved = await apiClient.putProject(
@@ -867,6 +875,7 @@ export default function StudioPage() {
         ),
       );
       setProjectPendingRename(null);
+      setProjectsNotice(`Renamed project to “${saved.title}”.`);
     } catch (error) {
       setProjectPendingRename(null);
       setProjectsError(error instanceof Error ? error.message : "Could not rename project.");
@@ -2092,6 +2101,15 @@ export default function StudioPage() {
                     className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
                   />
                 </label>
+              )}
+              {projectsNotice && !projectsError && (
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="mb-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300"
+                >
+                  {projectsNotice}
+                </p>
               )}
               {projectsLoading ? (
                 <p className="px-2 py-6 text-center text-sm text-slate-500">
