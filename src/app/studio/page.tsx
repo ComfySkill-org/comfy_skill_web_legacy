@@ -130,6 +130,9 @@ export default function StudioPage() {
   const [projectsError, setProjectsError] = useState("");
   const [projectsNotice, setProjectsNotice] = useState("");
   const [projectQuery, setProjectQuery] = useState("");
+  const [projectViewFilter, setProjectViewFilter] = useState<
+    ProjectSummary["view_mode"] | "all"
+  >("all");
   const [projectPendingRename, setProjectPendingRename] = useState<ProjectSummary | null>(null);
   const [projectRenameValue, setProjectRenameValue] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
@@ -586,11 +589,12 @@ export default function StudioPage() {
   }, [assetQuery, assets]);
   const filteredProjects = useMemo(() => {
     const query = projectQuery.trim().toLocaleLowerCase();
-    if (!query) return projectSummaries;
-    return projectSummaries.filter((project) =>
-      project.title.toLocaleLowerCase().includes(query),
+    return projectSummaries.filter(
+      (project) =>
+        (projectViewFilter === "all" || project.view_mode === projectViewFilter) &&
+        (!query || project.title.toLocaleLowerCase().includes(query)),
     );
-  }, [projectQuery, projectSummaries]);
+  }, [projectQuery, projectSummaries, projectViewFilter]);
   const activeRemoteProjectId = hydrated ? getRemoteProjectId() : null;
   const normalizedRenameTitle = projectRenameValue.trim().toLocaleLowerCase();
   const projectRenameConflict = Boolean(
@@ -753,6 +757,7 @@ export default function StudioPage() {
   async function openProjects() {
     setProjectsOpen(true);
     setProjectQuery("");
+    setProjectViewFilter("all");
     await loadProjects();
   }
 
@@ -2091,16 +2096,34 @@ export default function StudioPage() {
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-3">
               {!projectsLoading && !projectsError && projectSummaries.length > 0 && (
-                <label className="mb-3 block">
-                  <span className="sr-only">Search cloud projects</span>
-                  <input
-                    type="search"
-                    value={projectQuery}
-                    onChange={(e) => setProjectQuery(e.target.value)}
-                    placeholder="Search projects…"
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
-                  />
-                </label>
+                <div className="mb-3 flex gap-2">
+                  <label className="min-w-0 flex-1">
+                    <span className="sr-only">Search cloud projects</span>
+                    <input
+                      type="search"
+                      value={projectQuery}
+                      onChange={(e) => setProjectQuery(e.target.value)}
+                      placeholder="Search projects…"
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
+                    />
+                  </label>
+                  <label>
+                    <span className="sr-only">Filter projects by view</span>
+                    <select
+                      value={projectViewFilter}
+                      onChange={(e) =>
+                        setProjectViewFilter(
+                          e.target.value as ProjectSummary["view_mode"] | "all",
+                        )
+                      }
+                      className="h-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-300 outline-none focus:border-sky-500"
+                    >
+                      <option value="all">All views</option>
+                      <option value="workflow">Workflow</option>
+                      <option value="storyboard">Storyboard</option>
+                    </select>
+                  </label>
+                </div>
               )}
               {projectsNotice && !projectsError && (
                 <p
@@ -2132,7 +2155,7 @@ export default function StudioPage() {
                 </p>
               ) : filteredProjects.length === 0 ? (
                 <p className="px-2 py-6 text-center text-sm text-slate-500">
-                  No projects match “{projectQuery.trim()}”.
+                  No projects match the current filters.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -2165,6 +2188,9 @@ export default function StudioPage() {
                               Current
                             </span>
                           )}
+                          <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] capitalize text-slate-400">
+                            {summary.view_mode}
+                          </span>
                           <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-400">
                             {summary.block_count} blocks
                           </span>
