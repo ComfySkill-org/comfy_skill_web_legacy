@@ -595,6 +595,13 @@ export default function StudioPage() {
         (!query || project.title.toLocaleLowerCase().includes(query)),
     );
   }, [projectQuery, projectSummaries, projectViewFilter]);
+  const projectViewCounts = useMemo(
+    () => ({
+      workflow: projectSummaries.filter((project) => project.view_mode === "workflow").length,
+      storyboard: projectSummaries.filter((project) => project.view_mode === "storyboard").length,
+    }),
+    [projectSummaries],
+  );
   const activeRemoteProjectId = hydrated ? getRemoteProjectId() : null;
   const normalizedRenameTitle = projectRenameValue.trim().toLocaleLowerCase();
   const projectRenameConflict = Boolean(
@@ -2118,9 +2125,9 @@ export default function StudioPage() {
                       }
                       className="h-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-300 outline-none focus:border-sky-500"
                     >
-                      <option value="all">All views</option>
-                      <option value="workflow">Workflow</option>
-                      <option value="storyboard">Storyboard</option>
+                      <option value="all">All views ({projectSummaries.length})</option>
+                      <option value="workflow">Workflow ({projectViewCounts.workflow})</option>
+                      <option value="storyboard">Storyboard ({projectViewCounts.storyboard})</option>
                     </select>
                   </label>
                 </div>
@@ -2154,9 +2161,19 @@ export default function StudioPage() {
                   No cloud projects yet.
                 </p>
               ) : filteredProjects.length === 0 ? (
-                <p className="px-2 py-6 text-center text-sm text-slate-500">
-                  No projects match the current filters.
-                </p>
+                <div className="px-2 py-6 text-center">
+                  <p className="text-sm text-slate-500">No projects match the current filters.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProjectQuery("");
+                      setProjectViewFilter("all");
+                    }}
+                    className="mt-3 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500 hover:text-white"
+                  >
+                    Clear filters
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {filteredProjects.map((summary) => (
