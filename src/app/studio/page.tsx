@@ -632,11 +632,9 @@ export default function StudioPage() {
     setSyncLabel(isStudioAuthed() ? "saving" : "local");
   }
 
-  async function openProjects() {
-    setProjectsOpen(true);
+  async function loadProjects() {
     setProjectsLoading(true);
     setProjectsError("");
-    setProjectQuery("");
     try {
       const projects = await apiClient.listProjects();
       setProjectSummaries(
@@ -651,6 +649,12 @@ export default function StudioPage() {
     } finally {
       setProjectsLoading(false);
     }
+  }
+
+  async function openProjects() {
+    setProjectsOpen(true);
+    setProjectQuery("");
+    await loadProjects();
   }
 
   async function switchProject(projectId: string) {
@@ -1924,13 +1928,23 @@ export default function StudioPage() {
                   Your current canvas is saved before switching.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setProjectsOpen(false)}
-                className="text-xs text-slate-400 hover:text-white"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={projectsLoading}
+                  onClick={() => void loadProjects()}
+                  className="text-xs text-slate-400 hover:text-white disabled:opacity-50"
+                >
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProjectsOpen(false)}
+                  className="text-xs text-slate-400 hover:text-white"
+                >
+                  Close
+                </button>
+              </div>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-3">
               {!projectsLoading && !projectsError && projectSummaries.length > 0 && (
@@ -1950,7 +1964,16 @@ export default function StudioPage() {
                   Loading projects…
                 </p>
               ) : projectsError ? (
-                <p className="px-2 py-6 text-center text-sm text-rose-400">{projectsError}</p>
+                <div className="px-2 py-6 text-center">
+                  <p className="text-sm text-rose-400">{projectsError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void loadProjects()}
+                    className="mt-3 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500 hover:text-white"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : projectSummaries.length === 0 ? (
                 <p className="px-2 py-6 text-center text-sm text-slate-500">
                   No cloud projects yet.
