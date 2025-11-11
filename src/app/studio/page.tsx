@@ -133,6 +133,7 @@ export default function StudioPage() {
   const [projectViewFilter, setProjectViewFilter] = useState<
     ProjectSummary["view_mode"] | "all"
   >("all");
+  const [projectSort, setProjectSort] = useState<"updated" | "title">("updated");
   const [projectPendingRename, setProjectPendingRename] = useState<ProjectSummary | null>(null);
   const [projectRenameValue, setProjectRenameValue] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
@@ -604,12 +605,20 @@ export default function StudioPage() {
   }, [assetQuery, assets]);
   const filteredProjects = useMemo(() => {
     const query = projectQuery.trim().toLocaleLowerCase();
-    return projectSummaries.filter(
+    const matching = projectSummaries.filter(
       (project) =>
         (projectViewFilter === "all" || project.view_mode === projectViewFilter) &&
         (!query || project.title.toLocaleLowerCase().includes(query)),
     );
-  }, [projectQuery, projectSummaries, projectViewFilter]);
+    if (projectSort === "title") {
+      return [...matching].sort(
+        (a, b) =>
+          a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
+          projectUpdatedTimestamp(b.updated_at) - projectUpdatedTimestamp(a.updated_at),
+      );
+    }
+    return sortProjectSummaries(matching);
+  }, [projectQuery, projectSort, projectSummaries, projectViewFilter]);
   const projectViewCounts = useMemo(
     () => ({
       workflow: projectSummaries.filter((project) => project.view_mode === "workflow").length,
@@ -780,6 +789,7 @@ export default function StudioPage() {
     setProjectsOpen(true);
     setProjectQuery("");
     setProjectViewFilter("all");
+    setProjectSort("updated");
     await loadProjects();
   }
 
@@ -2118,7 +2128,7 @@ export default function StudioPage() {
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-3">
               {!projectsLoading && !projectsError && projectSummaries.length > 0 && (
-                <div className="mb-3 flex gap-2">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row">
                   <label className="min-w-0 flex-1">
                     <span className="sr-only">Search cloud projects</span>
                     <input
@@ -2146,6 +2156,17 @@ export default function StudioPage() {
                       <option value="all">All views ({projectSummaries.length})</option>
                       <option value="workflow">Workflow ({projectViewCounts.workflow})</option>
                       <option value="storyboard">Storyboard ({projectViewCounts.storyboard})</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span className="sr-only">Sort cloud projects</span>
+                    <select
+                      value={projectSort}
+                      onChange={(e) => setProjectSort(e.target.value as "updated" | "title")}
+                      className="h-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-300 outline-none focus:border-sky-500"
+                    >
+                      <option value="updated">Recently updated</option>
+                      <option value="title">Name</option>
                     </select>
                   </label>
                 </div>
