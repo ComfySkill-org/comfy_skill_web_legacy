@@ -60,6 +60,9 @@ const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
 };
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
+const PROJECT_LIST_PREFERENCE_KEY = "comfyskill.studio.project-list";
+type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
+type ProjectSort = "updated" | "title";
 
 const BLOCK_STATUS_META: Record<
   CanvasBlockStatus,
@@ -130,10 +133,8 @@ export default function StudioPage() {
   const [projectsError, setProjectsError] = useState("");
   const [projectsNotice, setProjectsNotice] = useState("");
   const [projectQuery, setProjectQuery] = useState("");
-  const [projectViewFilter, setProjectViewFilter] = useState<
-    ProjectSummary["view_mode"] | "all"
-  >("all");
-  const [projectSort, setProjectSort] = useState<"updated" | "title">("updated");
+  const [projectViewFilter, setProjectViewFilter] = useState<ProjectViewFilter>("all");
+  const [projectSort, setProjectSort] = useState<ProjectSort>("updated");
   const [projectPendingRename, setProjectPendingRename] = useState<ProjectSummary | null>(null);
   const [projectRenameValue, setProjectRenameValue] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
@@ -199,6 +200,27 @@ export default function StudioPage() {
       setSnapToGrid(enabled);
     } catch {
       // Storage can be unavailable in private browsing modes.
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      const stored: unknown = JSON.parse(
+        localStorage.getItem(PROJECT_LIST_PREFERENCE_KEY) ?? "null",
+      );
+      if (typeof stored !== "object" || stored === null) return;
+      const preference = stored as Record<string, unknown>;
+      if (
+        preference.view === "all" ||
+        preference.view === "workflow" ||
+        preference.view === "storyboard"
+      ) {
+        setProjectViewFilter(preference.view);
+      }
+      if (preference.sort === "updated" || preference.sort === "title") {
+        setProjectSort(preference.sort);
+      }
+    } catch {
+      // Ignore malformed or unavailable local preferences.
     }
   }, []);
 
@@ -687,6 +709,24 @@ export default function StudioPage() {
     }
   }
 
+  function persistProjectListPreference(view: ProjectViewFilter, sort: ProjectSort) {
+    try {
+      localStorage.setItem(PROJECT_LIST_PREFERENCE_KEY, JSON.stringify({ view, sort }));
+    } catch {
+      // Keep the in-memory preference when storage is unavailable.
+    }
+  }
+
+  function updateProjectViewFilter(view: ProjectViewFilter) {
+    setProjectViewFilter(view);
+    persistProjectListPreference(view, projectSort);
+  }
+
+  function updateProjectSort(sort: ProjectSort) {
+    setProjectSort(sort);
+    persistProjectListPreference(projectViewFilter, sort);
+  }
+
   function alignSelectedToGrid() {
     const blockId = selectedIdRef.current;
     if (!blockId) return;
@@ -788,8 +828,6 @@ export default function StudioPage() {
   async function openProjects() {
     setProjectsOpen(true);
     setProjectQuery("");
-    setProjectViewFilter("all");
-    setProjectSort("updated");
     await loadProjects();
   }
 
@@ -2147,9 +2185,7 @@ export default function StudioPage() {
                     <select
                       value={projectViewFilter}
                       onChange={(e) =>
-                        setProjectViewFilter(
-                          e.target.value as ProjectSummary["view_mode"] | "all",
-                        )
+                        updateProjectViewFilter(e.target.value as ProjectViewFilter)
                       }
                       className="h-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-300 outline-none focus:border-sky-500"
                     >
@@ -2162,7 +2198,7 @@ export default function StudioPage() {
                     <span className="sr-only">Sort cloud projects</span>
                     <select
                       value={projectSort}
-                      onChange={(e) => setProjectSort(e.target.value as "updated" | "title")}
+                      onChange={(e) => updateProjectSort(e.target.value as ProjectSort)}
                       className="h-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-300 outline-none focus:border-sky-500"
                     >
                       <option value="updated">Recently updated</option>
@@ -2206,7 +2242,7 @@ export default function StudioPage() {
                     type="button"
                     onClick={() => {
                       setProjectQuery("");
-                      setProjectViewFilter("all");
+                      updateProjectViewFilter("all");
                     }}
                     className="mt-3 rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500 hover:text-white"
                   >
