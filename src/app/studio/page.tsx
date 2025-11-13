@@ -62,7 +62,7 @@ const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
 const PROJECT_LIST_PREFERENCE_KEY = "comfyskill.studio.project-list";
 type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
-type ProjectSort = "updated" | "title";
+type ProjectSort = "updated-desc" | "updated-asc" | "title-asc" | "title-desc";
 
 const BLOCK_STATUS_META: Record<
   CanvasBlockStatus,
@@ -134,7 +134,7 @@ export default function StudioPage() {
   const [projectsNotice, setProjectsNotice] = useState("");
   const [projectQuery, setProjectQuery] = useState("");
   const [projectViewFilter, setProjectViewFilter] = useState<ProjectViewFilter>("all");
-  const [projectSort, setProjectSort] = useState<ProjectSort>("updated");
+  const [projectSort, setProjectSort] = useState<ProjectSort>("updated-desc");
   const [projectPendingRename, setProjectPendingRename] = useState<ProjectSummary | null>(null);
   const [projectRenameValue, setProjectRenameValue] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
@@ -216,8 +216,17 @@ export default function StudioPage() {
       ) {
         setProjectViewFilter(preference.view);
       }
-      if (preference.sort === "updated" || preference.sort === "title") {
+      if (
+        preference.sort === "updated-desc" ||
+        preference.sort === "updated-asc" ||
+        preference.sort === "title-asc" ||
+        preference.sort === "title-desc"
+      ) {
         setProjectSort(preference.sort);
+      } else if (preference.sort === "updated") {
+        setProjectSort("updated-desc");
+      } else if (preference.sort === "title") {
+        setProjectSort("title-asc");
       }
     } catch {
       // Ignore malformed or unavailable local preferences.
@@ -632,11 +641,18 @@ export default function StudioPage() {
         (projectViewFilter === "all" || project.view_mode === projectViewFilter) &&
         (!query || project.title.toLocaleLowerCase().includes(query)),
     );
-    if (projectSort === "title") {
+    if (projectSort === "title-asc" || projectSort === "title-desc") {
+      const direction = projectSort === "title-asc" ? 1 : -1;
       return [...matching].sort(
         (a, b) =>
-          a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
+          direction * a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
           projectUpdatedTimestamp(b.updated_at) - projectUpdatedTimestamp(a.updated_at),
+      );
+    }
+    if (projectSort === "updated-asc") {
+      return [...matching].sort(
+        (a, b) =>
+          projectUpdatedTimestamp(a.updated_at) - projectUpdatedTimestamp(b.updated_at),
       );
     }
     return sortProjectSummaries(matching);
@@ -2201,8 +2217,10 @@ export default function StudioPage() {
                       onChange={(e) => updateProjectSort(e.target.value as ProjectSort)}
                       className="h-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-300 outline-none focus:border-sky-500"
                     >
-                      <option value="updated">Recently updated</option>
-                      <option value="title">Name</option>
+                      <option value="updated-desc">Recently updated</option>
+                      <option value="updated-asc">Oldest updated</option>
+                      <option value="title-asc">Name A–Z</option>
+                      <option value="title-desc">Name Z–A</option>
                     </select>
                   </label>
                 </div>
