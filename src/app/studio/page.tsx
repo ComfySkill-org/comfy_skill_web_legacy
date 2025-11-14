@@ -665,6 +665,11 @@ export default function StudioPage() {
     [projectSummaries],
   );
   const activeRemoteProjectId = hydrated ? getRemoteProjectId() : null;
+  const activeProjectHidden = Boolean(
+    activeRemoteProjectId &&
+      projectSummaries.some((summary) => summary.id === activeRemoteProjectId) &&
+      !filteredProjects.some((summary) => summary.id === activeRemoteProjectId),
+  );
   const normalizedRenameTitle = projectRenameValue.trim().toLocaleLowerCase();
   const projectRenameConflict = Boolean(
     projectPendingRename &&
@@ -2223,6 +2228,25 @@ export default function StudioPage() {
                       <option value="title-desc">Name Z–A</option>
                     </select>
                   </label>
+                </div>
+              )}
+              {!projectsLoading && !projectsError && projectSummaries.length > 0 && (
+                <div className="mb-3 flex items-center justify-between gap-3 px-1 text-xs text-slate-500">
+                  <span>
+                    Showing {filteredProjects.length} of {projectSummaries.length}
+                  </span>
+                  {activeProjectHidden && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProjectQuery("");
+                        updateProjectViewFilter("all");
+                      }}
+                      className="text-amber-300 hover:text-amber-200"
+                    >
+                      Current project hidden · Show
+                    </button>
+                  )}
                 </div>
               )}
               {projectsNotice && !projectsError && (
