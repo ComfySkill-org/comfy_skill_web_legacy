@@ -591,6 +591,17 @@ export default function StudioPage() {
     }
   }
 
+  function alignSelectedToGrid() {
+    const blockId = selectedIdRef.current;
+    if (!blockId) return;
+    const block = projectRef.current.blocks.find((item) => item.id === blockId);
+    if (!block) return;
+    const x = Math.round(block.x / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
+    const y = Math.round(block.y / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
+    if (x === block.x && y === block.y) return;
+    commitChange((prev) => moveBlock(prev, blockId, x, y));
+  }
+
   function switchView(mode: StudioViewMode) {
     if ((project.viewMode ?? "workflow") === mode) return;
     commitChange((prev) => setViewMode(prev, mode));
@@ -1544,6 +1555,18 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={!selectedId}
+              onClick={(e) => {
+                e.stopPropagation();
+                alignSelectedToGrid();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600 disabled:opacity-40"
+              title="Align the selected block to the nearest grid point"
+            >
+              Align
+            </button>
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 startLinkMode();
@@ -2272,7 +2295,9 @@ export default function StudioPage() {
             </div>
             <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-xs">
               <dt className="font-medium text-slate-300">Drag block</dt>
-              <dd className="text-slate-500">Reposition a shot; Snap aligns it to the grid</dd>
+              <dd className="text-slate-500">
+                Reposition a shot; Snap follows the grid and Align fixes the selected block
+              </dd>
               <dt className="font-medium text-slate-300">Space + drag</dt>
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
