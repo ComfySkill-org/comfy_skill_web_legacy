@@ -273,10 +273,10 @@ export default function StudioPage() {
       const z = zoomRef.current || 1;
       const nextX = drag.origX + (e.clientX - drag.startClientX) / z;
       const nextY = drag.origY + (e.clientY - drag.startClientY) / z;
-      const x = snapToGridRef.current
+      const x = snapToGridRef.current && !e.altKey
         ? Math.round(nextX / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
         : nextX;
-      const y = snapToGridRef.current
+      const y = snapToGridRef.current && !e.altKey
         ? Math.round(nextY / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
         : nextY;
       setProject((prev) => moveBlock(prev, drag.id, x, y));
@@ -367,6 +367,17 @@ export default function StudioPage() {
       if (e.key === "?" && !isTypingTarget(e.target)) {
         e.preventDefault();
         setHelpOpen((open) => !open);
+        return;
+      }
+      if (
+        (e.key === "g" || e.key === "G") &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        toggleSnapToGrid();
         return;
       }
       if (!isTypingTarget(e.target)) {
@@ -1549,7 +1560,7 @@ export default function StudioPage() {
                   ? "bg-sky-500 text-slate-950"
                   : "bg-slate-700 hover:bg-slate-600"
               }`}
-              title="Align dragged blocks to the canvas grid"
+              title="Align dragged blocks to the canvas grid (G)"
             >
               Snap
             </button>
@@ -2296,8 +2307,10 @@ export default function StudioPage() {
             <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-xs">
               <dt className="font-medium text-slate-300">Drag block</dt>
               <dd className="text-slate-500">
-                Reposition a shot; Snap follows the grid and Align fixes the selected block
+                Reposition a shot; hold Alt to bypass active grid snapping
               </dd>
+              <dt className="font-medium text-slate-300">G</dt>
+              <dd className="text-slate-500">Toggle grid snapping; Align fixes one selected block</dd>
               <dt className="font-medium text-slate-300">Space + drag</dt>
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
