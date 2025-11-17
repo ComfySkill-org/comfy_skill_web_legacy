@@ -377,7 +377,11 @@ export default function StudioPage() {
         !isTypingTarget(e.target)
       ) {
         e.preventDefault();
-        toggleSnapToGrid();
+        if (e.shiftKey) {
+          if (viewModeRef.current === "workflow") alignSelectedToGrid();
+        } else {
+          toggleSnapToGrid();
+        }
         return;
       }
       if (!isTypingTarget(e.target)) {
@@ -1572,7 +1576,7 @@ export default function StudioPage() {
                 alignSelectedToGrid();
               }}
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600 disabled:opacity-40"
-              title="Align the selected block to the nearest grid point"
+              title="Align the selected block to the nearest grid point (Shift+G)"
             >
               Align
             </button>
@@ -2309,8 +2313,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">
                 Reposition a shot; hold Alt to bypass active grid snapping
               </dd>
-              <dt className="font-medium text-slate-300">G</dt>
-              <dd className="text-slate-500">Toggle grid snapping; Align fixes one selected block</dd>
+              <dt className="font-medium text-slate-300">G / Shift+G</dt>
+              <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
               <dt className="font-medium text-slate-300">Space + drag</dt>
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
