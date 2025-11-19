@@ -2031,14 +2031,18 @@ export default function StudioPage() {
                 ? "cursor-grab"
                 : "cursor-default"
           }`}
-          style={{
-            backgroundImage:
-              snapToGrid && viewMode === "workflow"
-                ? "radial-gradient(circle, rgba(56,189,248,0.32) 1px, transparent 1px)"
-                : "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
-            backgroundSize: `${CANVAS_GRID_SIZE * project.viewport.zoom}px ${CANVAS_GRID_SIZE * project.viewport.zoom}px`,
-            backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
-          }}
+          style={
+            viewMode === "workflow"
+              ? {
+                  backgroundImage:
+                    snapToGrid
+                      ? "radial-gradient(circle, rgba(56,189,248,0.32) 1px, transparent 1px)"
+                      : "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
+                  backgroundSize: `${CANVAS_GRID_SIZE * project.viewport.zoom}px ${CANVAS_GRID_SIZE * project.viewport.zoom}px`,
+                  backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
+                }
+              : undefined
+          }
           onClick={() => {
             if (panToolActiveRef.current) return;
             if (consumeSuppressedCanvasClick()) return;
@@ -3584,7 +3588,8 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">
                 Toggle snapping, highlight the workflow grid, and align new, duplicated, and
-                inserted blocks; align the selected workflow block to the grid with Shift+G
+                inserted blocks; the layout grid appears in workflow view only; align the
+                selected workflow block to the grid with Shift+G
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Shift + G</dt>
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
