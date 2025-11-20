@@ -58,6 +58,7 @@ const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
   standard: 20,
   budget: 8,
 };
+const CANVAS_GRID_SIZE = 24;
 
 const BLOCK_STATUS_META: Record<
   CanvasBlockStatus,
@@ -142,6 +143,9 @@ export default function StudioPage() {
   const spaceHeldRef = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  const snapToGridRef = useRef(false);
+  snapToGridRef.current = snapToGrid;
   const zoomRef = useRef(project.viewport.zoom);
   zoomRef.current = project.viewport.zoom;
 
@@ -256,8 +260,14 @@ export default function StudioPage() {
       const drag = dragRef.current;
       if (!drag) return;
       const z = zoomRef.current || 1;
-      const x = drag.origX + (e.clientX - drag.startClientX) / z;
-      const y = drag.origY + (e.clientY - drag.startClientY) / z;
+      const nextX = drag.origX + (e.clientX - drag.startClientX) / z;
+      const nextY = drag.origY + (e.clientY - drag.startClientY) / z;
+      const x = snapToGridRef.current
+        ? Math.round(nextX / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
+        : nextX;
+      const y = snapToGridRef.current
+        ? Math.round(nextY / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
+        : nextY;
       setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
     function onPointerUp() {
@@ -1153,7 +1163,7 @@ export default function StudioPage() {
           style={{
             backgroundImage:
               "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+            backgroundSize: `${CANVAS_GRID_SIZE * project.viewport.zoom}px ${CANVAS_GRID_SIZE * project.viewport.zoom}px`,
             backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
           }}
           onClick={() => {
@@ -1493,6 +1503,22 @@ export default function StudioPage() {
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
             >
               Assets
+            </button>
+            <button
+              type="button"
+              aria-pressed={snapToGrid}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSnapToGrid((enabled) => !enabled);
+              }}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                snapToGrid
+                  ? "bg-sky-500 text-slate-950"
+                  : "bg-slate-700 hover:bg-slate-600"
+              }`}
+              title="Align dragged blocks to the canvas grid"
+            >
+              Snap
             </button>
             <button
               type="button"
@@ -2224,7 +2250,7 @@ export default function StudioPage() {
             </div>
             <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-xs">
               <dt className="font-medium text-slate-300">Drag block</dt>
-              <dd className="text-slate-500">Reposition a shot or asset</dd>
+              <dd className="text-slate-500">Reposition a shot; Snap aligns it to the grid</dd>
               <dt className="font-medium text-slate-300">Space + drag</dt>
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
