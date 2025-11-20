@@ -433,12 +433,18 @@ export default function StudioPage() {
       const z = zoomRef.current || 1;
       const nextX = drag.origX + (e.clientX - drag.startClientX) / z;
       const nextY = drag.origY + (e.clientY - drag.startClientY) / z;
-      const x = snapToGridRef.current && !e.altKey
-        ? snapCanvasCoordinate(nextX, CANVAS_GRID_SIZE)
-        : nextX;
-      const y = snapToGridRef.current && !e.altKey
-        ? snapCanvasCoordinate(nextY, CANVAS_GRID_SIZE)
-        : nextY;
+      const x =
+        snapToGridRef.current &&
+        viewModeRef.current === "workflow" &&
+        !e.altKey
+          ? snapCanvasCoordinate(nextX, CANVAS_GRID_SIZE)
+          : nextX;
+      const y =
+        snapToGridRef.current &&
+        viewModeRef.current === "workflow" &&
+        !e.altKey
+          ? snapCanvasCoordinate(nextY, CANVAS_GRID_SIZE)
+          : nextY;
       if (x === drag.origX && y === drag.origY && !drag.moved) return;
       drag.moved = x !== drag.origX || y !== drag.origY;
       setProject((prev) => moveBlock(prev, drag.id, x, y));
@@ -620,11 +626,12 @@ export default function StudioPage() {
         !e.metaKey &&
         !e.ctrlKey &&
         !e.altKey &&
+        viewModeRef.current === "workflow" &&
         !isTypingTarget(e.target)
       ) {
         e.preventDefault();
         if (e.shiftKey) {
-          if (viewModeRef.current === "workflow") alignSelectedToGrid();
+          alignSelectedToGrid();
         } else {
           toggleSnapToGrid();
         }
@@ -2637,23 +2644,28 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={viewMode !== "workflow"}
               aria-pressed={snapToGrid}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleSnapToGrid();
               }}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`rounded-full px-3 py-1 text-xs font-medium disabled:opacity-40 ${
                 snapToGrid
                   ? "bg-sky-500 text-slate-950"
                   : "bg-slate-700 hover:bg-slate-600"
               }`}
-              title="Align dragged blocks to the canvas grid (G)"
+              title={
+                viewMode === "workflow"
+                  ? "Align dragged blocks to the canvas grid (G)"
+                  : "Grid snap is available in workflow view"
+              }
             >
               Snap
             </button>
             <button
               type="button"
-              disabled={!selectedId}
+              disabled={!selectedId || viewMode !== "workflow"}
               onClick={(e) => {
                 e.stopPropagation();
                 alignSelectedToGrid();
@@ -2665,7 +2677,7 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
-              disabled={project.blocks.length === 0}
+              disabled={project.blocks.length === 0 || viewMode !== "workflow"}
               onClick={(e) => {
                 e.stopPropagation();
                 alignAllBlocksToGrid();
@@ -3583,7 +3595,7 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Drag block</dt>
               <dd className="text-slate-500">
                 Reposition as one undo step when the block moves; hold Alt to bypass active
-                grid snapping
+                grid snapping in workflow view
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">
