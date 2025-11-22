@@ -2441,6 +2441,20 @@ export default function StudioPage() {
               to change source)
             </div>
           )}
+          {snapToGrid &&
+            viewMode === "workflow" &&
+            !panToolActive &&
+            !linkSourceBlock && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={`pointer-events-none absolute left-1/2 z-20 max-w-md -translate-x-1/2 rounded-lg border border-emerald-500/40 bg-emerald-950/90 px-4 py-2 text-center text-xs text-emerald-100 shadow-xl ${
+                  generateError ? "top-16" : "top-4"
+                }`}
+              >
+                Snap on — dragged blocks align to the grid (hold Alt to bypass)
+              </div>
+            )}
           {viewMode === "storyboard" ? (
             <div
               className="relative flex h-full gap-4 overflow-x-auto px-6 py-8"
@@ -3123,8 +3137,15 @@ export default function StudioPage() {
               }`}
               title={
                 viewMode === "workflow"
-                  ? "Align dragged blocks to the canvas grid (G)"
+                  ? snapToGrid
+                    ? "Snap on (G); hold Alt while dragging to bypass"
+                    : "Align dragged blocks to the canvas grid (G)"
                   : "Grid snap is available in workflow view"
+              }
+              aria-label={
+                snapToGrid
+                  ? "Snap on. Dragged workflow blocks align to the grid. Hold Alt to bypass."
+                  : "Toggle grid snap for workflow view"
               }
             >
               Snap
@@ -4110,8 +4131,9 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">
                 Toggle snapping, highlight the workflow grid, and align new, duplicated, and
-                inserted blocks; the layout grid appears in workflow view only; align the
-                selected workflow block to the grid with Shift+G
+                inserted blocks; the layout grid appears in workflow view only; a Snap status
+                banner confirms when drag snapping is active; align the selected workflow block
+                to the grid with Shift+G
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Shift + G</dt>
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
