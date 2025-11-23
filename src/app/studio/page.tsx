@@ -1048,6 +1048,15 @@ export default function StudioPage() {
     };
   }
 
+  function snapCreatedBlock(project: CanvasProject, blockId: string): CanvasProject {
+    if (!snapToGridRef.current) return project;
+    const block = project.blocks.find((item) => item.id === blockId);
+    if (!block) return project;
+    const placement = snapBlockPlacement(block.x, block.y);
+    if (placement.x === block.x && placement.y === block.y) return project;
+    return moveBlock(project, blockId, placement.x, placement.y);
+  }
+
   function persistProjectListPreference(view: ProjectViewFilter, sort: ProjectSort) {
     try {
       localStorage.setItem(PROJECT_LIST_PREFERENCE_KEY, JSON.stringify({ view, sort }));
@@ -1606,7 +1615,7 @@ export default function StudioPage() {
     commitChange((prev) => {
       const { project: next, blockId } = applySkillTemplate(prev, template);
       createdId = blockId;
-      return next;
+      return snapCreatedBlock(next, blockId);
     });
     setSelectedId(createdId);
     setLinkSourceId(null);
@@ -1658,7 +1667,7 @@ export default function StudioPage() {
     const result = duplicateBlock(projectRef.current, blockId);
     const createdId = result.blockId;
     if (!createdId) return;
-    commitChange(() => result.project);
+    commitChange(() => snapCreatedBlock(result.project, createdId));
     setSelectedId(createdId);
     requestAnimationFrame(() => {
       canvasMainRef.current
@@ -1823,7 +1832,7 @@ export default function StudioPage() {
         jobId: asset.id,
       });
       createdId = blockId;
-      return next;
+      return snapCreatedBlock(next, blockId);
     });
     setSelectedId(createdId);
     setAssetsOpen(false);
@@ -3559,8 +3568,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">
-                Toggle snapping, highlight the workflow grid, and align new blocks; align the
-                selected workflow block to the grid with Shift+G
+                Toggle snapping, highlight the workflow grid, and align new, duplicated, and
+                inserted blocks; align the selected workflow block to the grid with Shift+G
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Shift + G</dt>
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
