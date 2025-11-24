@@ -1040,6 +1040,14 @@ export default function StudioPage() {
     }
   }
 
+  function snapBlockPlacement(x: number, y: number) {
+    if (!snapToGridRef.current) return { x, y };
+    return {
+      x: snapCanvasCoordinate(x, CANVAS_GRID_SIZE),
+      y: snapCanvasCoordinate(y, CANVAS_GRID_SIZE),
+    };
+  }
+
   function persistProjectListPreference(view: ProjectViewFilter, sort: ProjectSort) {
     try {
       localStorage.setItem(PROJECT_LIST_PREFERENCE_KEY, JSON.stringify({ view, sort }));
@@ -1151,7 +1159,7 @@ export default function StudioPage() {
 
   function addBlock(type: "image" | "text" | "video" = "image") {
     const offset = project.blocks.length;
-    const pos = { x: 80 + offset * 40, y: 80 + offset * 30 };
+    const pos = snapBlockPlacement(80 + offset * 40, 80 + offset * 30);
     let block;
     if (type === "text") {
       block = createTextBlock({ ...pos, title: `Text ${offset + 1}` });
@@ -1611,9 +1619,10 @@ export default function StudioPage() {
     let createdId = "";
     commitChange((prev) => {
       const offset = prev.blocks.length;
+      const placement = snapBlockPlacement(80 + offset * 40, 80 + offset * 30);
       const common = {
-        x: 80 + offset * 40,
-        y: 80 + offset * 30,
+        x: placement.x,
+        y: placement.y,
         title: prompt.length > 36 ? `${prompt.slice(0, 36)}…` : prompt,
         params: { prompt, quality_tier: "standard" as const },
       };
@@ -1986,7 +1995,9 @@ export default function StudioPage() {
           }`}
           style={{
             backgroundImage:
-              "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
+              snapToGrid && viewMode === "workflow"
+                ? "radial-gradient(circle, rgba(56,189,248,0.32) 1px, transparent 1px)"
+                : "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
             backgroundSize: `${CANVAS_GRID_SIZE * project.viewport.zoom}px ${CANVAS_GRID_SIZE * project.viewport.zoom}px`,
             backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
           }}
@@ -3548,7 +3559,8 @@ export default function StudioPage() {
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
               <dd className="text-slate-500">
-                Toggle snapping / align the selected workflow block to the grid
+                Toggle snapping, highlight the workflow grid, and align new blocks; align the
+                selected workflow block to the grid with Shift+G
               </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Shift + G</dt>
               <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
