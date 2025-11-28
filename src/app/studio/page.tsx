@@ -59,6 +59,7 @@ const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
   budget: 8,
 };
 const CANVAS_GRID_SIZE = 24;
+const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
 
 const BLOCK_STATUS_META: Record<
   CanvasBlockStatus,
@@ -148,6 +149,16 @@ export default function StudioPage() {
   snapToGridRef.current = snapToGrid;
   const zoomRef = useRef(project.viewport.zoom);
   zoomRef.current = project.viewport.zoom;
+
+  useEffect(() => {
+    try {
+      const enabled = localStorage.getItem(SNAP_PREFERENCE_KEY) === "true";
+      snapToGridRef.current = enabled;
+      setSnapToGrid(enabled);
+    } catch {
+      // Storage can be unavailable in private browsing modes.
+    }
+  }, []);
 
   const queueRemoteSave = useCallback((snapshot: CanvasProject) => {
     const save = remoteSaveQueueRef.current.then(
@@ -567,6 +578,17 @@ export default function StudioPage() {
     if (!next) return;
     setProject(next);
     setHistoryTick((n) => n + 1);
+  }
+
+  function toggleSnapToGrid() {
+    const enabled = !snapToGridRef.current;
+    snapToGridRef.current = enabled;
+    setSnapToGrid(enabled);
+    try {
+      localStorage.setItem(SNAP_PREFERENCE_KEY, String(enabled));
+    } catch {
+      // Keep the in-memory preference when storage is unavailable.
+    }
   }
 
   function switchView(mode: StudioViewMode) {
@@ -1509,7 +1531,7 @@ export default function StudioPage() {
               aria-pressed={snapToGrid}
               onClick={(e) => {
                 e.stopPropagation();
-                setSnapToGrid((enabled) => !enabled);
+                toggleSnapToGrid();
               }}
               className={`rounded-full px-3 py-1 text-xs font-medium ${
                 snapToGrid
