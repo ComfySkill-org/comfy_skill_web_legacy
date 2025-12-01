@@ -142,16 +142,104 @@ export function saveProjectLocal(project: CanvasProject): void {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/** Validate exported/local canvas JSON before it reaches rendering or cloud persistence. */
+export function parseCanvasProjectJson(raw: string): CanvasProject | null {
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") {
+      return null;
+    }
+    if (!isRecord(value.viewport) || !Array.isArray(value.blocks) || !Array.isArray(value.edges)) {
+      return null;
+    }
+    const finite = (item: unknown): item is number =>
+      typeof item === "number" && Number.isFinite(item);
+    if (
+      !finite(value.viewport.x) ||
+      !finite(value.viewport.y) ||
+      !finite(value.viewport.zoom)
+    ) {
+      return null;
+    }
+
+    const blockTypes = new Set<CanvasBlockType>(["image", "text", "video"]);
+    const statuses = new Set<CanvasBlockStatus>([
+      "idle",
+      "pending",
+      "running",
+      "completed",
+      "failed",
+    ]);
+    const qualities = new Set<CanvasBlockParams["quality_tier"]>([
+      "premium",
+      "standard",
+      "budget",
+    ]);
+    const isBlock = (item: unknown): item is CanvasBlock => {
+      if (!isRecord(item) || !isRecord(item.params)) return false;
+      return (
+        typeof item.id === "string" &&
+        blockTypes.has(item.type as CanvasBlockType) &&
+        typeof item.title === "string" &&
+        finite(item.x) &&
+        finite(item.y) &&
+        finite(item.width) &&
+        finite(item.height) &&
+        (item.bodyText === undefined || typeof item.bodyText === "string") &&
+        Array.isArray(item.mediaUrls) &&
+        item.mediaUrls.every((url) => typeof url === "string") &&
+        statuses.has(item.status as CanvasBlockStatus) &&
+        (item.jobId === undefined || item.jobId === null || typeof item.jobId === "string") &&
+        typeof item.params.prompt === "string" &&
+        qualities.has(item.params.quality_tier as CanvasBlockParams["quality_tier"])
+      );
+    };
+    const isEdge = (item: unknown): item is CanvasEdge =>
+      isRecord(item) &&
+      typeof item.id === "string" &&
+      typeof item.sourceBlockId === "string" &&
+      typeof item.targetBlockId === "string";
+    if (!value.blocks.every(isBlock) || !value.edges.every(isEdge)) return null;
+
+    const blockIds = new Set(value.blocks.map((block) => block.id));
+    if (
+      value.edges.some(
+        (edge) => !blockIds.has(edge.sourceBlockId) || !blockIds.has(edge.targetBlockId),
+      )
+    ) {
+      return null;
+    }
+    const viewMode =
+      value.viewMode === "storyboard" || value.viewMode === "workflow"
+        ? value.viewMode
+        : "workflow";
+    return {
+      id: value.id,
+      title: value.title,
+      blocks: value.blocks,
+      edges: value.edges,
+      viewport: {
+        x: value.viewport.x,
+        y: value.viewport.y,
+        zoom: value.viewport.zoom,
+      },
+      viewMode,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function loadProjectLocal(): CanvasProject | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as CanvasProject;
-    if (!parsed?.id || !Array.isArray(parsed.blocks) || !Array.isArray(parsed.edges)) {
-      return null;
-    }
-    return parsed;
+    return parseCanvasProjectJson(raw);
   } catch {
     return null;
   }

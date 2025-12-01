@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
 import {
   addEdgeBetween,
@@ -19,6 +26,7 @@ import {
   loadProjectLocal,
   moveBlock,
   nudgeBlock,
+  parseCanvasProjectJson,
   ProjectHistory,
   removeBlock,
   removeEdge,
@@ -85,6 +93,7 @@ export default function StudioPage() {
   const [projectQuery, setProjectQuery] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
   const [projectDeleteLoading, setProjectDeleteLoading] = useState(false);
+  const [projectFileError, setProjectFileError] = useState("");
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
@@ -109,6 +118,8 @@ export default function StudioPage() {
   const inspectIdRef = useRef<string | null>(null);
   const inspectMediaCountRef = useRef(0);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -127,6 +138,18 @@ export default function StudioPage() {
   const [panning, setPanning] = useState(false);
   const zoomRef = useRef(project.viewport.zoom);
   zoomRef.current = project.viewport.zoom;
+
+  const queueRemoteSave = useCallback((snapshot: CanvasProject) => {
+    const save = remoteSaveQueueRef.current.then(
+      () => pushRemoteProject(snapshot),
+      () => pushRemoteProject(snapshot),
+    );
+    remoteSaveQueueRef.current = save.then(
+      () => undefined,
+      () => undefined,
+    );
+    return save;
+  }, []);
 
   function commitChange(mutate: (prev: CanvasProject) => CanvasProject) {
     historyRef.current.record(projectRef.current);
@@ -172,7 +195,7 @@ export default function StudioPage() {
     }
     setSyncLabel("saving");
     const timer = setTimeout(() => {
-      void pushRemoteProject(project)
+      void queueRemoteSave(project)
         .then(() => setSyncLabel("cloud"))
         .catch(() => setSyncLabel("local*"));
     }, 800);
@@ -181,7 +204,7 @@ export default function StudioPage() {
       clearTimeout(timer);
       if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
     };
-  }, [project, hydrated]);
+  }, [project, hydrated, queueRemoteSave]);
 
   useEffect(() => {
     if (!hydrated || !isStudioAuthed()) {
@@ -528,11 +551,14 @@ export default function StudioPage() {
     setSelectedId(nextBlock.id);
   }
 
-  function resetProject() {
+  async function resetProject() {
     setResetConfirmOpen(false);
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = null;
+    }
+    if (isStudioAuthed()) {
+      await queueRemoteSave(projectRef.current).catch(() => undefined);
     }
     clearProjectLocal();
     setRemoteProjectId(null);
@@ -576,7 +602,7 @@ export default function StudioPage() {
         clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
       }
-      await pushRemoteProject(projectRef.current);
+      await queueRemoteSave(projectRef.current);
       const remote = await apiClient.getProject(projectId);
       const next = apiProjectToCanvas(remote);
       setRemoteProjectId(remote.id);
@@ -633,6 +659,41 @@ export default function StudioPage() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function importProjectFile(file: File) {
+    setProjectFileError("");
+    try {
+      const imported = parseCanvasProjectJson(await file.text());
+      if (!imported) {
+        setProjectFileError("Import failed: the file is not a valid ComfySkill canvas.");
+        return;
+      }
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      if (isStudioAuthed()) {
+        setSyncLabel("saving");
+        await queueRemoteSave(projectRef.current).catch(() => undefined);
+      }
+      setRemoteProjectId(null);
+      historyRef.current = new ProjectHistory();
+      const next: CanvasProject = {
+        ...imported,
+        id: crypto.randomUUID(),
+        title: `${imported.title} (imported)`,
+      };
+      setProject(next);
+      setSelectedId(null);
+      setSelectedEdgeId(null);
+      setLinkSourceId(null);
+      setInspectId(null);
+      setSyncLabel(isStudioAuthed() ? "saving" : "local");
+      setHistoryTick((tick) => tick + 1);
+    } catch {
+      setProjectFileError("Import failed: the project file could not be read.");
+    }
   }
 
   function selectBlock(blockId: string) {
@@ -737,7 +798,7 @@ export default function StudioPage() {
     }
     setSyncLabel("saving");
     try {
-      await pushRemoteProject(projectRef.current);
+      await queueRemoteSave(projectRef.current);
       setSyncLabel("cloud");
     } catch {
       setSyncLabel("local*");
@@ -1447,6 +1508,32 @@ export default function StudioPage() {
             >
               Export
             </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const input = e.currentTarget;
+                const file = input.files?.[0];
+                if (!file) return;
+                void importProjectFile(file).finally(() => {
+                  input.value = "";
+                });
+              }}
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setProjectFileError("");
+                importInputRef.current?.click();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Import a canvas JSON backup"
+            >
+              Import
+            </button>
             <button
               type="button"
               onClick={(e) => {
@@ -1478,6 +1565,11 @@ export default function StudioPage() {
                 "local"
               )}
             </span>
+            {projectFileError && (
+              <span className="max-w-52 truncate text-xs text-rose-400" title={projectFileError}>
+                {projectFileError}
+              </span>
+            )}
           </div>
             </>
           )}
@@ -1851,7 +1943,7 @@ export default function StudioPage() {
               </button>
               <button
                 type="button"
-                onClick={resetProject}
+                onClick={() => void resetProject()}
                 className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-500"
               >
                 Start new project
