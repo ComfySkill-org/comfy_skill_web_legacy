@@ -148,6 +148,7 @@ export default function StudioPage() {
   const [projectDeleteLoading, setProjectDeleteLoading] = useState(false);
   const [projectActionId, setProjectActionId] = useState<string | null>(null);
   const [projectFileError, setProjectFileError] = useState("");
+  const [projectFileNotice, setProjectFileNotice] = useState("");
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
@@ -1489,10 +1490,12 @@ export default function StudioPage() {
     link.remove();
     URL.revokeObjectURL(url);
     setProjectFileError("");
+    setProjectFileNotice("");
   }
 
   async function importProjectFile(file: File) {
     setProjectFileError("");
+    setProjectFileNotice("");
     try {
       const imported = parseCanvasProjectJson(await file.text());
       if (!imported) {
@@ -1510,11 +1513,16 @@ export default function StudioPage() {
       }
       setRemoteProjectId(null);
       historyRef.current = new ProjectHistory();
-      const next: CanvasProject = {
+      exitCanvasToolModes();
+      let next: CanvasProject = {
         ...imported,
         id: crypto.randomUUID(),
         title: `${imported.title} (imported)`,
       };
+      const canvas = canvasMainRef.current;
+      if (canvas && next.blocks.length > 0) {
+        next = fitProjectInViewport(next, canvas.clientWidth, canvas.clientHeight);
+      }
       setProject(next);
       setSelectedId(null);
       setSelectedEdgeId(null);
@@ -1522,6 +1530,7 @@ export default function StudioPage() {
       setInspectId(null);
       setSyncLabel(isStudioAuthed() ? "saving" : "local");
       setHistoryTick((tick) => tick + 1);
+      setProjectFileNotice(`Imported ${next.title}`);
     } catch {
       setProjectFileError("Import failed: the project file could not be read.");
     }
@@ -3331,6 +3340,14 @@ export default function StudioPage() {
             {projectFileError && (
               <span className="max-w-52 truncate text-xs text-rose-400" title={projectFileError}>
                 {projectFileError}
+              </span>
+            )}
+            {projectFileNotice && (
+              <span
+                className="max-w-52 truncate text-xs text-green-400"
+                title={projectFileNotice}
+              >
+                {projectFileNotice}
               </span>
             )}
           </div>
