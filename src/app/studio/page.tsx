@@ -784,7 +784,7 @@ export default function StudioPage() {
         }
         if (arrow && selectedIdRef.current && viewModeRef.current === "workflow") {
           e.preventDefault();
-          const step = e.shiftKey ? 20 : 4;
+          const step = workflowNudgeStep(e.shiftKey);
           const dx =
             e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
           const dy =
@@ -1017,6 +1017,13 @@ export default function StudioPage() {
     const y = Math.round(block.y / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
     if (x === block.x && y === block.y) return;
     commitChange((prev) => moveBlock(prev, blockId, x, y));
+  }
+
+  function workflowNudgeStep(shiftKey: boolean) {
+    if (snapToGridRef.current) {
+      return shiftKey ? CANVAS_GRID_SIZE * 4 : CANVAS_GRID_SIZE;
+    }
+    return shiftKey ? 20 : 4;
   }
 
   function switchView(mode: StudioViewMode) {
@@ -2216,7 +2223,7 @@ export default function StudioPage() {
                   if (arrow && viewModeRef.current === "workflow") {
                     e.preventDefault();
                     e.stopPropagation();
-                    const step = e.shiftKey ? 20 : 4;
+                    const step = workflowNudgeStep(e.shiftKey);
                     const dx =
                       e.key === "ArrowLeft"
                         ? -step
@@ -3397,7 +3404,8 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
                 Nudge the selected or focused workflow block as one undo step per burst;
-                navigate storyboard; browse retained outputs in result detail
+                with Snap on, nudges move by grid steps; navigate storyboard; browse
+                retained outputs in result detail
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>
