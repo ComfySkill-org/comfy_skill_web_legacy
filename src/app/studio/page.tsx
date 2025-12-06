@@ -13,6 +13,7 @@ import {
 import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
 import {
   addEdgeBetween,
+  alignBlockToGrid,
   alignProjectBlocksToGrid,
   apiProjectToCanvas,
   applySkillTemplate,
@@ -40,6 +41,7 @@ import {
   revealEdgeInViewport,
   saveProjectLocal,
   setViewMode,
+  snapCanvasCoordinate,
   unlinkBlock,
   zoomViewportAt,
   storyboardOrderedBlocks,
@@ -430,10 +432,10 @@ export default function StudioPage() {
       const nextX = drag.origX + (e.clientX - drag.startClientX) / z;
       const nextY = drag.origY + (e.clientY - drag.startClientY) / z;
       const x = snapToGridRef.current && !e.altKey
-        ? Math.round(nextX / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
+        ? snapCanvasCoordinate(nextX, CANVAS_GRID_SIZE)
         : nextX;
       const y = snapToGridRef.current && !e.altKey
-        ? Math.round(nextY / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE
+        ? snapCanvasCoordinate(nextY, CANVAS_GRID_SIZE)
         : nextY;
       if (x === drag.origX && y === drag.origY && !drag.moved) return;
       drag.moved = x !== drag.origX || y !== drag.origY;
@@ -817,7 +819,7 @@ export default function StudioPage() {
         }
         if (arrow && selectedIdRef.current && viewModeRef.current === "workflow") {
           e.preventDefault();
-          const step = workflowNudgeStep(e.shiftKey);
+          const step = workflowNudgeStep(e.shiftKey, e.altKey);
           const dx =
             e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
           const dy =
@@ -1064,12 +1066,7 @@ export default function StudioPage() {
   function alignSelectedToGrid() {
     const blockId = selectedIdRef.current;
     if (!blockId) return;
-    const block = projectRef.current.blocks.find((item) => item.id === blockId);
-    if (!block) return;
-    const x = Math.round(block.x / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
-    const y = Math.round(block.y / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
-    if (x === block.x && y === block.y) return;
-    commitChange((prev) => moveBlock(prev, blockId, x, y));
+    commitChange((prev) => alignBlockToGrid(prev, blockId, CANVAS_GRID_SIZE));
   }
 
   function alignAllBlocksToGrid() {
@@ -1077,8 +1074,8 @@ export default function StudioPage() {
     commitChange((prev) => alignProjectBlocksToGrid(prev, CANVAS_GRID_SIZE));
   }
 
-  function workflowNudgeStep(shiftKey: boolean) {
-    if (snapToGridRef.current) {
+  function workflowNudgeStep(shiftKey: boolean, altKey: boolean) {
+    if (snapToGridRef.current && !altKey) {
       return shiftKey ? CANVAS_GRID_SIZE * 4 : CANVAS_GRID_SIZE;
     }
     return shiftKey ? 20 : 4;
@@ -2313,7 +2310,7 @@ export default function StudioPage() {
                   if (arrow && viewModeRef.current === "workflow") {
                     e.preventDefault();
                     e.stopPropagation();
-                    const step = workflowNudgeStep(e.shiftKey);
+                    const step = workflowNudgeStep(e.shiftKey, e.altKey);
                     const dx =
                       e.key === "ArrowLeft"
                         ? -step
@@ -3519,8 +3516,8 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
                 Nudge the selected or focused workflow block as one undo step per burst;
-                with Snap on, nudges move by grid steps; navigate storyboard; browse
-                retained outputs in result detail
+                with Snap on, nudges move by grid steps (hold Alt for fine steps); navigate
+                storyboard; browse retained outputs in result detail
               </dd>
               <dt className="font-medium text-slate-300">Toolbar arrows</dt>
               <dd className="text-slate-500">Move focus between available canvas tools</dd>

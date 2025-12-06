@@ -350,6 +350,27 @@ export function nudgeBlock(
   return moveBlock(project, blockId, block.x + dx, block.y + dy);
 }
 
+/** Round a canvas coordinate to the nearest grid intersection. */
+export function snapCanvasCoordinate(value: number, gridSize: number): number {
+  if (gridSize <= 0) return value;
+  return Math.round(value / gridSize) * gridSize;
+}
+
+/** Align one block to the nearest grid intersection; no-op if already aligned. */
+export function alignBlockToGrid(
+  project: CanvasProject,
+  blockId: string,
+  gridSize: number,
+): CanvasProject {
+  if (gridSize <= 0) return project;
+  const block = project.blocks.find((b) => b.id === blockId);
+  if (!block) return project;
+  const x = snapCanvasCoordinate(block.x, gridSize);
+  const y = snapCanvasCoordinate(block.y, gridSize);
+  if (x === block.x && y === block.y) return project;
+  return moveBlock(project, blockId, x, y);
+}
+
 /** Snap every block to the nearest canvas grid intersection. */
 export function alignProjectBlocksToGrid(
   project: CanvasProject,
@@ -358,8 +379,8 @@ export function alignProjectBlocksToGrid(
   if (project.blocks.length === 0 || gridSize <= 0) return project;
   let changed = false;
   const blocks = project.blocks.map((block) => {
-    const x = Math.round(block.x / gridSize) * gridSize;
-    const y = Math.round(block.y / gridSize) * gridSize;
+    const x = snapCanvasCoordinate(block.x, gridSize);
+    const y = snapCanvasCoordinate(block.y, gridSize);
     if (x === block.x && y === block.y) return block;
     changed = true;
     return { ...block, x, y };
