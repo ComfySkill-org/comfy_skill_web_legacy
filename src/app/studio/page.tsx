@@ -469,6 +469,18 @@ export default function StudioPage() {
         }
         return;
       }
+      if (
+        e.key === "0" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        resetZoomTo100();
+        return;
+      }
       if (!isTypingTarget(e.target)) {
         if (
           (e.key === "Delete" || e.key === "Backspace") &&
@@ -1151,6 +1163,14 @@ export default function StudioPage() {
 
   function zoomBy(delta: number) {
     commitChange((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
+  }
+
+  function resetZoomTo100() {
+    const canvas = canvasMainRef.current;
+    if (!canvas || Math.abs(projectRef.current.viewport.zoom - 1) < 0.001) return;
+    commitChange((prev) =>
+      zoomViewportAt(prev, 1, canvas.clientWidth / 2, canvas.clientHeight / 2),
+    );
   }
 
   function startCanvasPan(e: ReactPointerEvent, vp: { x: number; y: number }) {
@@ -1845,6 +1865,17 @@ export default function StudioPage() {
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
             >
               +
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetZoomTo100();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Reset zoom to 100% (0)"
+            >
+              100%
             </button>
             <button
               type="button"
@@ -2556,6 +2587,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">Zoom toward the pointer</dd>
+              <dt className="font-medium text-slate-300">0</dt>
+              <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
                 Nudge in workflow; navigate storyboard; browse retained outputs in result detail
