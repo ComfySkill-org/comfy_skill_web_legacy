@@ -34,7 +34,6 @@ import {
   resetViewportPan,
   saveProjectLocal,
   setViewMode,
-  setViewportZoom,
   unlinkBlock,
   zoomViewportAt,
   storyboardOrderedBlocks,
@@ -479,6 +478,18 @@ export default function StudioPage() {
       ) {
         e.preventDefault();
         resetZoomTo100();
+        return;
+      }
+      if (
+        (e.key === "-" || e.key === "+" || e.key === "=") &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        zoomBy(e.key === "-" ? -0.1 : 0.1);
         return;
       }
       if (!isTypingTarget(e.target)) {
@@ -1162,7 +1173,22 @@ export default function StudioPage() {
   }
 
   function zoomBy(delta: number) {
-    commitChange((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
+    const canvas = canvasMainRef.current;
+    if (!canvas) return;
+    const currentZoom = projectRef.current.viewport.zoom;
+    const nextZoom = Math.min(
+      2,
+      Math.max(0.35, Math.round((currentZoom + delta) * 100) / 100),
+    );
+    if (nextZoom === currentZoom) return;
+    commitChange((prev) =>
+      zoomViewportAt(
+        prev,
+        nextZoom,
+        canvas.clientWidth / 2,
+        canvas.clientHeight / 2,
+      ),
+    );
   }
 
   function resetZoomTo100() {
@@ -1853,6 +1879,7 @@ export default function StudioPage() {
                 zoomBy(-0.1);
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Zoom out from canvas center (−)"
             >
               −
             </button>
@@ -1863,6 +1890,7 @@ export default function StudioPage() {
                 zoomBy(0.1);
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Zoom in toward canvas center (+)"
             >
               +
             </button>
@@ -2587,6 +2615,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Pan the workflow canvas</dd>
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">Zoom toward the pointer</dd>
+              <dt className="font-medium text-slate-300">+ / −</dt>
+              <dd className="text-slate-500">Zoom around the workflow canvas center</dd>
               <dt className="font-medium text-slate-300">0</dt>
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
