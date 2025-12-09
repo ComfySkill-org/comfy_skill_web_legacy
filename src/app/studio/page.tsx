@@ -492,6 +492,18 @@ export default function StudioPage() {
         zoomBy(e.key === "-" ? -0.1 : 0.1);
         return;
       }
+      if (
+        e.key.toLowerCase() === "f" &&
+        viewModeRef.current === "workflow" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        fitWorkflowInView();
+        return;
+      }
       if (!isTypingTarget(e.target)) {
         if (
           (e.key === "Delete" || e.key === "Backspace") &&
@@ -1197,6 +1209,21 @@ export default function StudioPage() {
     commitChange((prev) =>
       zoomViewportAt(prev, 1, canvas.clientWidth / 2, canvas.clientHeight / 2),
     );
+  }
+
+  function fitWorkflowInView() {
+    const canvas = canvasMainRef.current;
+    const current = projectRef.current;
+    if (!canvas || current.blocks.length === 0) return;
+    const next = fitProjectInViewport(current, canvas.clientWidth, canvas.clientHeight);
+    if (
+      next.viewport.x === current.viewport.x &&
+      next.viewport.y === current.viewport.y &&
+      next.viewport.zoom === current.viewport.zoom
+    ) {
+      return;
+    }
+    commitChange(() => next);
   }
 
   function startCanvasPan(e: ReactPointerEvent, vp: { x: number; y: number }) {
@@ -1920,14 +1947,11 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                const canvas = canvasMainRef.current;
-                if (!canvas) return;
-                commitChange((prev) =>
-                  fitProjectInViewport(prev, canvas.clientWidth, canvas.clientHeight),
-                );
+                fitWorkflowInView();
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
-              title="Fit all blocks in view"
+              title="Fit all blocks in view (F)"
+              aria-keyshortcuts="F"
             >
               Fit
             </button>
@@ -2619,6 +2643,8 @@ export default function StudioPage() {
               <dd className="text-slate-500">Zoom around the workflow canvas center</dd>
               <dt className="font-medium text-slate-300">0</dt>
               <dd className="text-slate-500">Reset workflow zoom to 100%</dd>
+              <dt className="font-medium text-slate-300">F</dt>
+              <dd className="text-slate-500">Fit all workflow blocks in view</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
               <dd className="text-slate-500">
                 Nudge in workflow; navigate storyboard; browse retained outputs in result detail
