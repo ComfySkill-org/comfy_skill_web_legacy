@@ -21,7 +21,7 @@ import {
 } from "@/lib/studioPreferences";
 import {
   filterAndSortProjectSummaries,
-  formatProjectUpdatedAt,
+  formatProjectRowMeta,
   studioProjectHref,
 } from "@/lib/projects";
 
@@ -325,7 +325,16 @@ export default function SettingsPage() {
         {projectsError && !projectsLoading && (
           <p className="text-sm text-red-600">{projectsError}</p>
         )}
-        {!projectsLoading && !projectsError && sortedProjects.length === 0 && (
+        {!projectsLoading && !projectsError && projects.length > 0 && sortedProjects.length === 0 && (
+          <p className="text-sm text-skill-muted">
+            No projects match your default view filter. Adjust studio preferences below or{" "}
+            <Link href="/studio" className="underline hover:text-skill-ink">
+              open Studio
+            </Link>
+            .
+          </p>
+        )}
+        {!projectsLoading && !projectsError && projects.length === 0 && (
           <p className="text-sm text-skill-muted">
             No cloud projects yet.{" "}
             <Link href="/studio" className="underline hover:text-skill-ink">
@@ -337,7 +346,11 @@ export default function SettingsPage() {
         {!projectsLoading && sortedProjects.length > 0 && (
           <ul className="divide-y divide-skill-blue/10">
             {sortedProjects.slice(0, 8).map((project) => (
-              <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <li
+                key={project.id}
+                data-testid="settings-project-row"
+                className="flex flex-wrap items-center justify-between gap-3 py-3"
+              >
                 <div className="min-w-0">
                   <Link
                     href={studioProjectHref(project.id)}
@@ -346,8 +359,7 @@ export default function SettingsPage() {
                     {project.title}
                   </Link>
                   <p className="mt-1 text-xs text-skill-muted">
-                    {project.view_mode} · {project.block_count} block
-                    {project.block_count === 1 ? "" : "s"} · {formatProjectUpdatedAt(project.updated_at)}
+                    {formatProjectRowMeta(project)}
                   </p>
                 </div>
                 <Link

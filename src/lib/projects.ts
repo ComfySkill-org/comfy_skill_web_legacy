@@ -66,6 +66,15 @@ export function filterAndSortProjectSummaries(
   return sortProjectSummaries(matching);
 }
 
+export function formatProjectViewMode(mode: ProjectSummary["view_mode"]): string {
+  return mode === "storyboard" ? "Storyboard" : "Workflow";
+}
+
+export function formatProjectRowMeta(project: ProjectSummary): string {
+  const blocks = `${project.block_count} block${project.block_count === 1 ? "" : "s"}`;
+  return `${formatProjectViewMode(project.view_mode)} · ${blocks} · ${formatProjectUpdatedAt(project.updated_at)}`;
+}
+
 export function studioProjectHref(projectId: string): string {
   return buildStudioHref({ projectId });
 }
