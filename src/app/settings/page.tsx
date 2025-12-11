@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { apiClient, clearAuth, getToken, isFirebaseEnabled, type ProjectSummary, type User } from "@/lib/api";
 import { estimateGenerations, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import type { QualityTier } from "@/lib/api";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
@@ -19,6 +19,11 @@ import {
   type ProjectSort,
   type ProjectViewFilter,
 } from "@/lib/studioPreferences";
+import {
+  filterAndSortProjectSummaries,
+  formatProjectUpdatedAt,
+  studioProjectHref,
+} from "@/lib/projects";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -29,6 +34,9 @@ export default function SettingsPage() {
   const [projectListView, setProjectListView] = useState<ProjectViewFilter>("all");
   const [projectListSort, setProjectListSort] = useState<ProjectSort>("updated-desc");
   const [defaultQuality, setDefaultQuality] = useState<QualityTier>("standard");
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState("");
 
   useEffect(() => {
     setSnapToGrid(readSnapToGrid());
@@ -65,6 +73,29 @@ export default function SettingsPage() {
     }
     void loadUser();
   }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProjectsLoading(true);
+    setProjectsError("");
+    void apiClient
+      .listProjects()
+      .then(setProjects)
+      .catch((err) =>
+        setProjectsError(err instanceof Error ? err.message : "Failed to load projects"),
+      )
+      .finally(() => setProjectsLoading(false));
+  }, [user?.id]);
+
+  const sortedProjects = useMemo(
+    () =>
+      filterAndSortProjectSummaries(projects, {
+        query: "",
+        viewFilter: projectListView,
+        sort: projectListSort,
+      }),
+    [projects, projectListView, projectListSort],
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -276,6 +307,59 @@ export default function SettingsPage() {
             <option value="title-desc">Title (Z → A)</option>
           </select>
         </label>
+      </div>
+
+      <div className="card mt-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Your projects</h2>
+            <p className="mt-1 text-sm text-skill-muted">
+              Cloud-saved studio canvases from your account.
+            </p>
+          </div>
+          <Link href="/studio" className="text-sm underline hover:text-skill-ink">
+            Open studio
+          </Link>
+        </div>
+        {projectsLoading && <p className="text-sm text-skill-muted">Loading projects…</p>}
+        {projectsError && !projectsLoading && (
+          <p className="text-sm text-red-600">{projectsError}</p>
+        )}
+        {!projectsLoading && !projectsError && sortedProjects.length === 0 && (
+          <p className="text-sm text-skill-muted">
+            No cloud projects yet.{" "}
+            <Link href="/studio" className="underline hover:text-skill-ink">
+              Start in Studio
+            </Link>
+            {" "}to create your first canvas.
+          </p>
+        )}
+        {!projectsLoading && sortedProjects.length > 0 && (
+          <ul className="divide-y divide-skill-blue/10">
+            {sortedProjects.slice(0, 8).map((project) => (
+              <li key={project.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <Link
+                    href={studioProjectHref(project.id)}
+                    className="font-semibold underline hover:text-skill-ink"
+                  >
+                    {project.title}
+                  </Link>
+                  <p className="mt-1 text-xs text-skill-muted">
+                    {project.view_mode} · {project.block_count} block
+                    {project.block_count === 1 ? "" : "s"} · {formatProjectUpdatedAt(project.updated_at)}
+                  </p>
+                </div>
+                <Link
+                  href={studioProjectHref(project.id)}
+                  className="text-xs underline hover:text-skill-ink"
+                >
+                  Open
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <nav className="mt-6 grid gap-3 sm:grid-cols-2">
