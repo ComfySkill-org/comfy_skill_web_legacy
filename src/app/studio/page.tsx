@@ -86,43 +86,15 @@ import {
   type ProjectSort,
   type ProjectViewFilter,
 } from "@/lib/studioPreferences";
+import {
+  filterAndSortProjectSummaries,
+  formatProjectUpdatedAt,
+  sortProjectSummaries,
+  uniqueProjectCopyTitle,
+} from "@/lib/projects";
 
 const CANVAS_GRID_SIZE = 24;
 const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
-
-function projectUpdatedTimestamp(updatedAt: string | null): number {
-  if (!updatedAt) return 0;
-  const timestamp = Date.parse(updatedAt);
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function sortProjectSummaries(projects: readonly ProjectSummary[]): ProjectSummary[] {
-  return [...projects].sort(
-    (a, b) =>
-      projectUpdatedTimestamp(b.updated_at) - projectUpdatedTimestamp(a.updated_at),
-  );
-}
-
-function formatProjectUpdatedAt(updatedAt: string | null): string {
-  if (!updatedAt) return "Not saved yet";
-  const timestamp = projectUpdatedTimestamp(updatedAt);
-  return timestamp ? new Date(timestamp).toLocaleString() : "Update time unavailable";
-}
-
-function uniqueProjectCopyTitle(
-  sourceTitle: string,
-  projects: readonly ProjectSummary[],
-): string {
-  const source = sourceTitle.trim() || "Untitled project";
-  const existing = new Set(projects.map((project) => project.title.trim().toLocaleLowerCase()));
-  let copyNumber = 1;
-  while (true) {
-    const suffix = copyNumber === 1 ? " copy" : ` copy ${copyNumber}`;
-    const candidate = `${source.slice(0, 120 - suffix.length).trimEnd()}${suffix}`;
-    if (!existing.has(candidate.toLocaleLowerCase())) return candidate;
-    copyNumber += 1;
-  }
-}
 
 /**
  * Studio shell — Phase 1 canvas MVP (PRD-legacy).
@@ -1128,29 +1100,15 @@ export default function StudioPage() {
     if (!query) return assets;
     return assets.filter((asset) => asset.prompt.toLocaleLowerCase().includes(query));
   }, [assetQuery, assets]);
-  const filteredProjects = useMemo(() => {
-    const query = projectQuery.trim().toLocaleLowerCase();
-    const matching = projectSummaries.filter(
-      (project) =>
-        (projectViewFilter === "all" || project.view_mode === projectViewFilter) &&
-        (!query || project.title.toLocaleLowerCase().includes(query)),
-    );
-    if (projectSort === "title-asc" || projectSort === "title-desc") {
-      const direction = projectSort === "title-asc" ? 1 : -1;
-      return [...matching].sort(
-        (a, b) =>
-          direction * a.title.localeCompare(b.title, undefined, { sensitivity: "base" }) ||
-          projectUpdatedTimestamp(b.updated_at) - projectUpdatedTimestamp(a.updated_at),
-      );
-    }
-    if (projectSort === "updated-asc") {
-      return [...matching].sort(
-        (a, b) =>
-          projectUpdatedTimestamp(a.updated_at) - projectUpdatedTimestamp(b.updated_at),
-      );
-    }
-    return sortProjectSummaries(matching);
-  }, [projectQuery, projectSort, projectSummaries, projectViewFilter]);
+  const filteredProjects = useMemo(
+    () =>
+      filterAndSortProjectSummaries(projectSummaries, {
+        query: projectQuery,
+        viewFilter: projectViewFilter,
+        sort: projectSort,
+      }),
+    [projectQuery, projectSort, projectSummaries, projectViewFilter],
+  );
   const projectViewCounts = useMemo(
     () => ({
       workflow: projectSummaries.filter((project) => project.view_mode === "workflow").length,
@@ -2451,6 +2409,7 @@ export default function StudioPage() {
             className="hidden text-xs text-slate-500 md:inline"
             aria-live="polite"
             title="Canvas contents"
+            data-testid="studio-canvas-stats"
           >
             {projectCanvasStats.blocks} block{projectCanvasStats.blocks === 1 ? "" : "s"}
             {projectCanvasStats.links > 0 && (
@@ -3763,7 +3722,7 @@ export default function StudioPage() {
             >
               New project
             </button>
-            <span className="px-2 text-xs leading-6 text-slate-500">
+            <span className="px-2 text-xs leading-6 text-slate-500" data-testid="studio-sync-label">
               Arrows nudge (one undo burst) · Wheel zoom ·{" "}
               {syncLabel === "local*" ? (
                 <button
