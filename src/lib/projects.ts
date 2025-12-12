@@ -1,5 +1,6 @@
 import type { ProjectSummary } from "@/lib/api";
 import type { ProjectSort, ProjectViewFilter } from "@/lib/studioPreferences";
+import { buildStudioHref } from "@/lib/studioNavigation";
 
 function projectUpdatedTimestamp(updatedAt: string | null): number {
   if (!updatedAt) return 0;
@@ -66,5 +67,5 @@ export function filterAndSortProjectSummaries(
 }
 
 export function studioProjectHref(projectId: string): string {
-  return `/studio?project=${encodeURIComponent(projectId)}`;
+  return buildStudioHref({ projectId });
 }

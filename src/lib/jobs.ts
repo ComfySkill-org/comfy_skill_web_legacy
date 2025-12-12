@@ -1,5 +1,6 @@
 import type { Job, QualityTier } from "@/lib/api";
 import { QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import { buildStudioHref } from "@/lib/studioNavigation";
 
 export type JobStatusFilter = "all" | "completed" | "failed" | "in_progress";
 
@@ -39,9 +40,10 @@ export function countJobsByStatusFilter(
 
 export function studioJobHref(job: Job): string {
   if (!job.project_id) return "/studio";
-  const params = new URLSearchParams({ project: job.project_id });
-  if (job.block_id) params.set("block", job.block_id);
-  return `/studio?${params.toString()}`;
+  return buildStudioHref({
+    projectId: job.project_id,
+    blockId: job.block_id ?? undefined,
+  });
 }
 
 export type JobSourceFilter = "all" | "studio" | "quick_form";

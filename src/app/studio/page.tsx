@@ -92,6 +92,11 @@ import {
   sortProjectSummaries,
   uniqueProjectCopyTitle,
 } from "@/lib/projects";
+import {
+  clearStudioDeepLinkFromUrl,
+  hasStudioDeepLink,
+  parseStudioDeepLink,
+} from "@/lib/studioNavigation";
 
 const CANVAS_GRID_SIZE = 24;
 const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
@@ -306,22 +311,16 @@ export default function StudioPage() {
     let cancelled = false;
     async function hydrate() {
       const local = starterOrLocal(loadProjectLocal);
-      const params =
+      const deepLink =
         typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search)
-          : null;
-      const deepProjectId = params?.get("project") ?? null;
-      const deepBlockId = params?.get("block") ?? null;
-      const importJobId = params?.get("importJob") ?? null;
+          ? parseStudioDeepLink(window.location.search)
+          : { projectId: undefined, blockId: undefined, importJobId: undefined };
+      const deepProjectId = deepLink.projectId ?? null;
+      const deepBlockId = deepLink.blockId ?? null;
+      const importJobId = deepLink.importJobId ?? null;
 
-      if (deepProjectId || deepBlockId || importJobId) {
-        if (typeof window !== "undefined") {
-          const url = new URL(window.location.href);
-          url.searchParams.delete("project");
-          url.searchParams.delete("block");
-          url.searchParams.delete("importJob");
-          window.history.replaceState(null, "", `${url.pathname}${url.search}`);
-        }
+      if (hasStudioDeepLink(deepLink)) {
+        clearStudioDeepLinkFromUrl();
         pendingDeepLinkRef.current = {
           blockId: deepBlockId ?? undefined,
           importJobId: importJobId ?? undefined,
@@ -2983,6 +2982,7 @@ export default function StudioPage() {
               <div
                 key={block.id}
                 data-block-id={block.id}
+                data-testid={active ? "studio-block-selected" : undefined}
                 role="button"
                 tabIndex={panToolActive ? -1 : 0}
                 aria-pressed={active}
