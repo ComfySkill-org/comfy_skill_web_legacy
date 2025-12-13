@@ -350,6 +350,24 @@ export function nudgeBlock(
   return moveBlock(project, blockId, block.x + dx, block.y + dy);
 }
 
+/** Snap every block to the nearest canvas grid intersection. */
+export function alignProjectBlocksToGrid(
+  project: CanvasProject,
+  gridSize: number,
+): CanvasProject {
+  if (project.blocks.length === 0 || gridSize <= 0) return project;
+  let changed = false;
+  const blocks = project.blocks.map((block) => {
+    const x = Math.round(block.x / gridSize) * gridSize;
+    const y = Math.round(block.y / gridSize) * gridSize;
+    if (x === block.x && y === block.y) return block;
+    changed = true;
+    return { ...block, x, y };
+  });
+  if (!changed) return project;
+  return { ...project, blocks };
+}
+
 /** Add a flow edge if both blocks exist and it keeps the workflow acyclic. */
 export function addEdgeBetween(
   project: CanvasProject,

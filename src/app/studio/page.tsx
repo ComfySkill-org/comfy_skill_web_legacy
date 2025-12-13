@@ -13,6 +13,7 @@ import {
 import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
 import {
   addEdgeBetween,
+  alignProjectBlocksToGrid,
   apiProjectToCanvas,
   applySkillTemplate,
   blockResultSummary,
@@ -577,6 +578,18 @@ export default function StudioPage() {
       }
       if (
         (e.key === "g" || e.key === "G") &&
+        e.shiftKey &&
+        (e.metaKey || e.ctrlKey) &&
+        !e.altKey &&
+        viewModeRef.current === "workflow" &&
+        !isTypingTarget(e.target)
+      ) {
+        e.preventDefault();
+        alignAllBlocksToGrid();
+        return;
+      }
+      if (
+        (e.key === "g" || e.key === "G") &&
         !e.metaKey &&
         !e.ctrlKey &&
         !e.altKey &&
@@ -1017,6 +1030,11 @@ export default function StudioPage() {
     const y = Math.round(block.y / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
     if (x === block.x && y === block.y) return;
     commitChange((prev) => moveBlock(prev, blockId, x, y));
+  }
+
+  function alignAllBlocksToGrid() {
+    if (projectRef.current.blocks.length === 0) return;
+    commitChange((prev) => alignProjectBlocksToGrid(prev, CANVAS_GRID_SIZE));
   }
 
   function workflowNudgeStep(shiftKey: boolean) {
@@ -2478,6 +2496,19 @@ export default function StudioPage() {
             </button>
             <button
               type="button"
+              disabled={project.blocks.length === 0}
+              onClick={(e) => {
+                e.stopPropagation();
+                alignAllBlocksToGrid();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600 disabled:opacity-40"
+              title="Align every workflow block to the grid (⌘/Ctrl+Shift+G)"
+              aria-keyshortcuts="Meta+Shift+G Control+Shift+G"
+            >
+              Align all
+            </button>
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 startLinkMode();
@@ -3376,7 +3407,11 @@ export default function StudioPage() {
                 Reposition as one undo step; hold Alt to bypass active grid snapping
               </dd>
               <dt className="font-medium text-slate-300">G / Shift+G</dt>
-              <dd className="text-slate-500">Toggle snapping / align the selected workflow block</dd>
+              <dd className="text-slate-500">
+                Toggle snapping / align the selected workflow block to the grid
+              </dd>
+              <dt className="font-medium text-slate-300">⌘/Ctrl + Shift + G</dt>
+              <dd className="text-slate-500">Align every workflow block to the canvas grid</dd>
               <dt className="font-medium text-slate-300">L</dt>
               <dd className="text-slate-500">
                 Start or cancel linking; invalid targets keep Link mode active
