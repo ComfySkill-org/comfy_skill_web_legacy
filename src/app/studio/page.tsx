@@ -941,6 +941,13 @@ export default function StudioPage() {
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
   );
+  const projectCanvasStats = useMemo(
+    () => ({
+      blocks: project.blocks.length,
+      links: project.edges.length,
+    }),
+    [project.blocks.length, project.edges.length],
+  );
   const selectedCreditEstimate =
     selected?.type === "image" ? QUALITY_CREDITS[selected.params.quality_tier] : null;
   const hasInsufficientCredits =
@@ -2222,6 +2229,20 @@ export default function StudioPage() {
             }
             aria-label="Project title"
           />
+          <span
+            className="hidden text-xs text-slate-500 md:inline"
+            aria-live="polite"
+            title="Canvas contents"
+          >
+            {projectCanvasStats.blocks} block{projectCanvasStats.blocks === 1 ? "" : "s"}
+            {projectCanvasStats.links > 0 && (
+              <>
+                {" "}
+                · {projectCanvasStats.links} link
+                {projectCanvasStats.links === 1 ? "" : "s"}
+              </>
+            )}
+          </span>
           <div className="flex rounded-lg border border-slate-700 p-0.5 text-xs">
             <button
               type="button"
