@@ -614,6 +614,27 @@ export default function StudioPage() {
     }
   }
 
+  function exportCurrentProject() {
+    const snapshot = projectRef.current;
+    const safeTitle =
+      snapshot.title
+        .trim()
+        .toLocaleLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "studio-project";
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${safeTitle}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function selectBlock(blockId: string) {
     setSelectedId(blockId);
     setSelectedEdgeId(null);
@@ -1414,6 +1435,17 @@ export default function StudioPage() {
               title="Studio help (?)"
             >
               Help
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                exportCurrentProject();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Export current canvas as JSON"
+            >
+              Export
             </button>
             <button
               type="button"
