@@ -1478,19 +1478,29 @@ export default function StudioPage() {
         .replace(/[^a-z0-9_-]+/g, "-")
         .replace(/^-+|-+$/g, "") || "studio-project";
     const stamp = new Date().toISOString().slice(0, 10);
+    const filename = `${safeTitle}-${stamp}.json`;
     const blob = new Blob([serializeCanvasProjectExport(snapshot)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${safeTitle}-${stamp}.json`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
     setProjectFileError("");
-    setProjectFileNotice("");
+    const blockCount = snapshot.blocks.length;
+    const edgeCount = snapshot.edges.length;
+    let notice = `Exported ${filename}`;
+    if (blockCount > 0) {
+      notice = `Exported ${blockCount} block${blockCount === 1 ? "" : "s"} to ${filename}`;
+      if (edgeCount > 0) {
+        notice += ` · ${edgeCount} link${edgeCount === 1 ? "" : "s"}`;
+      }
+    }
+    setProjectFileNotice(notice);
   }
 
   async function importProjectFile(file: File) {
@@ -4071,6 +4081,11 @@ export default function StudioPage() {
               <dd className="text-slate-500">
                 Leave the toolbar, cancel a gesture, dismiss errors, exit Link mode, or close
                 overlays
+              </dd>
+              <dt className="font-medium text-slate-300">Export / Import</dt>
+              <dd className="text-slate-500">
+                Download the active canvas as JSON for backup, or restore a validated export as a
+                new project; import fits all blocks in view and confirms in the toolbar
               </dd>
             </dl>
           </div>
