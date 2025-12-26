@@ -31,7 +31,7 @@ import {
   loadProjectLocal,
   moveBlock,
   nudgeBlock,
-  parseCanvasProjectJson,
+  parseCanvasProjectImport,
   ProjectHistory,
   removeBlock,
   removeEdge,
@@ -134,6 +134,7 @@ export default function StudioPage() {
   const [mediaLinkCopied, setMediaLinkCopied] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [importConfirmFile, setImportConfirmFile] = useState<File | null>(null);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [projectSummaries, setProjectSummaries] = useState<ProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
@@ -1503,15 +1504,26 @@ export default function StudioPage() {
     setProjectFileNotice(notice);
   }
 
-  async function importProjectFile(file: File) {
+  async function importProjectFile(file: File, replaceConfirmed = false) {
     setProjectFileError("");
     setProjectFileNotice("");
+    if (!replaceConfirmed && projectRef.current.blocks.length > 0) {
+      setImportConfirmFile(file);
+      return;
+    }
+    setImportConfirmFile(null);
     try {
-      const imported = parseCanvasProjectJson(await file.text());
-      if (!imported) {
-        setProjectFileError("Import failed: the file is not a valid ComfySkill canvas.");
+      const raw = await file.text();
+      const result = parseCanvasProjectImport(raw);
+      if (!result.ok) {
+        setProjectFileError(
+          result.reason === "unsupported_schema"
+            ? "Import failed: this backup uses a newer canvas schema."
+            : "Import failed: the file is not a valid ComfySkill canvas.",
+        );
         return;
       }
+      const imported = result.project;
       if (autosaveTimerRef.current) {
         clearTimeout(autosaveTimerRef.current);
         autosaveTimerRef.current = null;
@@ -1540,7 +1552,22 @@ export default function StudioPage() {
       setInspectId(null);
       setSyncLabel(isStudioAuthed() ? "saving" : "local");
       setHistoryTick((tick) => tick + 1);
-      setProjectFileNotice(`Imported ${next.title}`);
+      const blockCount = next.blocks.length;
+      const edgeCount = next.edges.length;
+      let notice =
+        blockCount > 0
+          ? `Imported ${blockCount} block${blockCount === 1 ? "" : "s"} as ${next.title}`
+          : `Imported ${next.title}`;
+      if (edgeCount > 0) {
+        notice += ` · ${edgeCount} link${edgeCount === 1 ? "" : "s"}`;
+      }
+      if (result.meta.exportedAt) {
+        const exportedDate = new Date(result.meta.exportedAt);
+        if (!Number.isNaN(exportedDate.getTime())) {
+          notice += ` · backup from ${exportedDate.toLocaleDateString()}`;
+        }
+      }
+      setProjectFileNotice(notice);
     } catch {
       setProjectFileError("Import failed: the project file could not be read.");
     }
@@ -3932,6 +3959,46 @@ export default function StudioPage() {
                 className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-500"
               >
                 Start new project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importConfirmFile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setImportConfirmFile(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="import-project-title"
+            className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="import-project-title" className="text-sm font-semibold">
+              Replace the current canvas?
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              Importing <span className="font-medium text-slate-200">{importConfirmFile.name}</span>{" "}
+              replaces the open project with a new local copy. Save or export first if you need a
+              backup of the current layout.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setImportConfirmFile(null)}
+                className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void importProjectFile(importConfirmFile, true)}
+                className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500"
+              >
+                Import backup
               </button>
             </div>
           </div>

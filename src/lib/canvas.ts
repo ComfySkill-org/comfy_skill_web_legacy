@@ -309,6 +309,41 @@ export function parseCanvasProjectJson(raw: string): CanvasProject | null {
   }
 }
 
+export interface CanvasProjectImportMeta {
+  schemaVersion?: number;
+  exportedAt?: string;
+}
+
+export type CanvasProjectImportFailure = "invalid" | "unsupported_schema";
+
+export function parseCanvasProjectImport(raw: string):
+  | { ok: true; project: CanvasProject; meta: CanvasProjectImportMeta }
+  | { ok: false; reason: CanvasProjectImportFailure } {
+  let meta: CanvasProjectImportMeta = {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      isRecord(parsed) &&
+      typeof parsed.schemaVersion === "number" &&
+      isRecord(parsed.project)
+    ) {
+      meta = {
+        schemaVersion: parsed.schemaVersion,
+        exportedAt: typeof parsed.exportedAt === "string" ? parsed.exportedAt : undefined,
+      };
+      if (parsed.schemaVersion > CANVAS_PROJECT_EXPORT_SCHEMA) {
+        return { ok: false, reason: "unsupported_schema" };
+      }
+    }
+  } catch {
+    return { ok: false, reason: "invalid" };
+  }
+
+  const project = parseCanvasProjectJson(raw);
+  if (!project) return { ok: false, reason: "invalid" };
+  return { ok: true, project, meta };
+}
+
 export function loadProjectLocal(): CanvasProject | null {
   if (typeof window === "undefined") return null;
   try {
