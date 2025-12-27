@@ -59,6 +59,13 @@ export interface CanvasProject {
 }
 
 const STORAGE_KEY = "comfyskill.studio.project.v1";
+export const CANVAS_PROJECT_EXPORT_SCHEMA = 1;
+
+export interface CanvasProjectExportEnvelope {
+  schemaVersion: number;
+  exportedAt: string;
+  project: CanvasProject;
+}
 
 export function createEmptyProject(title = "Untitled project"): CanvasProject {
   return {
@@ -197,7 +204,14 @@ function hasDirectedCycle(blockIds: Set<string>, edges: CanvasEdge[]): boolean {
 /** Validate exported/local canvas JSON before it reaches rendering or cloud persistence. */
 export function parseCanvasProjectJson(raw: string): CanvasProject | null {
   try {
-    const value: unknown = JSON.parse(raw);
+    let value: unknown = JSON.parse(raw);
+    if (
+      isRecord(value) &&
+      typeof value.schemaVersion === "number" &&
+      isRecord(value.project)
+    ) {
+      value = value.project;
+    }
     if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") {
       return null;
     }
@@ -822,6 +836,15 @@ export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
 
 export function cloneProject(project: CanvasProject): CanvasProject {
   return JSON.parse(JSON.stringify(project)) as CanvasProject;
+}
+
+export function serializeCanvasProjectExport(project: CanvasProject): string {
+  const envelope: CanvasProjectExportEnvelope = {
+    schemaVersion: CANVAS_PROJECT_EXPORT_SCHEMA,
+    exportedAt: new Date().toISOString(),
+    project: cloneProject(project),
+  };
+  return JSON.stringify(envelope, null, 2);
 }
 
 /** Keep a bounded undo stack of project snapshots (PRD-legacy Phase 2). */

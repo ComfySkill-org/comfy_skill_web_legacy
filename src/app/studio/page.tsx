@@ -40,6 +40,7 @@ import {
   revealBlockInViewport,
   revealEdgeInViewport,
   saveProjectLocal,
+  serializeCanvasProjectExport,
   setViewMode,
   snapCanvasCoordinate,
   unlinkBlock,
@@ -1365,17 +1366,19 @@ export default function StudioPage() {
         .toLocaleLowerCase()
         .replace(/[^a-z0-9_-]+/g, "-")
         .replace(/^-+|-+$/g, "") || "studio-project";
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([serializeCanvasProjectExport(snapshot)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${safeTitle}.json`;
+    link.download = `${safeTitle}-${stamp}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    setProjectFileError("");
   }
 
   async function importProjectFile(file: File) {
@@ -2917,7 +2920,7 @@ export default function StudioPage() {
                 exportCurrentProject();
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
-              title="Export current canvas as JSON"
+              title="Export a versioned canvas JSON backup"
             >
               Export
             </button>
@@ -2944,7 +2947,7 @@ export default function StudioPage() {
                 importInputRef.current?.click();
               }}
               className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
-              title="Import a canvas JSON backup"
+              title="Import a versioned or legacy canvas JSON backup"
             >
               Import
             </button>
