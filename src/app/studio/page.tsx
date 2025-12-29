@@ -170,6 +170,7 @@ export default function StudioPage() {
       setSyncLabel("local");
       return;
     }
+    setSyncLabel("saving");
     const timer = setTimeout(() => {
       void pushRemoteProject(project)
         .then(() => setSyncLabel("cloud"))
@@ -705,6 +706,21 @@ export default function StudioPage() {
     if (!selectedEdgeId) return;
     commitChange((prev) => removeEdge(prev, selectedEdgeId));
     setSelectedEdgeId(null);
+  }
+
+  async function retryProjectSync() {
+    if (!isStudioAuthed()) return;
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    setSyncLabel("saving");
+    try {
+      await pushRemoteProject(projectRef.current);
+      setSyncLabel("cloud");
+    } catch {
+      setSyncLabel("local*");
+    }
   }
 
   function zoomBy(delta: number) {
@@ -1411,7 +1427,24 @@ export default function StudioPage() {
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
               {Math.round(project.viewport.zoom * 100)}% · Arrows nudge · Wheel zoom ·{" "}
-              {syncLabel}
+              {syncLabel === "local*" ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void retryProjectSync();
+                  }}
+                  className="text-amber-400 hover:text-amber-300"
+                >
+                  sync failed · Retry
+                </button>
+              ) : syncLabel === "cloud" ? (
+                "saved"
+              ) : syncLabel === "saving" ? (
+                "saving…"
+              ) : (
+                "local"
+              )}
             </span>
           </div>
             </>
