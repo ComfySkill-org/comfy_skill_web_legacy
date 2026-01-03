@@ -42,6 +42,12 @@ import {
   starterOrLocal,
 } from "@/lib/projectSync";
 
+const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
+  premium: 50,
+  standard: 20,
+  budget: 8,
+};
+
 /**
  * Studio shell — Phase 1 canvas MVP (PRD-legacy).
  * Center: flow + results. Right: params when a block is selected.
@@ -1259,25 +1265,32 @@ export default function StudioPage() {
                     }
                   />
                 </label>
-                <label className="block text-xs text-slate-400">
-                  Quality
-                  <select
-                    className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
-                    value={selected.params.quality_tier}
-                    onChange={(e) =>
-                      updateSelected({
-                        params: {
-                          ...selected.params,
-                          quality_tier: e.target.value as CanvasBlock["params"]["quality_tier"],
-                        },
-                      })
-                    }
-                  >
-                    <option value="premium">Good</option>
-                    <option value="standard">Medium</option>
-                    <option value="budget">Budget</option>
-                  </select>
-                </label>
+                {selected.type === "image" && (
+                  <label className="block text-xs text-slate-400">
+                    <span className="flex items-center justify-between">
+                      <span>Quality</span>
+                      <span className="text-slate-500">
+                        Est. {QUALITY_CREDITS[selected.params.quality_tier]} credits
+                      </span>
+                    </span>
+                    <select
+                      className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+                      value={selected.params.quality_tier}
+                      onChange={(e) =>
+                        updateSelected({
+                          params: {
+                            ...selected.params,
+                            quality_tier: e.target.value as CanvasBlock["params"]["quality_tier"],
+                          },
+                        })
+                      }
+                    >
+                      <option value="premium">Good · 50 credits</option>
+                      <option value="standard">Medium · 20 credits</option>
+                      <option value="budget">Budget · 8 credits</option>
+                    </select>
+                  </label>
+                )}
                 <button
                   type="button"
                   disabled={generating || selected.type !== "image"}
