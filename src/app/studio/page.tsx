@@ -61,6 +61,7 @@ export default function StudioPage() {
     Array<{ id: string; url: string; prompt: string }>
   >([]);
   const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetQuery, setAssetQuery] = useState("");
   const [historyTick, setHistoryTick] = useState(0);
   const [jobEvents, setJobEvents] = useState<
     Array<{ id: string; event_type: string; created_at: string }>
@@ -341,6 +342,11 @@ export default function StudioPage() {
   }, [inspectId]);
 
   const inspectMedia = inspectBlock?.mediaUrls[inspectMediaIndex] ?? null;
+  const filteredAssets = useMemo(() => {
+    const query = assetQuery.trim().toLocaleLowerCase();
+    if (!query) return assets;
+    return assets.filter((asset) => asset.prompt.toLocaleLowerCase().includes(query));
+  }, [assetQuery, assets]);
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
   viewModeRef.current = viewMode;
@@ -514,6 +520,7 @@ export default function StudioPage() {
 
   async function openAssets() {
     setAssetsOpen(true);
+    setAssetQuery("");
     setAssetsLoading(true);
     try {
       const { jobs } = await apiClient.listJobs();
@@ -1359,15 +1366,31 @@ export default function StudioPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-4">
+              {!assetsLoading && assets.length > 0 && (
+                <label className="mb-4 block">
+                  <span className="sr-only">Search generated assets</span>
+                  <input
+                    type="search"
+                    value={assetQuery}
+                    onChange={(e) => setAssetQuery(e.target.value)}
+                    placeholder="Search by prompt…"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
+                  />
+                </label>
+              )}
               {assetsLoading ? (
                 <p className="text-sm text-slate-500">Loading completed jobs…</p>
               ) : assets.length === 0 ? (
                 <p className="text-sm text-slate-500">
                   No completed results yet. Generate from a block first.
                 </p>
+              ) : filteredAssets.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No generated assets match “{assetQuery.trim()}”.
+                </p>
               ) : (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                  {assets.map((asset) => (
+                  {filteredAssets.map((asset) => (
                     <button
                       key={asset.id}
                       type="button"
