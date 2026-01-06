@@ -55,6 +55,7 @@ export default function StudioPage() {
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [syncLabel, setSyncLabel] = useState("local");
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [assets, setAssets] = useState<
@@ -473,6 +474,27 @@ export default function StudioPage() {
       createdId = blockId;
       return next;
     });
+    setSelectedId(createdId);
+    setLinkSourceId(null);
+    setGenerateError("");
+  }
+
+  function createFromDialogue() {
+    const prompt = dialoguePrompt.trim();
+    if (!prompt) return;
+    let createdId = "";
+    commitChange((prev) => {
+      const offset = prev.blocks.length;
+      const block = createImageBlock({
+        x: 80 + offset * 40,
+        y: 80 + offset * 30,
+        title: prompt.length > 36 ? `${prompt.slice(0, 36)}…` : prompt,
+        params: { prompt, quality_tier: "standard" },
+      });
+      createdId = block.id;
+      return { ...prev, blocks: [...prev.blocks, block] };
+    });
+    setDialoguePrompt("");
     setSelectedId(createdId);
     setLinkSourceId(null);
     setGenerateError("");
@@ -1209,8 +1231,32 @@ export default function StudioPage() {
               </div>
             ) : (
               <div className="space-y-3">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    createFromDialogue();
+                  }}
+                  className="rounded-lg border border-slate-700 bg-slate-950/80 p-3"
+                >
+                  <label className="block text-xs text-slate-400">
+                    What do you want to create?
+                    <textarea
+                      value={dialoguePrompt}
+                      onChange={(e) => setDialoguePrompt(e.target.value)}
+                      placeholder="Describe a shot, scene, or visual idea…"
+                      className="mt-2 h-24 w-full resize-none rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={!dialoguePrompt.trim()}
+                    className="mt-2 w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Add draft to canvas
+                  </button>
+                </form>
                 <p className="text-xs text-slate-400">
-                  Every skill is an opening — pick one to drop a seeded block on the canvas.
+                  Or start from a Skill template:
                 </p>
                 {SKILL_TEMPLATES.map((skill) => (
                   <button
