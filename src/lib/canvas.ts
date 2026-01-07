@@ -607,6 +607,12 @@ export function formatLinkTargetCounts(counts: { valid: number; invalid: number 
   return parts.join(", ");
 }
 
+export function dialogueBlockTitle(prompt: string, maxLength = 36): string {
+  const trimmed = prompt.trim();
+  if (!trimmed) return "Untitled block";
+  return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength)}…` : trimmed;
+}
+
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,

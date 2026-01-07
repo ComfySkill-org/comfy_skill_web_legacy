@@ -32,6 +32,7 @@ import {
   createStarterProject,
   createTextBlock,
   createVideoBlock,
+  dialogueBlockTitle,
   duplicateBlock,
   describeEdgeLinkFailure,
   edgeLinkFailureReason,
@@ -1910,6 +1911,12 @@ export default function StudioPage() {
     setSelectedId(createdId);
     exitCanvasToolModes();
     setGenerateError("");
+    setProjectFileNotice(`Added “${template.title}” from Skill template.`);
+    window.setTimeout(() => {
+      setProjectFileNotice((current) =>
+        current === `Added “${template.title}” from Skill template.` ? "" : current,
+      );
+    }, 3000);
   }
 
   function createFromDialogue() {
@@ -1922,7 +1929,7 @@ export default function StudioPage() {
       const common = {
         x: placement.x,
         y: placement.y,
-        title: prompt.length > 36 ? `${prompt.slice(0, 36)}…` : prompt,
+        title: dialogueBlockTitle(prompt),
         params: { prompt, quality_tier: "standard" as const },
       };
       const block =
@@ -1938,6 +1945,16 @@ export default function StudioPage() {
     setSelectedId(createdId);
     exitCanvasToolModes();
     setGenerateError("");
+    setProjectFileNotice(
+      `Added ${BLOCK_TYPE_LABELS[dialogueBlockType]} draft to the canvas.`,
+    );
+    window.setTimeout(() => {
+      setProjectFileNotice((current) =>
+        current === `Added ${BLOCK_TYPE_LABELS[dialogueBlockType]} draft to the canvas.`
+          ? ""
+          : current,
+      );
+    }, 3000);
   }
 
   function deleteBlockById(blockId: string, options?: { focusCanvas?: boolean }) {
@@ -3969,10 +3986,19 @@ export default function StudioPage() {
                     <textarea
                       value={dialoguePrompt}
                       onChange={(e) => setDialoguePrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                          e.preventDefault();
+                          createFromDialogue();
+                        }
+                      }}
                       placeholder="Describe a shot, scene, or visual idea…"
                       className="mt-2 h-24 w-full resize-none rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
                     />
                   </label>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    ⌘↵ or Ctrl+↵ to add draft to canvas
+                  </p>
                   <button
                     type="submit"
                     disabled={!dialoguePrompt.trim()}
