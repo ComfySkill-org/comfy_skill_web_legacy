@@ -65,6 +65,7 @@ import {
   type StudioViewMode,
 } from "@/lib/canvas";
 import {
+  createFreshRemoteProject,
   getRemoteProjectId,
   isStudioAuthed,
   loadOrCreateRemoteProject,
@@ -155,6 +156,7 @@ export default function StudioPage() {
   const [projectActionId, setProjectActionId] = useState<string | null>(null);
   const [projectFileError, setProjectFileError] = useState("");
   const [projectFileNotice, setProjectFileNotice] = useState("");
+  const [loginReturnPath, setLoginReturnPath] = useState("/studio");
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
@@ -342,6 +344,11 @@ export default function StudioPage() {
     suppressCanvasClickUntilRef.current = 0;
     return true;
   }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setLoginReturnPath(`${window.location.pathname}${window.location.search}`);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -2237,6 +2244,15 @@ export default function StudioPage() {
           });
         })
         .catch(() => undefined);
+    } else if (pending.importJobId && !isStudioAuthed()) {
+      const importPath = `/studio?importJob=${encodeURIComponent(pending.importJobId)}`;
+      setProjectFileNotice("Sign in to import this generation onto the canvas.");
+      setLoginReturnPath(importPath);
+      window.setTimeout(() => {
+        setProjectFileNotice((current) =>
+          current === "Sign in to import this generation onto the canvas." ? "" : current,
+        );
+      }, 6000);
     }
 
     if (pending.blockId && projectRef.current.blocks.some((block) => block.id === pending.blockId)) {
@@ -2473,12 +2489,27 @@ export default function StudioPage() {
                 Log out
               </button>
             ) : (
-              <Link href="/login" className="text-xs text-slate-400 hover:text-white">
+              <Link
+                href={`/login?next=${encodeURIComponent(loginReturnPath)}`}
+                className="text-xs text-slate-400 hover:text-white"
+              >
                 Log in
               </Link>
             ))}
         </div>
       </header>
+
+      {hydrated && !isStudioAuthed() && (
+        <div className="shrink-0 border-b border-sky-500/30 bg-sky-950/50 px-4 py-1.5 text-xs text-sky-200">
+          Editing locally — sign in to save projects to the cloud and generate images.{" "}
+          <Link
+            href={`/login?next=${encodeURIComponent(loginReturnPath)}`}
+            className="font-semibold underline hover:text-white"
+          >
+            Log in
+          </Link>
+        </div>
+      )}
 
       {lowCreditBalance && (
         <div className="shrink-0 border-b border-amber-500/30 bg-amber-950/50 px-4 py-1.5 text-xs text-amber-200">
