@@ -305,6 +305,14 @@ export default function AppPage() {
               data-testid="output-image"
             />
           )}
+          {job.status === "completed" && job.output_url && (
+            <Link
+              href={`/studio?importJob=${job.id}`}
+              className="btn-secondary mt-3 inline-block"
+            >
+              Add to studio
+            </Link>
+          )}
         </div>
       )}
 

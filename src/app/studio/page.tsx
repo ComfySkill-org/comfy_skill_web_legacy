@@ -191,7 +191,7 @@ export default function StudioPage() {
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const syncRequestRef = useRef(0);
-  const pendingDeepLinkRef = useRef<{ blockId?: string } | null>(null);
+  const pendingDeepLinkRef = useRef<{ blockId?: string; importJobId?: string } | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const wheelHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nudgeHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -353,17 +353,20 @@ export default function StudioPage() {
           : null;
       const deepProjectId = params?.get("project") ?? null;
       const deepBlockId = params?.get("block") ?? null;
+      const importJobId = params?.get("importJob") ?? null;
 
-      if (deepProjectId || deepBlockId) {
+      if (deepProjectId || deepBlockId || importJobId) {
         if (typeof window !== "undefined") {
           const url = new URL(window.location.href);
           url.searchParams.delete("project");
           url.searchParams.delete("block");
+          url.searchParams.delete("importJob");
           window.history.replaceState(null, "", `${url.pathname}${url.search}`);
         }
-        if (deepBlockId) {
-          pendingDeepLinkRef.current = { blockId: deepBlockId };
-        }
+        pendingDeepLinkRef.current = {
+          blockId: deepBlockId ?? undefined,
+          importJobId: importJobId ?? undefined,
+        };
       }
 
       if (isStudioAuthed()) {
@@ -2218,11 +2221,27 @@ export default function StudioPage() {
   }
 
   useEffect(() => {
-    if (!hydrated || !pendingDeepLinkRef.current?.blockId) return;
-    const blockId = pendingDeepLinkRef.current.blockId;
+    if (!hydrated || !pendingDeepLinkRef.current) return;
+    const pending = pendingDeepLinkRef.current;
     pendingDeepLinkRef.current = null;
-    if (!projectRef.current.blocks.some((block) => block.id === blockId)) return;
-    openSelectionInWorkflow(blockId);
+
+    if (pending.importJobId && isStudioAuthed()) {
+      void apiClient
+        .getJob(pending.importJobId)
+        .then((job) => {
+          if (job.status !== "completed" || !job.output_url) return;
+          insertAsset({
+            id: job.id,
+            url: job.output_url,
+            prompt: job.prompt_text,
+          });
+        })
+        .catch(() => undefined);
+    }
+
+    if (pending.blockId && projectRef.current.blocks.some((block) => block.id === pending.blockId)) {
+      openSelectionInWorkflow(pending.blockId);
+    }
   }, [hydrated]);
 
   async function pollBlockJobUntilDone(blockId: string, jobId: string) {

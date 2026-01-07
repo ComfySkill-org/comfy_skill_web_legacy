@@ -402,6 +402,14 @@ export default function AppJobsPage() {
                       Open output
                     </a>
                   )}
+                  {job.output_url && !job.project_id && (
+                    <Link
+                      href={`/studio?importJob=${job.id}`}
+                      className="underline hover:text-skill-ink"
+                    >
+                      Add to studio
+                    </Link>
+                  )}
                   {job.project_id && (
                     <Link href={studioJobHref(job)} className="underline hover:text-skill-ink">
                       Open studio
