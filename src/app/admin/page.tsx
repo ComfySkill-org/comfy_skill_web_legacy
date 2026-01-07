@@ -38,12 +38,13 @@ export default function AdminPage() {
       <h1 className="mb-6 text-2xl font-bold">Admin dashboard</h1>
       {error && <p className="mb-4 text-red-600">{error}</p>}
       {metrics && (
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
             { label: "Total jobs", value: metrics.total_jobs },
             { label: "Completed", value: metrics.completed_jobs },
             { label: "Failed", value: metrics.failed_jobs },
-            { label: "Credits used", value: metrics.credits_consumed_today },
+            { label: "Credits used today", value: metrics.credits_consumed_today },
+            { label: "Active users", value: metrics.active_users },
           ].map((m) => (
             <div key={m.label} className="card text-center">
               <p className="text-2xl font-bold">{m.value}</p>
@@ -52,7 +53,7 @@ export default function AdminPage() {
           ))}
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <a href="/admin/jobs" className="btn-primary">
           All jobs
         </a>
@@ -60,6 +61,9 @@ export default function AdminPage() {
           Users
         </a>
       </div>
+      <p className="mt-4 text-sm text-skill-muted">
+        Grant credits to individual accounts from the Users page.
+      </p>
     </div>
   );
 }

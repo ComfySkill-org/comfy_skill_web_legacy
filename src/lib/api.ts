@@ -269,6 +269,22 @@ export const apiClient = {
       credits_consumed_today: number;
       active_users: number;
     }>("/admin/metrics"),
+
+  adminGrantCredits: (
+    userId: string,
+    body: { amount: number; description?: string },
+  ) =>
+    api<{
+      id: string;
+      email: string;
+      name: string;
+      role: string;
+      balance_credits: number;
+      created_at: string;
+    }>(`/admin/users/${userId}/credits`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
 
 export function saveToken(token: string) {
