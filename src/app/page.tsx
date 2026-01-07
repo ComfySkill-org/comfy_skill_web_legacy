@@ -1,27 +1,55 @@
-import Link from "next/link";
 import { QUALITY_CREDITS } from "@/lib/credits";
+import { HomeFooterLinks, HomeHero } from "@/components/HomeHero";
 
 export default function HomePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">
-      <section className="card text-center">
-        <p className="mb-3 text-sm font-medium uppercase tracking-wide text-skill-blue-dark">
-          Story-first creation canvas
-        </p>
-        <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
-          Arrange shots on a canvas. See results, not node graphs.
-        </h1>
-        <p className="mx-auto mb-8 max-w-2xl text-skill-muted">
-          ComfySkill is built around your work — scenes, beats, and previews on an infinite
-          canvas. Edit parameters in the side panel; the engine stays behind the curtain.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Link href="/studio" className="btn-primary">
-            Open studio
-          </Link>
-          <Link href="/pricing" className="btn-secondary">
-            View pricing
-          </Link>
+      <HomeHero />
+
+      <section
+        aria-hidden
+        className="relative mt-10 overflow-hidden rounded-2xl border border-skill-blue/20 bg-slate-950 shadow-inner"
+      >
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(148,163,184,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="relative grid min-h-[220px] grid-cols-[1fr_140px] gap-0">
+          <div className="relative p-6">
+            <div className="absolute left-10 top-12 w-36 rounded-lg border border-slate-700 bg-slate-900/90 p-2 shadow-lg">
+              <div className="mb-2 h-2 w-16 rounded bg-slate-700" />
+              <div className="h-16 rounded bg-slate-800" />
+            </div>
+            <div className="absolute left-44 top-24 w-36 rounded-lg border border-sky-500/40 bg-slate-900/90 p-2 shadow-lg">
+              <div className="mb-2 h-2 w-20 rounded bg-slate-700" />
+              <div className="h-16 rounded bg-gradient-to-br from-sky-900/80 to-slate-800" />
+            </div>
+            <svg
+              className="absolute left-[148px] top-[88px] text-sky-400/70"
+              width="40"
+              height="24"
+              viewBox="0 0 40 24"
+              fill="none"
+            >
+              <path
+                d="M0 12 H28 M28 12 L20 6 M28 12 L20 18"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+            </svg>
+          </div>
+          <div className="border-l border-slate-800 bg-slate-900/80 p-4">
+            <div className="mb-3 h-2 w-16 rounded bg-slate-700" />
+            <div className="space-y-2">
+              <div className="h-8 rounded bg-slate-800" />
+              <div className="h-8 rounded bg-slate-800" />
+              <div className="h-8 rounded bg-sky-700/60" />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -47,16 +75,7 @@ export default function HomePage() {
         ))}
       </section>
 
-      <p className="mt-10 text-center text-sm text-skill-muted">
-        Track credit usage in{" "}
-        <Link href="/app/jobs" className="underline hover:text-skill-ink">
-          generation history
-        </Link>
-        {" · "}
-        <Link href="/settings/billing" className="underline hover:text-skill-ink">
-          billing &amp; usage
-        </Link>
-      </p>
+      <HomeFooterLinks />
     </div>
   );
 }
