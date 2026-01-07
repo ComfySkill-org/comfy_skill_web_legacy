@@ -24,6 +24,7 @@ import {
 } from "@/lib/credits";
 import { formatJobCreditsLabel } from "@/lib/jobs";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
+import { readDefaultQualityTier, writeDefaultQualityTier } from "@/lib/studioPreferences";
 
 const QUALITY_HINTS: Record<QualityTier, string> = {
   premium: "Best quality",
@@ -46,6 +47,10 @@ export default function AppPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setQuality(readDefaultQualityTier());
+  }, []);
 
   useEffect(() => {
     const loadUser = () => apiClient.me().then(setUser).catch(() => router.replace("/login"));
@@ -211,7 +216,10 @@ export default function AppPage() {
                 key={opt.tier}
                 type="button"
                 data-testid={`quality-${opt.tier}`}
-                onClick={() => setQuality(opt.tier)}
+                onClick={() => {
+                  setQuality(opt.tier);
+                  writeDefaultQualityTier(opt.tier);
+                }}
                 className={`rounded-xl border p-3 text-left text-sm transition ${
                   quality === opt.tier
                     ? "border-skill-blue-dark bg-skill-blue/20"

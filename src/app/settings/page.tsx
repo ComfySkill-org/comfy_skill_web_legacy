@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
 import { estimateGenerations, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import type { QualityTier } from "@/lib/api";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
+  readDefaultQualityTier,
   readProjectListPrefs,
   readRememberHandTool,
   readSnapToGrid,
+  writeDefaultQualityTier,
   writeProjectListPrefs,
   writeRememberHandTool,
   writeSnapToGrid,
@@ -25,6 +28,7 @@ export default function SettingsPage() {
   const [rememberHandTool, setRememberHandTool] = useState(false);
   const [projectListView, setProjectListView] = useState<ProjectViewFilter>("all");
   const [projectListSort, setProjectListSort] = useState<ProjectSort>("updated-desc");
+  const [defaultQuality, setDefaultQuality] = useState<QualityTier>("standard");
 
   useEffect(() => {
     setSnapToGrid(readSnapToGrid());
@@ -32,6 +36,7 @@ export default function SettingsPage() {
     const { view, sort } = readProjectListPrefs();
     if (view) setProjectListView(view);
     if (sort) setProjectListSort(sort);
+    setDefaultQuality(readDefaultQualityTier());
   }, []);
 
   useEffect(() => {
@@ -234,6 +239,24 @@ export default function SettingsPage() {
             <option value="all">All projects</option>
             <option value="workflow">Workflow only</option>
             <option value="storyboard">Storyboard only</option>
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="text-skill-muted">Default generation quality</span>
+          <select
+            className="input mt-1 w-full"
+            value={defaultQuality}
+            onChange={(e) => {
+              const tier = e.target.value as QualityTier;
+              setDefaultQuality(tier);
+              writeDefaultQualityTier(tier);
+            }}
+          >
+            {QUALITY_TIER_OPTIONS.map(({ tier, label }) => (
+              <option key={tier} value={tier}>
+                {label} ({QUALITY_CREDITS[tier]} credits)
+              </option>
+            ))}
           </select>
         </label>
         <label className="block text-sm">

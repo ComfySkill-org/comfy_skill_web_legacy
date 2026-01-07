@@ -680,6 +680,7 @@ export const SKILL_TEMPLATES: SkillTemplate[] = [
 export function applySkillTemplate(
   project: CanvasProject,
   template: SkillTemplate,
+  qualityTier: CanvasBlockParams["quality_tier"] = "standard",
 ): { project: CanvasProject; blockId: string } {
   const offset = project.blocks.length;
   const base = {
@@ -688,7 +689,7 @@ export function applySkillTemplate(
     title: template.title,
     params: {
       prompt: template.prompt,
-      quality_tier: "standard" as const,
+      quality_tier: qualityTier,
     },
   };
   let block: CanvasBlock;

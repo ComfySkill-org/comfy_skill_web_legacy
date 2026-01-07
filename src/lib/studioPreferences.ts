@@ -1,4 +1,4 @@
-import type { ProjectSummary } from "@/lib/api";
+import type { ProjectSummary, QualityTier } from "@/lib/api";
 
 export type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
 export type ProjectSort = "updated-desc" | "updated-asc" | "title-asc" | "title-desc";
@@ -7,6 +7,9 @@ export const SNAP_KEY = "comfyskill.studio.snap-to-grid";
 export const PROJECT_LIST_KEY = "comfyskill.studio.project-list";
 export const HAND_TOOL_KEY = "comfyskill.studio.hand-tool";
 export const REMEMBER_HAND_TOOL_KEY = "comfyskill.studio.remember-hand-tool";
+export const DEFAULT_QUALITY_KEY = "comfyskill.studio.default-quality";
+
+const DEFAULT_QUALITY_FALLBACK: QualityTier = "standard";
 
 export function readSnapToGrid(): boolean {
   if (typeof window === "undefined") return false;
@@ -102,6 +105,26 @@ export function writeHandToolActive(active: boolean): void {
   try {
     const storage = readRememberHandTool() ? localStorage : sessionStorage;
     storage.setItem(HAND_TOOL_KEY, active ? "1" : "0");
+  } catch {
+    // Storage can be unavailable in private browsing modes.
+  }
+}
+
+export function readDefaultQualityTier(): QualityTier {
+  if (typeof window === "undefined") return DEFAULT_QUALITY_FALLBACK;
+  try {
+    const raw = localStorage.getItem(DEFAULT_QUALITY_KEY);
+    if (raw === "premium" || raw === "standard" || raw === "budget") return raw;
+    return DEFAULT_QUALITY_FALLBACK;
+  } catch {
+    return DEFAULT_QUALITY_FALLBACK;
+  }
+}
+
+export function writeDefaultQualityTier(tier: QualityTier): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(DEFAULT_QUALITY_KEY, tier);
   } catch {
     // Storage can be unavailable in private browsing modes.
   }

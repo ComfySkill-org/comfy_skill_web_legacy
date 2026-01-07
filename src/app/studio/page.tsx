@@ -78,6 +78,7 @@ import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficie
 import {
   readHandToolActive,
   readProjectListPrefs,
+  readDefaultQualityTier,
   readSnapToGrid,
   writeHandToolActive,
   writeProjectListPrefs,
@@ -1407,6 +1408,7 @@ export default function StudioPage() {
       block = createImageBlock({
         ...pos,
         title: `Shot ${String.fromCharCode(65 + offset)}`,
+        params: { prompt: "", quality_tier: readDefaultQualityTier() },
       });
     }
     const nextBlock = block;
@@ -1968,7 +1970,11 @@ export default function StudioPage() {
     if (!template) return;
     let createdId = "";
     commitChange((prev) => {
-      const { project: next, blockId } = applySkillTemplate(prev, template);
+      const { project: next, blockId } = applySkillTemplate(
+        prev,
+        template,
+        readDefaultQualityTier(),
+      );
       createdId = blockId;
       return snapCreatedBlock(next, blockId);
     });
@@ -1994,7 +2000,7 @@ export default function StudioPage() {
         x: placement.x,
         y: placement.y,
         title: dialogueBlockTitle(prompt),
-        params: { prompt, quality_tier: "standard" as const },
+        params: { prompt, quality_tier: readDefaultQualityTier() },
       };
       const block =
         dialogueBlockType === "text"
