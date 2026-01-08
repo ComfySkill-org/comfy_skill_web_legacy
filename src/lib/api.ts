@@ -4,6 +4,19 @@ export function getApiBaseUrl(): string {
   return API_URL;
 }
 
+export function isPlanStripeReady(
+  planId: string,
+  status: {
+    configured?: boolean;
+    price_configured?: boolean;
+    plans?: Record<string, boolean>;
+  } | null,
+): boolean {
+  const stripeReady = Boolean(status?.configured && status?.price_configured);
+  if (!stripeReady) return false;
+  return status?.plans?.[planId] ?? stripeReady;
+}
+
 import {
   firebaseLogout,
   getFirebaseIdToken,

@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiClient, isPlanStripeReady } from "@/lib/api";
 import {
   estimateGenerations,
   PLAN_MONTHLY_CREDITS,
@@ -31,6 +35,19 @@ const PLANS = [
 ];
 
 export default function PricingPage() {
+  const [stripeStatus, setStripeStatus] = useState<Awaited<
+    ReturnType<typeof apiClient.stripeStatus>
+  > | null>(null);
+
+  useEffect(() => {
+    void apiClient
+      .stripeStatus()
+      .then(setStripeStatus)
+      .catch(() => setStripeStatus(null));
+  }, []);
+
+  const stripeReady = Boolean(stripeStatus?.configured && stripeStatus?.price_configured);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-2 text-center text-3xl font-bold">Pricing</h1>
@@ -38,35 +55,47 @@ export default function PricingPage() {
         Monthly subscription with credits. When credits run out, upgrade or renew.
       </p>
       <div className="grid gap-4 md:grid-cols-3">
-        {PLANS.map((plan) => (
-          <div
-            key={plan.id}
-            className={`card relative ${plan.popular ? "ring-2 ring-skill-blue-dark" : ""}`}
-          >
-            {plan.popular && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-skill-yellow px-3 py-0.5 text-xs font-semibold">
-                Popular
-              </span>
-            )}
-            <h2 className="text-lg font-bold">{plan.name}</h2>
-            <p className="mt-2 text-2xl font-bold">{plan.price}</p>
-            <p className="mt-1 text-sm text-skill-muted">{plan.credits}</p>
-            <p className="mt-2 text-xs text-skill-muted">
-              ~
-              {estimateGenerations(PLAN_MONTHLY_CREDITS[plan.id], "standard").toLocaleString()}{" "}
-              Medium · ~
-              {estimateGenerations(PLAN_MONTHLY_CREDITS[plan.id], "budget").toLocaleString()}{" "}
-              Budget generations / mo
-            </p>
-            {plan.note && <p className="mt-2 text-xs text-skill-muted">{plan.note}</p>}
-            <Link
-              href={`/login?plan=${plan.id}`}
-              className="btn-primary mt-5 w-full"
+        {PLANS.map((plan) => {
+          const planReady = isPlanStripeReady(plan.id, stripeStatus);
+          return (
+            <div
+              key={plan.id}
+              className={`card relative ${plan.popular ? "ring-2 ring-skill-blue-dark" : ""}`}
             >
-              Subscribe
-            </Link>
-          </div>
-        ))}
+              {plan.popular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-skill-yellow px-3 py-0.5 text-xs font-semibold">
+                  Popular
+                </span>
+              )}
+              <h2 className="text-lg font-bold">{plan.name}</h2>
+              <p className="mt-2 text-2xl font-bold">{plan.price}</p>
+              <p className="mt-1 text-sm text-skill-muted">{plan.credits}</p>
+              <p className="mt-2 text-xs text-skill-muted">
+                ~
+                {estimateGenerations(PLAN_MONTHLY_CREDITS[plan.id], "standard").toLocaleString()}{" "}
+                Medium · ~
+                {estimateGenerations(PLAN_MONTHLY_CREDITS[plan.id], "budget").toLocaleString()}{" "}
+                Budget generations / mo
+              </p>
+              {plan.note && <p className="mt-2 text-xs text-skill-muted">{plan.note}</p>}
+              {stripeStatus && stripeReady && !planReady && (
+                <p className="mt-2 text-xs text-amber-800">Stripe price not configured yet</p>
+              )}
+              {stripeStatus === null || planReady ? (
+                <Link
+                  href={`/login?plan=${plan.id}`}
+                  className="btn-primary mt-5 w-full"
+                >
+                  Subscribe
+                </Link>
+              ) : (
+                <span className="btn-secondary mt-5 inline-block w-full cursor-not-allowed text-center opacity-70">
+                  Unavailable
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
       <section className="mt-12">
         <h2 className="text-center text-xl font-bold">Generation costs</h2>

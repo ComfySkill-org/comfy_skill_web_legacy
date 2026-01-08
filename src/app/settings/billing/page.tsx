@@ -9,6 +9,7 @@ import {
   apiClient,
   getToken,
   isFirebaseEnabled,
+  isPlanStripeReady,
   type Transaction,
 } from "@/lib/api";
 import {
@@ -187,6 +188,7 @@ export default function BillingPage() {
   }
 
   const stripeReady = Boolean(stripeStatus?.configured && stripeStatus.price_configured);
+  const selectedPlanReady = isPlanStripeReady(planId, stripeStatus);
   const stripePriceMisconfigured = Boolean(
     stripeStatus?.price_configured && stripeStatus.price_looks_valid === false,
   );
@@ -270,6 +272,7 @@ export default function BillingPage() {
               {BILLING_PLANS.map((plan) => {
                 const monthlyCredits = PLAN_MONTHLY_CREDITS[plan.id];
                 const selected = planId === plan.id;
+                const planReady = isPlanStripeReady(plan.id, stripeStatus);
                 return (
                   <button
                     key={plan.id}
@@ -279,10 +282,15 @@ export default function BillingPage() {
                       selected
                         ? "border-skill-blue-dark bg-skill-blue/20"
                         : "border-skill-blue/20 bg-white hover:bg-skill-yellow/30"
-                    }`}
+                    } ${!planReady ? "opacity-70" : ""}`}
                   >
                     <span className="block font-semibold">{plan.label}</span>
                     <span className="text-xs text-skill-muted">{plan.price}</span>
+                    {!planReady && stripeReady && (
+                      <span className="mt-1 block text-xs text-amber-800">
+                        Price ID not configured
+                      </span>
+                    )}
                     <span className="mt-1 block text-xs text-skill-muted">
                       {monthlyCredits.toLocaleString()} credits · ~
                       {estimateGenerations(monthlyCredits, "standard").toLocaleString()} Medium / mo
@@ -292,13 +300,18 @@ export default function BillingPage() {
               })}
             </div>
           </div>
+          {stripeReady && !selectedPlanReady && (
+            <p className="text-xs text-amber-800">
+              The selected plan needs its own Stripe price ID, or falls back to Standard when configured.
+            </p>
+          )}
           {message && <p className="text-sm text-skill-blue-dark">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
               className="btn-primary"
-              disabled={!stripeReady || checkoutLoading || Boolean(embeddedClientSecret)}
+              disabled={!selectedPlanReady || checkoutLoading || Boolean(embeddedClientSecret)}
               onClick={() => void startCheckout()}
             >
               {checkoutLoading ? "Starting..." : `Subscribe (${planId})`}
