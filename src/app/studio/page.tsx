@@ -82,6 +82,7 @@ export default function StudioPage() {
   const [projectSummaries, setProjectSummaries] = useState<ProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState("");
+  const [projectQuery, setProjectQuery] = useState("");
   const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
   const [projectDeleteLoading, setProjectDeleteLoading] = useState(false);
   const [dialoguePrompt, setDialoguePrompt] = useState("");
@@ -443,6 +444,13 @@ export default function StudioPage() {
     if (!query) return assets;
     return assets.filter((asset) => asset.prompt.toLocaleLowerCase().includes(query));
   }, [assetQuery, assets]);
+  const filteredProjects = useMemo(() => {
+    const query = projectQuery.trim().toLocaleLowerCase();
+    if (!query) return projectSummaries;
+    return projectSummaries.filter((project) =>
+      project.title.toLocaleLowerCase().includes(query),
+    );
+  }, [projectQuery, projectSummaries]);
   const activeRemoteProjectId = hydrated ? getRemoteProjectId() : null;
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
@@ -547,6 +555,7 @@ export default function StudioPage() {
     setProjectsOpen(true);
     setProjectsLoading(true);
     setProjectsError("");
+    setProjectQuery("");
     try {
       const projects = await apiClient.listProjects();
       setProjectSummaries(
@@ -1629,6 +1638,18 @@ export default function StudioPage() {
               </button>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-3">
+              {!projectsLoading && !projectsError && projectSummaries.length > 0 && (
+                <label className="mb-3 block">
+                  <span className="sr-only">Search cloud projects</span>
+                  <input
+                    type="search"
+                    value={projectQuery}
+                    onChange={(e) => setProjectQuery(e.target.value)}
+                    placeholder="Search projects…"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none placeholder:text-slate-600 focus:border-sky-500"
+                  />
+                </label>
+              )}
               {projectsLoading ? (
                 <p className="px-2 py-6 text-center text-sm text-slate-500">
                   Loading projects…
@@ -1639,9 +1660,13 @@ export default function StudioPage() {
                 <p className="px-2 py-6 text-center text-sm text-slate-500">
                   No cloud projects yet.
                 </p>
+              ) : filteredProjects.length === 0 ? (
+                <p className="px-2 py-6 text-center text-sm text-slate-500">
+                  No projects match “{projectQuery.trim()}”.
+                </p>
               ) : (
                 <div className="space-y-2">
-                  {projectSummaries.map((summary) => (
+                  {filteredProjects.map((summary) => (
                     <div
                       key={summary.id}
                       className={`flex items-stretch overflow-hidden rounded-lg border ${
