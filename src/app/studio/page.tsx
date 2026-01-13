@@ -529,6 +529,10 @@ export default function StudioPage() {
 
   function resetProject() {
     setResetConfirmOpen(false);
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     clearProjectLocal();
     setRemoteProjectId(null);
     historyRef.current = new ProjectHistory();
@@ -539,16 +543,7 @@ export default function StudioPage() {
     setLinkSourceId(null);
     setGenerateError("");
     setHistoryTick((n) => n + 1);
-    if (isStudioAuthed()) {
-      void pushRemoteProject(next)
-        .then((saved) => {
-          setProject(saved);
-          setSyncLabel("cloud");
-        })
-        .catch(() => setSyncLabel("local"));
-    } else {
-      setSyncLabel("local");
-    }
+    setSyncLabel(isStudioAuthed() ? "saving" : "local");
   }
 
   async function openProjects() {
