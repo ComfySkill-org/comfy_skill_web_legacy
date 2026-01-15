@@ -56,6 +56,7 @@ export default function StudioPage() {
   const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [dialoguePrompt, setDialoguePrompt] = useState("");
+  const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [assets, setAssets] = useState<
@@ -485,12 +486,18 @@ export default function StudioPage() {
     let createdId = "";
     commitChange((prev) => {
       const offset = prev.blocks.length;
-      const block = createImageBlock({
+      const common = {
         x: 80 + offset * 40,
         y: 80 + offset * 30,
         title: prompt.length > 36 ? `${prompt.slice(0, 36)}…` : prompt,
-        params: { prompt, quality_tier: "standard" },
-      });
+        params: { prompt, quality_tier: "standard" as const },
+      };
+      const block =
+        dialogueBlockType === "text"
+          ? createTextBlock({ ...common, bodyText: prompt })
+          : dialogueBlockType === "video"
+            ? createVideoBlock({ ...common, bodyText: prompt })
+            : createImageBlock(common);
       createdId = block.id;
       return { ...prev, blocks: [...prev.blocks, block] };
     });
@@ -1238,6 +1245,20 @@ export default function StudioPage() {
                   }}
                   className="rounded-lg border border-slate-700 bg-slate-950/80 p-3"
                 >
+                  <label className="mb-3 block text-xs text-slate-400">
+                    Block type
+                    <select
+                      value={dialogueBlockType}
+                      onChange={(e) =>
+                        setDialogueBlockType(e.target.value as CanvasBlock["type"])
+                      }
+                      className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-sky-500"
+                    >
+                      <option value="image">Image</option>
+                      <option value="text">Text</option>
+                      <option value="video">Video</option>
+                    </select>
+                  </label>
                   <label className="block text-xs text-slate-400">
                     What do you want to create?
                     <textarea
