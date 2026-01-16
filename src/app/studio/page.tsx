@@ -448,6 +448,7 @@ export default function StudioPage() {
 
   function selectBlock(blockId: string) {
     setSelectedId(blockId);
+    setGenerateError("");
     setLinkSourceId((prev) => {
       if (prev && prev !== blockId) {
         commitChange((p) => addEdgeBetween(p, prev, blockId));
@@ -587,6 +588,14 @@ export default function StudioPage() {
 
   async function generateSelected() {
     if (!selected) return;
+    if (selected.type !== "image") {
+      setGenerateError(
+        selected.type === "text"
+          ? "Text blocks are edited directly in the right panel."
+          : "Video generation is not available yet; this block remains a storyboard placeholder.",
+      );
+      return;
+    }
     const prompt = selected.params.prompt.trim();
     if (!prompt) {
       setGenerateError("Enter a prompt in the right panel first.");
@@ -1190,11 +1199,15 @@ export default function StudioPage() {
                 </label>
                 <button
                   type="button"
-                  disabled={generating}
+                  disabled={generating || selected.type !== "image"}
                   onClick={() => void generateSelected()}
                   className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
                 >
-                  {generating ? "Generating…" : "Generate"}
+                  {selected.type !== "image"
+                    ? `${selected.type === "text" ? "Text" : "Video"} generation unavailable`
+                    : generating
+                      ? "Generating…"
+                      : "Generate image"}
                 </button>
                 <button
                   type="button"
@@ -1203,7 +1216,13 @@ export default function StudioPage() {
                 >
                   Inspect result
                 </button>
-                {generateError ? (
+                {selected.type !== "image" ? (
+                  <p className="text-[11px] text-amber-400">
+                    {selected.type === "text"
+                      ? "Edit text content directly above; no generation job is required."
+                      : "Video blocks are placeholders until a video capability is connected."}
+                  </p>
+                ) : generateError ? (
                   <p className="text-[11px] text-rose-400">{generateError}</p>
                 ) : (
                   <p className="text-[11px] text-slate-500">
