@@ -20,6 +20,7 @@ import {
   nudgeBlock,
   ProjectHistory,
   removeBlock,
+  removeEdge,
   resetViewportPan,
   saveProjectLocal,
   setViewMode,
@@ -49,6 +50,7 @@ export default function StudioPage() {
   const [project, setProject] = useState<CanvasProject>(() => createStarterProject());
   const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [linkSourceId, setLinkSourceId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
@@ -74,6 +76,7 @@ export default function StudioPage() {
   const canvasMainRef = useRef<HTMLElement | null>(null);
   const viewModeRef = useRef<StudioViewMode>("workflow");
   const selectedIdRef = useRef<string | null>(null);
+  const selectedEdgeIdRef = useRef<string | null>(null);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -219,6 +222,7 @@ export default function StudioPage() {
       }
       if (e.key === "Escape") {
         setSelectedId(null);
+        setSelectedEdgeId(null);
         setLinkSourceId(null);
         setInspectId(null);
         setHelpOpen(false);
@@ -230,13 +234,22 @@ export default function StudioPage() {
         return;
       }
       if (!isTypingTarget(e.target)) {
-        if ((e.key === "Delete" || e.key === "Backspace") && selectedIdRef.current) {
+        if (
+          (e.key === "Delete" || e.key === "Backspace") &&
+          (selectedIdRef.current || selectedEdgeIdRef.current)
+        ) {
           e.preventDefault();
-          const id = selectedIdRef.current;
           historyRef.current.record(projectRef.current);
-          setProject((prev) => removeBlock(prev, id));
+          const blockId = selectedIdRef.current;
+          const edgeId = selectedEdgeIdRef.current;
+          setProject((prev) => {
+            if (blockId) return removeBlock(prev, blockId);
+            if (edgeId) return removeEdge(prev, edgeId);
+            return prev;
+          });
           setHistoryTick((n) => n + 1);
           setSelectedId(null);
+          setSelectedEdgeId(null);
           setLinkSourceId(null);
           return;
         }
@@ -308,6 +321,7 @@ export default function StudioPage() {
     [project.blocks, selectedId],
   );
   selectedIdRef.current = selectedId;
+  selectedEdgeIdRef.current = selectedEdgeId;
 
   useEffect(() => {
     const jobId = selected?.jobId;
@@ -431,6 +445,7 @@ export default function StudioPage() {
     const next = createStarterProject();
     setProject(next);
     setSelectedId(null);
+    setSelectedEdgeId(null);
     setLinkSourceId(null);
     setGenerateError("");
     setHistoryTick((n) => n + 1);
@@ -448,6 +463,7 @@ export default function StudioPage() {
 
   function selectBlock(blockId: string) {
     setSelectedId(blockId);
+    setSelectedEdgeId(null);
     setGenerateError("");
     setLinkSourceId((prev) => {
       if (prev && prev !== blockId) {
@@ -531,6 +547,12 @@ export default function StudioPage() {
     if (!selectedId) return;
     commitChange((prev) => unlinkBlock(prev, selectedId));
     setLinkSourceId(null);
+  }
+
+  function deleteSelectedEdge() {
+    if (!selectedEdgeId) return;
+    commitChange((prev) => removeEdge(prev, selectedEdgeId));
+    setSelectedEdgeId(null);
   }
 
   function zoomBy(delta: number) {
@@ -709,7 +731,10 @@ export default function StudioPage() {
             backgroundSize: "24px 24px",
             backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
           }}
-          onClick={() => setSelectedId(null)}
+          onClick={() => {
+            setSelectedId(null);
+            setSelectedEdgeId(null);
+          }}
           onPointerDown={(e) => {
             if (viewMode !== "workflow") return;
             if (e.button === 1 || (e.button === 0 && spaceHeldRef.current)) {
@@ -774,7 +799,7 @@ export default function StudioPage() {
           ) : (
             <>
           <svg
-            className="pointer-events-none absolute inset-0 h-full w-full origin-top-left"
+            className="pointer-events-none absolute inset-0 z-30 h-full w-full origin-top-left"
             style={{
               transform: `translate(${project.viewport.x}px, ${project.viewport.y}px) scale(${project.viewport.zoom})`,
             }}
@@ -791,9 +816,19 @@ export default function StudioPage() {
                 <path
                   key={edge.id}
                   d={`M ${x1} ${y1} C ${x1 + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`}
-                  stroke="rgba(148,163,184,0.55)"
-                  strokeWidth={1.5}
+                  stroke={
+                    edge.id === selectedEdgeId
+                      ? "rgba(56,189,248,0.95)"
+                      : "rgba(148,163,184,0.55)"
+                  }
+                  strokeWidth={edge.id === selectedEdgeId ? 3 : 1.5}
                   fill="none"
+                  className="pointer-events-auto cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedId(null);
+                    setSelectedEdgeId(edge.id);
+                  }}
                 />
               );
             })}
@@ -1031,6 +1066,18 @@ export default function StudioPage() {
               title="Remove edges on this block"
             >
               Unlink
+            </button>
+            <button
+              type="button"
+              disabled={!selectedEdgeId}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteSelectedEdge();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-rose-600 disabled:opacity-40"
+              title="Delete selected link (⌫)"
+            >
+              Delete link
             </button>
             <button
               type="button"

@@ -320,6 +320,15 @@ export function unlinkBlock(project: CanvasProject, blockId: string): CanvasProj
   };
 }
 
+/** Remove one selected flow relationship without disturbing neighboring edges. */
+export function removeEdge(project: CanvasProject, edgeId: string): CanvasProject {
+  if (!project.edges.some((edge) => edge.id === edgeId)) return project;
+  return {
+    ...project,
+    edges: project.edges.filter((edge) => edge.id !== edgeId),
+  };
+}
+
 /** Clone a block offset on the canvas; does not copy edges or job binding. */
 export function duplicateBlock(
   project: CanvasProject,
