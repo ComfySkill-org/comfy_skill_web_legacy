@@ -85,6 +85,8 @@ export default function StudioPage() {
   const viewModeRef = useRef<StudioViewMode>("workflow");
   const selectedIdRef = useRef<string | null>(null);
   const selectedEdgeIdRef = useRef<string | null>(null);
+  const inspectIdRef = useRef<string | null>(null);
+  const inspectMediaCountRef = useRef(0);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -255,6 +257,26 @@ export default function StudioPage() {
         setHelpOpen(false);
         return;
       }
+      if (
+        inspectIdRef.current &&
+        !isTypingTarget(e.target) &&
+        (e.key === "ArrowLeft" || e.key === "ArrowRight")
+      ) {
+        e.preventDefault();
+        const count = inspectMediaCountRef.current;
+        if (count > 1) {
+          setInspectMediaIndex((index) =>
+            e.key === "ArrowLeft"
+              ? index === 0
+                ? count - 1
+                : index - 1
+              : index === count - 1
+                ? 0
+                : index + 1,
+          );
+        }
+        return;
+      }
       if (e.key === "?" && !isTypingTarget(e.target)) {
         e.preventDefault();
         setHelpOpen((open) => !open);
@@ -374,6 +396,8 @@ export default function StudioPage() {
     () => project.blocks.find((b) => b.id === inspectId) ?? null,
     [project.blocks, inspectId],
   );
+  inspectIdRef.current = inspectId;
+  inspectMediaCountRef.current = inspectBlock?.mediaUrls.length ?? 0;
 
   const inspectSummary = useMemo(
     () => (inspectBlock ? blockResultSummary(inspectBlock) : null),
@@ -1496,7 +1520,9 @@ export default function StudioPage() {
               <dt className="font-medium text-slate-300">Mouse wheel</dt>
               <dd className="text-slate-500">Zoom toward the pointer</dd>
               <dt className="font-medium text-slate-300">Arrow keys</dt>
-              <dd className="text-slate-500">Nudge the selected block; Shift moves farther</dd>
+              <dd className="text-slate-500">
+                Nudge a block; in result detail, browse retained outputs
+              </dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
               <dd className="text-slate-500">Duplicate the selected block</dd>
               <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
