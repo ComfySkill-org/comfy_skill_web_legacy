@@ -48,6 +48,17 @@ const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
   budget: 8,
 };
 
+const BLOCK_STATUS_META: Record<
+  CanvasBlockStatus,
+  { label: string; className: string }
+> = {
+  idle: { label: "Draft", className: "bg-slate-700/70 text-slate-300" },
+  pending: { label: "Queued", className: "bg-amber-500/15 text-amber-300" },
+  running: { label: "Generating", className: "bg-sky-500/15 text-sky-300" },
+  completed: { label: "Ready", className: "bg-emerald-500/15 text-emerald-300" },
+  failed: { label: "Failed", className: "bg-rose-500/15 text-rose-300" },
+};
+
 /**
  * Studio shell — Phase 1 canvas MVP (PRD-legacy).
  * Center: flow + results. Right: params when a block is selected.
@@ -873,8 +884,12 @@ export default function StudioPage() {
                           </p>
                         )}
                       </div>
-                      <div className="border-t border-slate-800 px-3 py-2 text-[10px] text-slate-500">
-                        {block.status}
+                      <div className="border-t border-slate-800 px-3 py-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${BLOCK_STATUS_META[block.status].className}`}
+                        >
+                          {BLOCK_STATUS_META[block.status].label}
+                        </span>
                       </div>
                     </button>
                   );
@@ -1024,9 +1039,16 @@ export default function StudioPage() {
               >
                 <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
                   <span className="text-xs font-medium">{block.title}</span>
-                  <span className="text-[10px] uppercase tracking-wide text-slate-500">
-                    {block.type} · {block.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-slate-500">
+                      {block.type}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${BLOCK_STATUS_META[block.status].className}`}
+                    >
+                      {BLOCK_STATUS_META[block.status].label}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex h-[calc(100%-36px)] items-center justify-center px-3">
                   {block.type === "text" ? (
