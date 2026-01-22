@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { apiClient } from "@/lib/api";
+import { apiClient, clearAuth } from "@/lib/api";
 import {
   addEdgeBetween,
   applySkillTemplate,
@@ -755,6 +755,25 @@ export default function StudioPage() {
           <Link href="/app" className="text-xs text-slate-400 hover:text-white">
             Quick form
           </Link>
+          {hydrated &&
+            (isStudioAuthed() ? (
+              <button
+                type="button"
+                className="text-xs text-slate-400 hover:text-white"
+                onClick={() => {
+                  void clearAuth().then(() => {
+                    setBalanceCredits(null);
+                    window.location.href = "/";
+                  });
+                }}
+              >
+                Log out
+              </button>
+            ) : (
+              <Link href="/login" className="text-xs text-slate-400 hover:text-white">
+                Log in
+              </Link>
+            ))}
         </div>
       </header>
 
