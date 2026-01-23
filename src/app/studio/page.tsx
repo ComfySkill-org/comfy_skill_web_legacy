@@ -62,6 +62,7 @@ export default function StudioPage() {
   const [generateError, setGenerateError] = useState("");
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
+  const [promptCopied, setPromptCopied] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
@@ -381,6 +382,7 @@ export default function StudioPage() {
 
   useEffect(() => {
     setInspectMediaIndex(0);
+    setPromptCopied(false);
   }, [inspectId]);
 
   const inspectMedia = inspectBlock?.mediaUrls[inspectMediaIndex] ?? null;
@@ -1539,6 +1541,20 @@ export default function StudioPage() {
               <p className="mt-4 text-xs leading-relaxed text-slate-300">
                 {inspectSummary.prompt || "No prompt"}
               </p>
+              {inspectSummary.prompt && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(inspectSummary.prompt)
+                      .then(() => setPromptCopied(true))
+                      .catch(() => setPromptCopied(false));
+                  }}
+                  className="mt-3 self-start rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-400 hover:border-slate-500 hover:text-white"
+                >
+                  {promptCopied ? "Prompt copied" : "Copy prompt"}
+                </button>
+              )}
               {inspectSummary.mediaCount > 1 && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between">
