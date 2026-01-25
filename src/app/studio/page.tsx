@@ -75,6 +75,7 @@ export default function StudioPage() {
   const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
   const [promptCopied, setPromptCopied] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
@@ -266,6 +267,7 @@ export default function StudioPage() {
         setLinkSourceId(null);
         setInspectId(null);
         setHelpOpen(false);
+        setResetConfirmOpen(false);
         return;
       }
       if (
@@ -502,6 +504,7 @@ export default function StudioPage() {
   }
 
   function resetProject() {
+    setResetConfirmOpen(false);
     clearProjectLocal();
     setRemoteProjectId(null);
     historyRef.current = new ProjectHistory();
@@ -1305,11 +1308,11 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                resetProject();
+                setResetConfirmOpen(true);
               }}
               className="rounded-full px-3 py-1 text-xs text-slate-400 hover:text-white"
             >
-              Reset
+              New project
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
               {Math.round(project.viewport.zoom * 100)}% · Arrows nudge · Wheel zoom ·{" "}
@@ -1509,6 +1512,45 @@ export default function StudioPage() {
           </div>
         </aside>
       </div>
+
+      {resetConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setResetConfirmOpen(false)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="reset-project-title"
+            className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="reset-project-title" className="text-sm font-semibold">
+              Start a new project?
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              This replaces the current local canvas with a fresh starter project. Existing cloud
+              projects remain available through the API.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setResetConfirmOpen(false)}
+                className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={resetProject}
+                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-500"
+              >
+                Start new project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {helpOpen && (
         <div
