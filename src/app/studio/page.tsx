@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { apiClient, clearAuth } from "@/lib/api";
+import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
 import {
   addEdgeBetween,
+  apiProjectToCanvas,
   applySkillTemplate,
   blockResultSummary,
   clearProjectLocal,
@@ -76,6 +77,10 @@ export default function StudioPage() {
   const [promptCopied, setPromptCopied] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [projectSummaries, setProjectSummaries] = useState<ProjectSummary[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState("");
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
@@ -99,6 +104,7 @@ export default function StudioPage() {
   const selectedEdgeIdRef = useRef<string | null>(null);
   const inspectIdRef = useRef<string | null>(null);
   const inspectMediaCountRef = useRef(0);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -165,7 +171,11 @@ export default function StudioPage() {
         .then(() => setSyncLabel("cloud"))
         .catch(() => setSyncLabel("local*"));
     }, 800);
-    return () => clearTimeout(timer);
+    autosaveTimerRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
+    };
   }, [project, hydrated]);
 
   useEffect(() => {
@@ -268,6 +278,7 @@ export default function StudioPage() {
         setInspectId(null);
         setHelpOpen(false);
         setResetConfirmOpen(false);
+        setProjectsOpen(false);
         return;
       }
       if (
@@ -524,6 +535,47 @@ export default function StudioPage() {
         .catch(() => setSyncLabel("local"));
     } else {
       setSyncLabel("local");
+    }
+  }
+
+  async function openProjects() {
+    setProjectsOpen(true);
+    setProjectsLoading(true);
+    setProjectsError("");
+    try {
+      setProjectSummaries(await apiClient.listProjects());
+    } catch (error) {
+      setProjectsError(error instanceof Error ? error.message : "Could not load projects.");
+    } finally {
+      setProjectsLoading(false);
+    }
+  }
+
+  async function switchProject(projectId: string) {
+    setProjectsLoading(true);
+    setProjectsError("");
+    try {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      await pushRemoteProject(projectRef.current);
+      const remote = await apiClient.getProject(projectId);
+      const next = apiProjectToCanvas(remote);
+      setRemoteProjectId(remote.id);
+      historyRef.current = new ProjectHistory();
+      setProject(next);
+      setSelectedId(null);
+      setSelectedEdgeId(null);
+      setLinkSourceId(null);
+      setInspectId(null);
+      setSyncLabel("cloud");
+      setHistoryTick((tick) => tick + 1);
+      setProjectsOpen(false);
+    } catch (error) {
+      setProjectsError(error instanceof Error ? error.message : "Could not switch projects.");
+    } finally {
+      setProjectsLoading(false);
     }
   }
 
@@ -784,6 +836,15 @@ export default function StudioPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {hydrated && isStudioAuthed() && (
+            <button
+              type="button"
+              onClick={() => void openProjects()}
+              className="text-xs text-slate-400 hover:text-white"
+            >
+              Projects
+            </button>
+          )}
           {balanceCredits !== null && (
             <Link
               href="/settings/billing"
@@ -1512,6 +1573,72 @@ export default function StudioPage() {
           </div>
         </aside>
       </div>
+
+      {projectsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setProjectsOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold">Cloud projects</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Your current canvas is saved before switching.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProjectsOpen(false)}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-3">
+              {projectsLoading ? (
+                <p className="px-2 py-6 text-center text-sm text-slate-500">
+                  Loading projects…
+                </p>
+              ) : projectsError ? (
+                <p className="px-2 py-6 text-center text-sm text-rose-400">{projectsError}</p>
+              ) : projectSummaries.length === 0 ? (
+                <p className="px-2 py-6 text-center text-sm text-slate-500">
+                  No cloud projects yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {projectSummaries.map((summary) => (
+                    <button
+                      key={summary.id}
+                      type="button"
+                      onClick={() => void switchProject(summary.id)}
+                      className="flex w-full items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-3 text-left hover:border-sky-500/60"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-200">
+                          {summary.title}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          {summary.updated_at
+                            ? new Date(summary.updated_at).toLocaleString()
+                            : "Not saved yet"}
+                        </p>
+                      </div>
+                      <span className="ml-4 shrink-0 rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-400">
+                        {summary.block_count} blocks
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {resetConfirmOpen && (
         <div
