@@ -36,6 +36,7 @@ import {
   type StudioViewMode,
 } from "@/lib/canvas";
 import {
+  getRemoteProjectId,
   isStudioAuthed,
   loadOrCreateRemoteProject,
   pushRemoteProject,
@@ -439,6 +440,7 @@ export default function StudioPage() {
     if (!query) return assets;
     return assets.filter((asset) => asset.prompt.toLocaleLowerCase().includes(query));
   }, [assetQuery, assets]);
+  const activeRemoteProjectId = hydrated ? getRemoteProjectId() : null;
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
   viewModeRef.current = viewMode;
@@ -543,7 +545,14 @@ export default function StudioPage() {
     setProjectsLoading(true);
     setProjectsError("");
     try {
-      setProjectSummaries(await apiClient.listProjects());
+      const projects = await apiClient.listProjects();
+      setProjectSummaries(
+        [...projects].sort(
+          (a, b) =>
+            (b.updated_at ? Date.parse(b.updated_at) : 0) -
+            (a.updated_at ? Date.parse(a.updated_at) : 0),
+        ),
+      );
     } catch (error) {
       setProjectsError(error instanceof Error ? error.message : "Could not load projects.");
     } finally {
@@ -1615,8 +1624,13 @@ export default function StudioPage() {
                     <button
                       key={summary.id}
                       type="button"
+                      disabled={summary.id === activeRemoteProjectId}
                       onClick={() => void switchProject(summary.id)}
-                      className="flex w-full items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-3 text-left hover:border-sky-500/60"
+                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${
+                        summary.id === activeRemoteProjectId
+                          ? "cursor-default border-sky-500/50 bg-sky-500/5"
+                          : "border-slate-800 bg-slate-950/60 hover:border-sky-500/60"
+                      }`}
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-200">
@@ -1628,9 +1642,16 @@ export default function StudioPage() {
                             : "Not saved yet"}
                         </p>
                       </div>
-                      <span className="ml-4 shrink-0 rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-400">
-                        {summary.block_count} blocks
-                      </span>
+                      <div className="ml-4 flex shrink-0 items-center gap-2">
+                        {summary.id === activeRemoteProjectId && (
+                          <span className="rounded-full bg-sky-500/15 px-2 py-1 text-[10px] text-sky-300">
+                            Current
+                          </span>
+                        )}
+                        <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-400">
+                          {summary.block_count} blocks
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
