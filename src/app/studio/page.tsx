@@ -804,6 +804,30 @@ export default function StudioPage() {
               transform: `translate(${project.viewport.x}px, ${project.viewport.y}px) scale(${project.viewport.zoom})`,
             }}
           >
+            <defs>
+              <marker
+                id="studio-edge-arrow"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(148,163,184,0.75)" />
+              </marker>
+              <marker
+                id="studio-edge-arrow-selected"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(56,189,248,0.95)" />
+              </marker>
+            </defs>
             {project.edges.map((edge) => {
               const src = project.blocks.find((b) => b.id === edge.sourceBlockId);
               const tgt = project.blocks.find((b) => b.id === edge.targetBlockId);
@@ -812,24 +836,34 @@ export default function StudioPage() {
               const y1 = src.y + src.height / 2;
               const x2 = tgt.x;
               const y2 = tgt.y + tgt.height / 2;
+              const path = `M ${x1} ${y1} C ${x1 + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`;
+              const selected = edge.id === selectedEdgeId;
               return (
-                <path
-                  key={edge.id}
-                  d={`M ${x1} ${y1} C ${x1 + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`}
-                  stroke={
-                    edge.id === selectedEdgeId
-                      ? "rgba(56,189,248,0.95)"
-                      : "rgba(148,163,184,0.55)"
-                  }
-                  strokeWidth={edge.id === selectedEdgeId ? 3 : 1.5}
-                  fill="none"
-                  className="pointer-events-auto cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedId(null);
-                    setSelectedEdgeId(edge.id);
-                  }}
-                />
+                <g key={edge.id}>
+                  <path
+                    d={path}
+                    stroke="transparent"
+                    strokeWidth={12}
+                    fill="none"
+                    className="pointer-events-auto cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedId(null);
+                      setSelectedEdgeId(edge.id);
+                    }}
+                  />
+                  <path
+                    d={path}
+                    stroke={selected ? "rgba(56,189,248,0.95)" : "rgba(148,163,184,0.55)"}
+                    strokeWidth={selected ? 3 : 1.5}
+                    fill="none"
+                    markerEnd={
+                      selected
+                        ? "url(#studio-edge-arrow-selected)"
+                        : "url(#studio-edge-arrow)"
+                    }
+                  />
+                </g>
               );
             })}
           </svg>
