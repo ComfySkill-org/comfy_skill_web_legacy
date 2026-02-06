@@ -82,6 +82,8 @@ export default function StudioPage() {
   const [projectSummaries, setProjectSummaries] = useState<ProjectSummary[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState("");
+  const [projectPendingDelete, setProjectPendingDelete] = useState<ProjectSummary | null>(null);
+  const [projectDeleteLoading, setProjectDeleteLoading] = useState(false);
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
@@ -280,6 +282,7 @@ export default function StudioPage() {
         setHelpOpen(false);
         setResetConfirmOpen(false);
         setProjectsOpen(false);
+        setProjectPendingDelete(null);
         return;
       }
       if (
@@ -585,6 +588,24 @@ export default function StudioPage() {
       setProjectsError(error instanceof Error ? error.message : "Could not switch projects.");
     } finally {
       setProjectsLoading(false);
+    }
+  }
+
+  async function deleteCloudProject() {
+    if (!projectPendingDelete || projectPendingDelete.id === activeRemoteProjectId) return;
+    setProjectDeleteLoading(true);
+    setProjectsError("");
+    try {
+      await apiClient.deleteProject(projectPendingDelete.id);
+      setProjectSummaries((projects) =>
+        projects.filter((project) => project.id !== projectPendingDelete.id),
+      );
+      setProjectPendingDelete(null);
+    } catch (error) {
+      setProjectPendingDelete(null);
+      setProjectsError(error instanceof Error ? error.message : "Could not delete project.");
+    } finally {
+      setProjectDeleteLoading(false);
     }
   }
 
@@ -1621,41 +1642,96 @@ export default function StudioPage() {
               ) : (
                 <div className="space-y-2">
                   {projectSummaries.map((summary) => (
-                    <button
+                    <div
                       key={summary.id}
-                      type="button"
-                      disabled={summary.id === activeRemoteProjectId}
-                      onClick={() => void switchProject(summary.id)}
-                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${
+                      className={`flex items-stretch overflow-hidden rounded-lg border ${
                         summary.id === activeRemoteProjectId
                           ? "cursor-default border-sky-500/50 bg-sky-500/5"
                           : "border-slate-800 bg-slate-950/60 hover:border-sky-500/60"
                       }`}
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-slate-200">
-                          {summary.title}
-                        </p>
-                        <p className="mt-1 text-[11px] text-slate-500">
-                          {summary.updated_at
-                            ? new Date(summary.updated_at).toLocaleString()
-                            : "Not saved yet"}
-                        </p>
-                      </div>
-                      <div className="ml-4 flex shrink-0 items-center gap-2">
-                        {summary.id === activeRemoteProjectId && (
-                          <span className="rounded-full bg-sky-500/15 px-2 py-1 text-[10px] text-sky-300">
-                            Current
+                      <button
+                        type="button"
+                        disabled={summary.id === activeRemoteProjectId}
+                        onClick={() => void switchProject(summary.id)}
+                        className="flex min-w-0 flex-1 items-center justify-between px-3 py-3 text-left"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-200">
+                            {summary.title}
+                          </p>
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            {summary.updated_at
+                              ? new Date(summary.updated_at).toLocaleString()
+                              : "Not saved yet"}
+                          </p>
+                        </div>
+                        <div className="ml-4 flex shrink-0 items-center gap-2">
+                          {summary.id === activeRemoteProjectId && (
+                            <span className="rounded-full bg-sky-500/15 px-2 py-1 text-[10px] text-sky-300">
+                              Current
+                            </span>
+                          )}
+                          <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-400">
+                            {summary.block_count} blocks
                           </span>
-                        )}
-                        <span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-400">
-                          {summary.block_count} blocks
-                        </span>
-                      </div>
-                    </button>
+                        </div>
+                      </button>
+                      {summary.id !== activeRemoteProjectId && (
+                        <button
+                          type="button"
+                          onClick={() => setProjectPendingDelete(summary)}
+                          className="border-l border-slate-800 px-3 text-xs text-slate-500 hover:bg-rose-500/10 hover:text-rose-300"
+                          aria-label={`Delete ${summary.title}`}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {projectPendingDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-6"
+          onClick={() => setProjectPendingDelete(null)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-project-title"
+            className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="delete-project-title" className="text-sm font-semibold">
+              Delete “{projectPendingDelete.title}”?
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              This permanently removes the cloud project and its saved canvas layout. Generated
+              jobs and assets are not deleted.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={projectDeleteLoading}
+                onClick={() => setProjectPendingDelete(null)}
+                className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-slate-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={projectDeleteLoading}
+                onClick={() => void deleteCloudProject()}
+                className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-500 disabled:opacity-50"
+              >
+                {projectDeleteLoading ? "Deleting…" : "Delete project"}
+              </button>
             </div>
           </div>
         </div>
