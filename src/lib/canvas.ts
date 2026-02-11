@@ -306,6 +306,29 @@ export function setViewportZoom(project: CanvasProject, zoom: number): CanvasPro
   };
 }
 
+/** Pan the infinite canvas in screen pixels (PRD-legacy Phase 1 — 拖拽 / 平移). */
+export function panViewport(
+  project: CanvasProject,
+  deltaX: number,
+  deltaY: number,
+): CanvasProject {
+  return {
+    ...project,
+    viewport: {
+      ...project.viewport,
+      x: project.viewport.x + deltaX,
+      y: project.viewport.y + deltaY,
+    },
+  };
+}
+
+export function resetViewportPan(project: CanvasProject): CanvasProject {
+  return {
+    ...project,
+    viewport: { ...project.viewport, x: 0, y: 0 },
+  };
+}
+
 /** Read-only summary for the result inspect overlay (PRD-legacy C12). */
 export function blockResultSummary(block: CanvasBlock): {
   title: string;

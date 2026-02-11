@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { apiClient } from "@/lib/api";
 import {
   addEdgeBetween,
@@ -17,6 +17,7 @@ import {
   moveBlock,
   ProjectHistory,
   removeBlock,
+  resetViewportPan,
   saveProjectLocal,
   setViewMode,
   setViewportZoom,
@@ -64,6 +65,15 @@ export default function StudioPage() {
     origX: number;
     origY: number;
   } | null>(null);
+  const panRef = useRef<{
+    startClientX: number;
+    startClientY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
+  const spaceHeldRef = useRef(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [panning, setPanning] = useState(false);
   const zoomRef = useRef(project.viewport.zoom);
   zoomRef.current = project.viewport.zoom;
 
@@ -119,6 +129,20 @@ export default function StudioPage() {
 
   useEffect(() => {
     function onPointerMove(e: PointerEvent) {
+      const pan = panRef.current;
+      if (pan) {
+        const dx = e.clientX - pan.startClientX;
+        const dy = e.clientY - pan.startClientY;
+        setProject((prev) => ({
+          ...prev,
+          viewport: {
+            ...prev.viewport,
+            x: pan.origX + dx,
+            y: pan.origY + dy,
+          },
+        }));
+        return;
+      }
       const drag = dragRef.current;
       if (!drag) return;
       const z = zoomRef.current || 1;
@@ -128,6 +152,10 @@ export default function StudioPage() {
     }
     function onPointerUp() {
       dragRef.current = null;
+      if (panRef.current) {
+        panRef.current = null;
+        setPanning(false);
+      }
     }
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -139,6 +167,15 @@ export default function StudioPage() {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (e.code === "Space" && !e.repeat) {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        spaceHeldRef.current = true;
+        setSpaceHeld(true);
+      }
       const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
       if (e.key === "z" && !e.shiftKey) {
@@ -155,8 +192,18 @@ export default function StudioPage() {
         setHistoryTick((n) => n + 1);
       }
     }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code === "Space") {
+        spaceHeldRef.current = false;
+        setSpaceHeld(false);
+      }
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
   }, []);
 
   const selected = useMemo(
@@ -315,6 +362,17 @@ export default function StudioPage() {
     commitChange((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
   }
 
+  function startCanvasPan(e: ReactPointerEvent, vp: { x: number; y: number }) {
+    e.preventDefault();
+    panRef.current = {
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      origX: vp.x,
+      origY: vp.y,
+    };
+    setPanning(true);
+  }
+
   async function openAssets() {
     setAssetsOpen(true);
     setAssetsLoading(true);
@@ -445,13 +503,26 @@ export default function StudioPage() {
       <div className="flex min-h-0 flex-1">
         {/* Canvas — flow + results */}
         <main
-          className="relative min-w-0 flex-1 overflow-hidden"
+          className={`relative min-w-0 flex-1 overflow-hidden ${
+            panning ? "cursor-grabbing" : spaceHeld ? "cursor-grab" : "cursor-default"
+          }`}
           style={{
             backgroundImage:
               "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
             backgroundSize: "24px 24px",
+            backgroundPosition: `${project.viewport.x}px ${project.viewport.y}px`,
           }}
           onClick={() => setSelectedId(null)}
+          onPointerDown={(e) => {
+            if (viewMode !== "workflow") return;
+            if (e.button === 1 || (e.button === 0 && spaceHeldRef.current)) {
+              startCanvasPan(e, project.viewport);
+            }
+          }}
+          onAuxClick={(e) => {
+            // Prevent middle-click default (autoscroll) when panning
+            if (e.button === 1) e.preventDefault();
+          }}
         >
           {viewMode === "storyboard" ? (
             <div
@@ -507,7 +578,9 @@ export default function StudioPage() {
             <>
           <svg
             className="pointer-events-none absolute inset-0 h-full w-full origin-top-left"
-            style={{ transform: `scale(${project.viewport.zoom})` }}
+            style={{
+              transform: `translate(${project.viewport.x}px, ${project.viewport.y}px) scale(${project.viewport.zoom})`,
+            }}
           >
             {project.edges.map((edge) => {
               const src = project.blocks.find((b) => b.id === edge.sourceBlockId);
@@ -531,7 +604,20 @@ export default function StudioPage() {
 
           <div
             className="absolute inset-0 origin-top-left"
-            style={{ transform: `scale(${project.viewport.zoom})` }}
+            style={{
+              transform: `translate(${project.viewport.x}px, ${project.viewport.y}px) scale(${project.viewport.zoom})`,
+            }}
+            onPointerDown={(e) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.button !== 0 && e.button !== 1) return;
+              if (e.button === 0 && spaceHeldRef.current) {
+                startCanvasPan(e, projectRef.current.viewport);
+                return;
+              }
+              if (e.button === 0) {
+                startCanvasPan(e, projectRef.current.viewport);
+              }
+            }}
           >
           {project.blocks.map((block) => {
             const active = block.id === selectedId;
@@ -562,6 +648,10 @@ export default function StudioPage() {
                 }}
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
+                  if (spaceHeldRef.current) {
+                    startCanvasPan(e, projectRef.current.viewport);
+                    return;
+                  }
                   e.stopPropagation();
                   selectBlock(block.id);
                   historyRef.current.record(projectRef.current);
@@ -761,6 +851,17 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                commitChange((prev) => resetViewportPan(prev));
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Reset pan"
+            >
+              Pan
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
                 resetProject();
               }}
               className="rounded-full px-3 py-1 text-xs text-slate-400 hover:text-white"
@@ -768,7 +869,7 @@ export default function StudioPage() {
               Reset
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}% · {syncLabel}
+              {Math.round(project.viewport.zoom * 100)}% · Space+drag pan · {syncLabel}
             </span>
           </div>
             </>
