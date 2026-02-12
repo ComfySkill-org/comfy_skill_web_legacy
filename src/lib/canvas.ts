@@ -306,6 +306,31 @@ export function setViewportZoom(project: CanvasProject, zoom: number): CanvasPro
   };
 }
 
+/**
+ * Zoom toward a point in canvas container coordinates so the world point
+ * under the cursor stays fixed (PRD-legacy Phase 1 — 缩放).
+ */
+export function zoomViewportAt(
+  project: CanvasProject,
+  nextZoom: number,
+  anchorScreenX: number,
+  anchorScreenY: number,
+): CanvasProject {
+  const z0 = project.viewport.zoom || 1;
+  const z1 = Math.min(2, Math.max(0.35, Math.round(nextZoom * 100) / 100));
+  if (z1 === z0) return project;
+  const worldX = (anchorScreenX - project.viewport.x) / z0;
+  const worldY = (anchorScreenY - project.viewport.y) / z0;
+  return {
+    ...project,
+    viewport: {
+      x: anchorScreenX - worldX * z1,
+      y: anchorScreenY - worldY * z1,
+      zoom: z1,
+    },
+  };
+}
+
 /** Pan the infinite canvas in screen pixels (PRD-legacy Phase 1 — 拖拽 / 平移). */
 export function panViewport(
   project: CanvasProject,

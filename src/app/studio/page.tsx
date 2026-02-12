@@ -21,6 +21,7 @@ import {
   saveProjectLocal,
   setViewMode,
   setViewportZoom,
+  zoomViewportAt,
   storyboardOrderedBlocks,
   SKILL_TEMPLATES,
   type CanvasBlock,
@@ -58,6 +59,8 @@ export default function StudioPage() {
   const historyRef = useRef(new ProjectHistory());
   const projectRef = useRef(project);
   projectRef.current = project;
+  const canvasMainRef = useRef<HTMLElement | null>(null);
+  const viewModeRef = useRef<StudioViewMode>("workflow");
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -166,6 +169,24 @@ export default function StudioPage() {
   }, []);
 
   useEffect(() => {
+    const el = canvasMainRef.current;
+    if (!el) return;
+    function onWheel(e: WheelEvent) {
+      if (viewModeRef.current !== "workflow") return;
+      e.preventDefault();
+      const rect = el!.getBoundingClientRect();
+      const ax = e.clientX - rect.left;
+      const ay = e.clientY - rect.top;
+      const factor = e.deltaY > 0 ? 0.92 : 1.08;
+      setProject((prev) =>
+        zoomViewportAt(prev, prev.viewport.zoom * factor, ax, ay),
+      );
+    }
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.code === "Space" && !e.repeat) {
         const t = e.target as HTMLElement | null;
@@ -222,6 +243,7 @@ export default function StudioPage() {
   );
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
+  viewModeRef.current = viewMode;
   const storyboardBlocks = useMemo(
     () => storyboardOrderedBlocks(project),
     [project],
@@ -503,6 +525,7 @@ export default function StudioPage() {
       <div className="flex min-h-0 flex-1">
         {/* Canvas — flow + results */}
         <main
+          ref={canvasMainRef}
           className={`relative min-w-0 flex-1 overflow-hidden ${
             panning ? "cursor-grabbing" : spaceHeld ? "cursor-grab" : "cursor-default"
           }`}
@@ -869,7 +892,8 @@ export default function StudioPage() {
               Reset
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}% · Space+drag pan · {syncLabel}
+              {Math.round(project.viewport.zoom * 100)}% · Wheel zoom · Space+drag pan ·{" "}
+              {syncLabel}
             </span>
           </div>
             </>
