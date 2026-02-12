@@ -16,6 +16,7 @@ import {
   insertAssetBlock,
   loadProjectLocal,
   moveBlock,
+  nudgeBlock,
   ProjectHistory,
   removeBlock,
   resetViewportPan,
@@ -222,6 +223,26 @@ export default function StudioPage() {
           setHistoryTick((n) => n + 1);
           setSelectedId(null);
           setLinkSourceId(null);
+          return;
+        }
+        const arrow =
+          e.key === "ArrowLeft" ||
+          e.key === "ArrowRight" ||
+          e.key === "ArrowUp" ||
+          e.key === "ArrowDown";
+        if (arrow && selectedIdRef.current) {
+          e.preventDefault();
+          const step = e.shiftKey ? 20 : 4;
+          const dx =
+            e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+          const dy =
+            e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+          if (!e.repeat) {
+            historyRef.current.record(projectRef.current);
+            setHistoryTick((n) => n + 1);
+          }
+          const id = selectedIdRef.current;
+          setProject((prev) => nudgeBlock(prev, id, dx, dy));
           return;
         }
       }
@@ -982,7 +1003,7 @@ export default function StudioPage() {
               Reset
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}% · Wheel zoom · Space+drag pan ·{" "}
+              {Math.round(project.viewport.zoom * 100)}% · Arrows nudge · Wheel zoom ·{" "}
               {syncLabel}
             </span>
           </div>

@@ -189,6 +189,18 @@ export function moveBlock(
   };
 }
 
+/** Nudge a block by delta in canvas units (PRD-legacy Phase 1 keyboard layout). */
+export function nudgeBlock(
+  project: CanvasProject,
+  blockId: string,
+  dx: number,
+  dy: number,
+): CanvasProject {
+  const block = project.blocks.find((b) => b.id === blockId);
+  if (!block) return project;
+  return moveBlock(project, blockId, block.x + dx, block.y + dy);
+}
+
 /** Add a flow edge if both blocks exist and the pair is not already linked. */
 export function addEdgeBetween(
   project: CanvasProject,
