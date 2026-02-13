@@ -298,6 +298,41 @@ export function removeBlock(project: CanvasProject, blockId: string): CanvasProj
   };
 }
 
+/** Drop all edges connected to a block (PRD-legacy Phase 1 — 轻量连线). */
+export function unlinkBlock(project: CanvasProject, blockId: string): CanvasProject {
+  return {
+    ...project,
+    edges: project.edges.filter(
+      (e) => e.sourceBlockId !== blockId && e.targetBlockId !== blockId,
+    ),
+  };
+}
+
+/** Clone a block offset on the canvas; does not copy edges or job binding. */
+export function duplicateBlock(
+  project: CanvasProject,
+  blockId: string,
+): { project: CanvasProject; blockId: string | null } {
+  const src = project.blocks.find((b) => b.id === blockId);
+  if (!src) return { project, blockId: null };
+  const copy: CanvasBlock = {
+    ...src,
+    id: crypto.randomUUID(),
+    x: src.x + 36,
+    y: src.y + 36,
+    title: `${src.title} copy`,
+    jobId: null,
+    status: src.mediaUrls.length ? "completed" : "idle",
+    mediaUrls: [...src.mediaUrls],
+    bodyText: src.bodyText,
+    params: { ...src.params },
+  };
+  return {
+    project: { ...project, blocks: [...project.blocks, copy] },
+    blockId: copy.id,
+  };
+}
+
 export function setViewportZoom(project: CanvasProject, zoom: number): CanvasProject {
   const clamped = Math.min(2, Math.max(0.35, Math.round(zoom * 100) / 100));
   return {

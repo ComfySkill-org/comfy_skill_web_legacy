@@ -12,6 +12,7 @@ import {
   createStarterProject,
   createTextBlock,
   createVideoBlock,
+  duplicateBlock,
   insertAssetBlock,
   loadProjectLocal,
   moveBlock,
@@ -21,6 +22,7 @@ import {
   saveProjectLocal,
   setViewMode,
   setViewportZoom,
+  unlinkBlock,
   zoomViewportAt,
   storyboardOrderedBlocks,
   SKILL_TEMPLATES,
@@ -61,6 +63,7 @@ export default function StudioPage() {
   projectRef.current = project;
   const canvasMainRef = useRef<HTMLElement | null>(null);
   const viewModeRef = useRef<StudioViewMode>("workflow");
+  const selectedIdRef = useRef<string | null>(null);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -187,18 +190,55 @@ export default function StudioPage() {
   }, []);
 
   useEffect(() => {
+    function isTypingTarget(t: EventTarget | null): boolean {
+      if (!(t instanceof HTMLElement)) return false;
+      return (
+        t.tagName === "INPUT" ||
+        t.tagName === "TEXTAREA" ||
+        t.tagName === "SELECT" ||
+        t.isContentEditable
+      );
+    }
     function onKeyDown(e: KeyboardEvent) {
       if (e.code === "Space" && !e.repeat) {
-        const t = e.target as HTMLElement | null;
-        if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
-          return;
-        }
+        if (isTypingTarget(e.target)) return;
         e.preventDefault();
         spaceHeldRef.current = true;
         setSpaceHeld(true);
+        return;
+      }
+      if (e.key === "Escape") {
+        setSelectedId(null);
+        setLinkSourceId(null);
+        setInspectId(null);
+        return;
+      }
+      if (!isTypingTarget(e.target)) {
+        if ((e.key === "Delete" || e.key === "Backspace") && selectedIdRef.current) {
+          e.preventDefault();
+          const id = selectedIdRef.current;
+          historyRef.current.record(projectRef.current);
+          setProject((prev) => removeBlock(prev, id));
+          setHistoryTick((n) => n + 1);
+          setSelectedId(null);
+          setLinkSourceId(null);
+          return;
+        }
       }
       const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
+      if (e.key === "d" || e.key === "D") {
+        if (isTypingTarget(e.target) || !selectedIdRef.current) return;
+        e.preventDefault();
+        const id = selectedIdRef.current;
+        historyRef.current.record(projectRef.current);
+        const { project: next, blockId } = duplicateBlock(projectRef.current, id);
+        if (!blockId) return;
+        setProject(next);
+        setHistoryTick((n) => n + 1);
+        setSelectedId(blockId);
+        return;
+      }
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         const prev = historyRef.current.undo(projectRef.current);
@@ -231,6 +271,7 @@ export default function StudioPage() {
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
   );
+  selectedIdRef.current = selectedId;
 
   const inspectBlock = useMemo(
     () => project.blocks.find((b) => b.id === inspectId) ?? null,
@@ -377,6 +418,23 @@ export default function StudioPage() {
     const id = selectedId;
     commitChange((prev) => removeBlock(prev, id));
     setSelectedId(null);
+    setLinkSourceId(null);
+  }
+
+  function duplicateSelected() {
+    if (!selectedId) return;
+    let createdId = "";
+    commitChange((prev) => {
+      const { project: next, blockId } = duplicateBlock(prev, selectedId);
+      createdId = blockId ?? "";
+      return next;
+    });
+    if (createdId) setSelectedId(createdId);
+  }
+
+  function unlinkSelected() {
+    if (!selectedId) return;
+    commitChange((prev) => unlinkBlock(prev, selectedId));
     setLinkSourceId(null);
   }
 
@@ -823,8 +881,40 @@ export default function StudioPage() {
                 deleteSelected();
               }}
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-rose-600 disabled:opacity-40"
+              title="Delete (⌫)"
             >
               Delete
+            </button>
+            <button
+              type="button"
+              disabled={!selectedId}
+              onClick={(e) => {
+                e.stopPropagation();
+                duplicateSelected();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600 disabled:opacity-40"
+              title="Duplicate (⌘D)"
+            >
+              Duplicate
+            </button>
+            <button
+              type="button"
+              disabled={
+                !selectedId ||
+                !project.edges.some(
+                  (edge) =>
+                    edge.sourceBlockId === selectedId ||
+                    edge.targetBlockId === selectedId,
+                )
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                unlinkSelected();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600 disabled:opacity-40"
+              title="Remove edges on this block"
+            >
+              Unlink
             </button>
             <button
               type="button"
