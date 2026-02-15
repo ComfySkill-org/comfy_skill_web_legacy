@@ -94,6 +94,55 @@ paths:
         "402":
           description: Insufficient credits
 
+  /projects:
+    get:
+      summary: List my studio canvas projects
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Project summaries
+    post:
+      summary: Create empty studio project
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Created project
+
+  /projects/{project_id}:
+    get:
+      summary: Get project with blocks and edges
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Full project graph
+    put:
+      summary: Replace project graph (title, viewport, blocks, edges)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Updated project
+    delete:
+      summary: Delete project
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Deleted
+
   /jobs/{job_id}:
     get:
       summary: Get job status
@@ -199,6 +248,8 @@ components:
           type: string
           enum: [premium, standard, budget]
           default: standard
+        project_id: { type: string, format: uuid, nullable: true }
+        block_id: { type: string, format: uuid, nullable: true }
 
     JobResponse:
       type: object
@@ -215,6 +266,8 @@ components:
         error_message: { type: string, nullable: true }
         created_at: { type: string, format: date-time }
         completed_at: { type: string, format: date-time, nullable: true }
+        project_id: { type: string, format: uuid, nullable: true }
+        block_id: { type: string, format: uuid, nullable: true }
 
     CreateJobResponse:
       type: object

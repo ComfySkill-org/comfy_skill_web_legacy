@@ -29,6 +29,48 @@ export interface Job {
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+  project_id?: string | null;
+  block_id?: string | null;
+}
+
+export interface ProjectSummary {
+  id: string;
+  title: string;
+  view_mode: "workflow" | "storyboard";
+  updated_at: string | null;
+  block_count: number;
+}
+
+export interface ApiProjectBlock {
+  id: string;
+  type: "image" | "text" | "video";
+  title: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  body_text: string | null;
+  media_urls: string[];
+  status: string;
+  job_id: string | null;
+  params: Record<string, unknown>;
+}
+
+export interface ApiProjectEdge {
+  id: string;
+  source_block_id: string;
+  target_block_id: string;
+}
+
+export interface ApiProject {
+  id: string;
+  title: string;
+  viewport: { x: number; y: number; zoom: number };
+  view_mode: "workflow" | "storyboard";
+  blocks: ApiProjectBlock[];
+  edges: ApiProjectEdge[];
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Transaction {
@@ -72,7 +114,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const detail = body.detail;
     throw new Error(typeof detail === "string" ? detail : res.statusText);
   }
-  return res.json() as Promise<T>;
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export const apiClient = {
@@ -84,15 +129,54 @@ export const apiClient = {
 
   me: () => api<User>("/me"),
 
-  createJob: (prompt: string, quality_tier: QualityTier) =>
+  createJob: (
+    prompt: string,
+    quality_tier: QualityTier,
+    opts?: { project_id?: string; block_id?: string },
+  ) =>
     api<{ job: Job; credits_estimate: number }>("/jobs", {
       method: "POST",
-      body: JSON.stringify({ prompt, quality_tier }),
+      body: JSON.stringify({
+        prompt,
+        quality_tier,
+        project_id: opts?.project_id ?? null,
+        block_id: opts?.block_id ?? null,
+      }),
     }),
 
   getJob: (id: string) => api<Job>(`/jobs/${id}`),
 
   listJobs: () => api<{ jobs: Job[]; total: number }>("/jobs"),
+
+  listProjects: () => api<ProjectSummary[]>("/projects"),
+
+  createProject: (title: string) =>
+    api<ApiProject>("/projects", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    }),
+
+  getProject: (id: string) => api<ApiProject>(`/projects/${id}`),
+
+  putProject: (
+    id: string,
+    body: {
+      title: string;
+      viewport: { x: number; y: number; zoom: number };
+      view_mode: "workflow" | "storyboard";
+      blocks: Array<Record<string, unknown>>;
+      edges: Array<Record<string, unknown>>;
+    },
+  ) =>
+    api<ApiProject>(`/projects/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  deleteProject: (id: string) =>
+    api<void>(`/projects/${id}`, {
+      method: "DELETE",
+    }),
 
   balance: () => api<{ balance_credits: number }>("/billing/balance"),
 

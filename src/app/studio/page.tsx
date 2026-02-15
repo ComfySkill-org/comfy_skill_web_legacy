@@ -26,6 +26,13 @@ import {
   type CanvasProject,
   type StudioViewMode,
 } from "@/lib/canvas";
+import {
+  isStudioAuthed,
+  loadOrCreateRemoteProject,
+  pushRemoteProject,
+  setRemoteProjectId,
+  starterOrLocal,
+} from "@/lib/projectSync";
 
 /**
  * Studio shell — Phase 1 canvas MVP (PRD-legacy).
@@ -39,6 +46,7 @@ export default function StudioPage() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [inspectId, setInspectId] = useState<string | null>(null);
+  const [syncLabel, setSyncLabel] = useState("local");
   const [historyTick, setHistoryTick] = useState(0);
   const historyRef = useRef(new ProjectHistory());
   const projectRef = useRef(project);
@@ -60,14 +68,47 @@ export default function StudioPage() {
   }
 
   useEffect(() => {
-    const saved = loadProjectLocal();
-    if (saved) setProject(saved);
-    setHydrated(true);
+    let cancelled = false;
+    async function hydrate() {
+      const local = starterOrLocal(loadProjectLocal);
+      if (isStudioAuthed()) {
+        try {
+          const remote = await loadOrCreateRemoteProject(local);
+          if (!cancelled) {
+            setProject(remote);
+            setSyncLabel("cloud");
+          }
+        } catch {
+          if (!cancelled) {
+            setProject(local);
+            setSyncLabel("local");
+          }
+        }
+      } else if (!cancelled) {
+        setProject(local);
+        setSyncLabel("local");
+      }
+      if (!cancelled) setHydrated(true);
+    }
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     saveProjectLocal(project);
+    if (!isStudioAuthed()) {
+      setSyncLabel("local");
+      return;
+    }
+    const timer = setTimeout(() => {
+      void pushRemoteProject(project)
+        .then(() => setSyncLabel("cloud"))
+        .catch(() => setSyncLabel("local*"));
+    }, 800);
+    return () => clearTimeout(timer);
   }, [project, hydrated]);
 
   useEffect(() => {
@@ -202,6 +243,7 @@ export default function StudioPage() {
 
   function resetProject() {
     clearProjectLocal();
+    setRemoteProjectId(null);
     historyRef.current = new ProjectHistory();
     const next = createStarterProject();
     setProject(next);
@@ -209,6 +251,16 @@ export default function StudioPage() {
     setLinkSourceId(null);
     setGenerateError("");
     setHistoryTick((n) => n + 1);
+    if (isStudioAuthed()) {
+      void pushRemoteProject(next)
+        .then((saved) => {
+          setProject(saved);
+          setSyncLabel("cloud");
+        })
+        .catch(() => setSyncLabel("local"));
+    } else {
+      setSyncLabel("local");
+    }
   }
 
   function selectBlock(blockId: string) {
@@ -270,7 +322,10 @@ export default function StudioPage() {
     patchBlock(selected.id, { status: "pending" });
 
     try {
-      const { job } = await apiClient.createJob(prompt, selected.params.quality_tier);
+      const { job } = await apiClient.createJob(prompt, selected.params.quality_tier, {
+        project_id: project.id,
+        block_id: selected.id,
+      });
       patchBlock(selected.id, { jobId: job.id, status: job.status as CanvasBlockStatus });
 
       let current = job;
@@ -641,7 +696,7 @@ export default function StudioPage() {
               Reset
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}% · saved locally
+              {Math.round(project.viewport.zoom * 100)}% · {syncLabel}
             </span>
           </div>
             </>

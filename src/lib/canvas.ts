@@ -3,6 +3,8 @@
  * Blocks show results on the infinite canvas; params edit in the right panel.
  */
 
+import type { ApiProject } from "@/lib/api";
+
 export type CanvasBlockType = "image" | "text" | "video";
 
 export type CanvasBlockStatus =
@@ -378,8 +380,66 @@ export class ProjectHistory {
   }
 }
 
+export function canvasProjectToApiPut(project: CanvasProject) {
+  return {
+    title: project.title,
+    viewport: project.viewport,
+    view_mode: (project.viewMode ?? "workflow") as "workflow" | "storyboard",
+    blocks: project.blocks.map((b) => ({
+      id: b.id,
+      type: b.type,
+      title: b.title,
+      x: b.x,
+      y: b.y,
+      width: b.width,
+      height: b.height,
+      body_text: b.bodyText ?? null,
+      media_urls: b.mediaUrls,
+      status: b.status,
+      job_id: b.jobId ?? null,
+      params: b.params,
+    })),
+    edges: project.edges.map((e) => ({
+      id: e.id,
+      source_block_id: e.sourceBlockId,
+      target_block_id: e.targetBlockId,
+    })),
+  };
+}
 
-
-
+export function apiProjectToCanvas(api: ApiProject): CanvasProject {
+  return {
+    id: api.id,
+    title: api.title,
+    viewport: {
+      x: api.viewport?.x ?? 0,
+      y: api.viewport?.y ?? 0,
+      zoom: api.viewport?.zoom ?? 1,
+    },
+    viewMode: api.view_mode,
+    blocks: api.blocks.map((b) => ({
+      id: b.id,
+      type: b.type,
+      title: b.title,
+      x: b.x,
+      y: b.y,
+      width: b.width,
+      height: b.height,
+      bodyText: b.body_text ?? undefined,
+      mediaUrls: b.media_urls ?? [],
+      status: b.status as CanvasBlockStatus,
+      jobId: b.job_id,
+      params: {
+        prompt: String((b.params?.prompt as string) ?? ""),
+        quality_tier: (b.params?.quality_tier as CanvasBlockParams["quality_tier"]) ?? "standard",
+      },
+    })),
+    edges: api.edges.map((e) => ({
+      id: e.id,
+      sourceBlockId: e.source_block_id,
+      targetBlockId: e.target_block_id,
+    })),
+  };
+}
 
 
