@@ -14,6 +14,7 @@ import {
   createVideoBlock,
   loadProjectLocal,
   moveBlock,
+  ProjectHistory,
   removeBlock,
   saveProjectLocal,
   setViewMode,
@@ -38,6 +39,10 @@ export default function StudioPage() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [inspectId, setInspectId] = useState<string | null>(null);
+  const [historyTick, setHistoryTick] = useState(0);
+  const historyRef = useRef(new ProjectHistory());
+  const projectRef = useRef(project);
+  projectRef.current = project;
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -47,6 +52,12 @@ export default function StudioPage() {
   } | null>(null);
   const zoomRef = useRef(project.viewport.zoom);
   zoomRef.current = project.viewport.zoom;
+
+  function commitChange(mutate: (prev: CanvasProject) => CanvasProject) {
+    historyRef.current.record(projectRef.current);
+    setProject(mutate);
+    setHistoryTick((n) => n + 1);
+  }
 
   useEffect(() => {
     const saved = loadProjectLocal();
@@ -79,6 +90,28 @@ export default function StudioPage() {
     };
   }, []);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        const prev = historyRef.current.undo(projectRef.current);
+        if (!prev) return;
+        setProject(prev);
+        setHistoryTick((n) => n + 1);
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        const next = historyRef.current.redo(projectRef.current);
+        if (!next) return;
+        setProject(next);
+        setHistoryTick((n) => n + 1);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const selected = useMemo(
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
@@ -99,16 +132,35 @@ export default function StudioPage() {
     () => storyboardOrderedBlocks(project),
     [project],
   );
+  const canUndo = historyRef.current.canUndo;
+  const canRedo = historyRef.current.canRedo;
+  void historyTick;
+
+  function undo() {
+    const prev = historyRef.current.undo(projectRef.current);
+    if (!prev) return;
+    setProject(prev);
+    setHistoryTick((n) => n + 1);
+  }
+
+  function redo() {
+    const next = historyRef.current.redo(projectRef.current);
+    if (!next) return;
+    setProject(next);
+    setHistoryTick((n) => n + 1);
+  }
 
   function switchView(mode: StudioViewMode) {
-    setProject((prev) => setViewMode(prev, mode));
+    if ((project.viewMode ?? "workflow") === mode) return;
+    commitChange((prev) => setViewMode(prev, mode));
   }
 
   function patchBlock(
     blockId: string,
     patch: Partial<CanvasBlock> & { params?: CanvasBlock["params"] },
+    recordHistory = false,
   ) {
-    setProject((prev) => ({
+    const apply = (prev: CanvasProject) => ({
       ...prev,
       blocks: prev.blocks.map((b) =>
         b.id === blockId
@@ -119,12 +171,14 @@ export default function StudioPage() {
             }
           : b,
       ),
-    }));
+    });
+    if (recordHistory) commitChange(apply);
+    else setProject(apply);
   }
 
   function updateSelected(patch: Partial<CanvasBlock> & { params?: CanvasBlock["params"] }) {
     if (!selectedId) return;
-    patchBlock(selectedId, patch);
+    patchBlock(selectedId, patch, true);
   }
 
   function addBlock(type: "image" | "text" | "video" = "image") {
@@ -141,24 +195,27 @@ export default function StudioPage() {
         title: `Shot ${String.fromCharCode(65 + offset)}`,
       });
     }
-    setProject((prev) => ({ ...prev, blocks: [...prev.blocks, block] }));
-    setSelectedId(block.id);
+    const nextBlock = block;
+    commitChange((prev) => ({ ...prev, blocks: [...prev.blocks, nextBlock] }));
+    setSelectedId(nextBlock.id);
   }
 
   function resetProject() {
     clearProjectLocal();
+    historyRef.current = new ProjectHistory();
     const next = createStarterProject();
     setProject(next);
     setSelectedId(null);
     setLinkSourceId(null);
     setGenerateError("");
+    setHistoryTick((n) => n + 1);
   }
 
   function selectBlock(blockId: string) {
     setSelectedId(blockId);
     setLinkSourceId((prev) => {
       if (prev && prev !== blockId) {
-        setProject((p) => addEdgeBetween(p, prev, blockId));
+        commitChange((p) => addEdgeBetween(p, prev, blockId));
         return null;
       }
       return prev;
@@ -177,22 +234,27 @@ export default function StudioPage() {
   function applyTemplate(templateId: string) {
     const template = SKILL_TEMPLATES.find((t) => t.id === templateId);
     if (!template) return;
-    const { project: next, blockId } = applySkillTemplate(project, template);
-    setProject(next);
-    setSelectedId(blockId);
+    let createdId = "";
+    commitChange((prev) => {
+      const { project: next, blockId } = applySkillTemplate(prev, template);
+      createdId = blockId;
+      return next;
+    });
+    setSelectedId(createdId);
     setLinkSourceId(null);
     setGenerateError("");
   }
 
   function deleteSelected() {
     if (!selectedId) return;
-    setProject((prev) => removeBlock(prev, selectedId));
+    const id = selectedId;
+    commitChange((prev) => removeBlock(prev, id));
     setSelectedId(null);
     setLinkSourceId(null);
   }
 
   function zoomBy(delta: number) {
-    setProject((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
+    commitChange((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
   }
 
   async function generateSelected() {
@@ -397,6 +459,8 @@ export default function StudioPage() {
                   if (e.button !== 0) return;
                   e.stopPropagation();
                   selectBlock(block.id);
+                  historyRef.current.record(projectRef.current);
+                  setHistoryTick((n) => n + 1);
                   dragRef.current = {
                     id: block.id,
                     startClientX: e.clientX,
@@ -521,6 +585,30 @@ export default function StudioPage() {
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-rose-600 disabled:opacity-40"
             >
               Delete
+            </button>
+            <button
+              type="button"
+              disabled={!canUndo}
+              onClick={(e) => {
+                e.stopPropagation();
+                undo();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:opacity-40"
+              title="Undo (⌘Z)"
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              disabled={!canRedo}
+              onClick={(e) => {
+                e.stopPropagation();
+                redo();
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700 disabled:opacity-40"
+              title="Redo (⌘⇧Z)"
+            >
+              Redo
             </button>
             <button
               type="button"

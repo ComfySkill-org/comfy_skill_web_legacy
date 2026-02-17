@@ -335,6 +335,50 @@ export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
   return [...project.blocks].sort((a, b) => a.x - b.x || a.y - b.y);
 }
 
+export function cloneProject(project: CanvasProject): CanvasProject {
+  return JSON.parse(JSON.stringify(project)) as CanvasProject;
+}
+
+/** Keep a bounded undo stack of project snapshots (PRD-legacy Phase 2). */
+export class ProjectHistory {
+  private past: CanvasProject[] = [];
+  private future: CanvasProject[] = [];
+  private readonly limit: number;
+
+  constructor(limit = 40) {
+    this.limit = limit;
+  }
+
+  record(before: CanvasProject): void {
+    this.past.push(cloneProject(before));
+    if (this.past.length > this.limit) this.past.shift();
+    this.future = [];
+  }
+
+  undo(current: CanvasProject): CanvasProject | null {
+    const prev = this.past.pop();
+    if (!prev) return null;
+    this.future.push(cloneProject(current));
+    return prev;
+  }
+
+  redo(current: CanvasProject): CanvasProject | null {
+    const next = this.future.pop();
+    if (!next) return null;
+    this.past.push(cloneProject(current));
+    return next;
+  }
+
+  get canUndo(): boolean {
+    return this.past.length > 0;
+  }
+
+  get canRedo(): boolean {
+    return this.future.length > 0;
+  }
+}
+
+
 
 
 
