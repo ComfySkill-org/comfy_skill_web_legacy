@@ -66,6 +66,7 @@ export default function StudioPage() {
   const [dialoguePrompt, setDialoguePrompt] = useState("");
   const [dialogueBlockType, setDialogueBlockType] = useState<CanvasBlock["type"]>("image");
   const [syncLabel, setSyncLabel] = useState("local");
+  const [balanceCredits, setBalanceCredits] = useState<number | null>(null);
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [assets, setAssets] = useState<
     Array<{ id: string; url: string; prompt: string }>
@@ -151,6 +152,25 @@ export default function StudioPage() {
     }, 800);
     return () => clearTimeout(timer);
   }, [project, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || !isStudioAuthed()) {
+      setBalanceCredits(null);
+      return;
+    }
+    let cancelled = false;
+    void apiClient
+      .me()
+      .then((user) => {
+        if (!cancelled) setBalanceCredits(user.balance_credits);
+      })
+      .catch(() => {
+        if (!cancelled) setBalanceCredits(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated]);
 
   useEffect(() => {
     function onPointerMove(e: PointerEvent) {
@@ -640,6 +660,10 @@ export default function StudioPage() {
         block_id: selected.id,
       });
       patchBlock(selected.id, { jobId: job.id, status: job.status as CanvasBlockStatus });
+      void apiClient
+        .me()
+        .then((user) => setBalanceCredits(user.balance_credits))
+        .catch(() => undefined);
 
       let current = job;
       while (current.status !== "completed" && current.status !== "failed") {
@@ -719,9 +743,19 @@ export default function StudioPage() {
             </button>
           </div>
         </div>
-        <Link href="/app" className="text-xs text-slate-400 hover:text-white">
-          Quick form
-        </Link>
+        <div className="flex items-center gap-3">
+          {balanceCredits !== null && (
+            <Link
+              href="/settings/billing"
+              className="rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:border-sky-500/60 hover:text-white"
+            >
+              {balanceCredits.toLocaleString()} credits
+            </Link>
+          )}
+          <Link href="/app" className="text-xs text-slate-400 hover:text-white">
+            Quick form
+          </Link>
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
