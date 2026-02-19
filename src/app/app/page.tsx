@@ -19,6 +19,7 @@ const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
   { tier: "budget", label: "Budget", hint: "Fast · lower cost" },
 ];
 
+/** Legacy single-prompt form — kept for e2e; primary UX is /studio (PRD-legacy). */
 export default function AppPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -83,19 +84,32 @@ export default function AppPage() {
   }
 
   if (!user) {
-    return <div className="p-8 text-center text-skill-muted">Loading…</div>;
+    return <p className="p-8 text-center text-skill-muted">Loading…</p>;
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Text → Image</h1>
-        <span className="rounded-full bg-skill-yellow px-3 py-1 text-sm font-medium">
-          {user.balance_credits} credits
-        </span>
+    <div className="mx-auto max-w-lg px-4 py-10">
+      <div className="mb-6 rounded-2xl border border-skill-blue/30 bg-skill-yellow/40 p-4 text-sm">
+        <p className="font-semibold text-skill-ink">Studio is the main creator</p>
+        <p className="mt-1 text-skill-muted">
+          Arrange shots on the canvas, link flow, and edit params on the right.
+        </p>
+        <Link href="/studio" className="btn-primary mt-3 inline-block">
+          Open studio
+        </Link>
       </div>
 
-      <form onSubmit={onGenerate} className="card space-y-5">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Quick generate</h1>
+          <p className="text-sm text-skill-muted">Legacy single-prompt form</p>
+        </div>
+        <p className="text-sm font-medium" data-testid="credits">
+          {user.balance_credits} credits
+        </p>
+      </div>
+
+      <form onSubmit={onGenerate} className="card space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium">Describe your image</label>
           <textarea

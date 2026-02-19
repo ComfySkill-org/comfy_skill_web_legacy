@@ -72,7 +72,7 @@ export function SiteHeader() {
                 Studio
               </Link>
               <Link href="/app" className="text-skill-muted hover:text-skill-ink">
-                Create
+                Quick form
               </Link>
               {user.role === "admin" && (
                 <Link href="/admin" className="text-skill-muted hover:text-skill-ink">
@@ -142,7 +142,7 @@ export function SiteHeader() {
                         role="menuitem"
                         className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"
                       >
-                        Create
+                        Quick form
                       </Link>
                       <Link
                         href="/settings/billing"

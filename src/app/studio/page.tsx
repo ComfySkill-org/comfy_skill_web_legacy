@@ -12,6 +12,7 @@ import {
   createStarterProject,
   createTextBlock,
   createVideoBlock,
+  insertAssetBlock,
   loadProjectLocal,
   moveBlock,
   ProjectHistory,
@@ -47,6 +48,11 @@ export default function StudioPage() {
   const [generateError, setGenerateError] = useState("");
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [syncLabel, setSyncLabel] = useState("local");
+  const [assetsOpen, setAssetsOpen] = useState(false);
+  const [assets, setAssets] = useState<
+    Array<{ id: string; url: string; prompt: string }>
+  >([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
   const [historyTick, setHistoryTick] = useState(0);
   const historyRef = useRef(new ProjectHistory());
   const projectRef = useRef(project);
@@ -309,6 +315,43 @@ export default function StudioPage() {
     commitChange((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
   }
 
+  async function openAssets() {
+    setAssetsOpen(true);
+    setAssetsLoading(true);
+    try {
+      const { jobs } = await apiClient.listJobs();
+      setAssets(
+        jobs
+          .filter((j) => j.status === "completed" && j.output_url)
+          .slice(0, 24)
+          .map((j) => ({
+            id: j.id,
+            url: j.output_url as string,
+            prompt: j.prompt_text,
+          })),
+      );
+    } catch {
+      setAssets([]);
+    } finally {
+      setAssetsLoading(false);
+    }
+  }
+
+  function insertAsset(asset: { id: string; url: string; prompt: string }) {
+    let createdId = "";
+    commitChange((prev) => {
+      const { project: next, blockId } = insertAssetBlock(prev, {
+        url: asset.url,
+        prompt: asset.prompt,
+        jobId: asset.id,
+      });
+      createdId = blockId;
+      return next;
+    });
+    setSelectedId(createdId);
+    setAssetsOpen(false);
+  }
+
   async function generateSelected() {
     if (!selected) return;
     const prompt = selected.params.prompt.trim();
@@ -361,7 +404,14 @@ export default function StudioPage() {
             ComfySkill
           </Link>
           <span className="text-slate-600">/</span>
-          <span className="text-sm font-medium">{project.title}</span>
+          <input
+            className="w-40 truncate rounded border border-transparent bg-transparent px-1 text-sm font-medium hover:border-slate-700 focus:border-slate-600 focus:outline-none"
+            value={project.title}
+            onChange={(e) =>
+              commitChange((prev) => ({ ...prev, title: e.target.value }))
+            }
+            aria-label="Project title"
+          />
           <div className="flex rounded-lg border border-slate-700 p-0.5 text-xs">
             <button
               type="button"
@@ -388,7 +438,7 @@ export default function StudioPage() {
           </div>
         </div>
         <Link href="/app" className="text-xs text-slate-400 hover:text-white">
-          Legacy form
+          Quick form
         </Link>
       </header>
 
@@ -567,6 +617,18 @@ export default function StudioPage() {
                         {block.bodyText || block.params.prompt || "Video placeholder"}
                       </p>
                     </div>
+                  ) : block.mediaUrls.length > 1 ? (
+                    <div className="grid w-full grid-cols-2 gap-1">
+                      {block.mediaUrls.slice(0, 4).map((url) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={url}
+                          src={url}
+                          alt=""
+                          className="aspect-square rounded object-cover"
+                        />
+                      ))}
+                    </div>
                   ) : block.mediaUrls[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -615,6 +677,16 @@ export default function StudioPage() {
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
             >
               + Video
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void openAssets();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
+            >
+              Assets
             </button>
             <button
               type="button"
@@ -860,6 +932,55 @@ export default function StudioPage() {
               >
                 Edit in side panel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {assetsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          onClick={() => setAssetsOpen(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+              <h3 className="text-sm font-semibold">Asset library</h3>
+              <button
+                type="button"
+                className="text-xs text-slate-400 hover:text-white"
+                onClick={() => setAssetsOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              {assetsLoading ? (
+                <p className="text-sm text-slate-500">Loading completed jobs…</p>
+              ) : assets.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No completed results yet. Generate from a block first.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => insertAsset(asset)}
+                      className="overflow-hidden rounded-lg border border-slate-700 text-left hover:border-sky-500/60"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={asset.url} alt="" className="aspect-square w-full object-cover" />
+                      <p className="line-clamp-2 px-2 py-1 text-[10px] text-slate-400">
+                        {asset.prompt || "Untitled"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

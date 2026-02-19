@@ -442,4 +442,30 @@ export function apiProjectToCanvas(api: ApiProject): CanvasProject {
   };
 }
 
+/** Drop a completed job result onto the canvas as a new image block (PRD C14). */
+export function insertAssetBlock(
+  project: CanvasProject,
+  asset: { url: string; prompt?: string; jobId?: string; title?: string },
+): { project: CanvasProject; blockId: string } {
+  const offset = project.blocks.length;
+  const block = createImageBlock({
+    x: 100 + offset * 36,
+    y: 100 + offset * 28,
+    title: asset.title ?? `Asset ${offset + 1}`,
+    params: {
+      prompt: asset.prompt ?? "",
+      quality_tier: "standard",
+    },
+  });
+  block.mediaUrls = [asset.url];
+  block.status = "completed";
+  block.jobId = asset.jobId ?? null;
+  block.bodyText = asset.prompt;
+  return {
+    project: { ...project, blocks: [...project.blocks, block] },
+    blockId: block.id,
+  };
+}
+
+
 
