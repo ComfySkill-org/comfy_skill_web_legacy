@@ -183,18 +183,24 @@ export const apiClient = {
   transactions: () => api<{ transactions: Transaction[] }>("/billing/transactions"),
 
   stripeStatus: () =>
-    api<{ configured: boolean; price_configured: boolean; mode: string }>(
-      "/billing/stripe/status",
-    ),
+    api<{
+      configured: boolean;
+      price_configured: boolean;
+      price_looks_valid?: boolean;
+      mode: string;
+      plans?: Record<string, boolean>;
+    }>("/billing/stripe/status"),
 
-  createCheckout: () =>
+  createCheckout: (planId: "standard" | "creator" | "pro" = "standard") =>
     api<{ checkout_url: string }>("/billing/checkout", {
       method: "POST",
+      body: JSON.stringify({ plan_id: planId }),
     }),
 
-  createEmbeddedCheckout: () =>
+  createEmbeddedCheckout: (planId: "standard" | "creator" | "pro" = "standard") =>
     api<{ client_secret: string }>("/billing/checkout/embedded", {
       method: "POST",
+      body: JSON.stringify({ plan_id: planId }),
     }),
 
   createBillingPortal: () =>

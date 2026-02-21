@@ -28,6 +28,15 @@ export default function BillingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [embeddedClientSecret, setEmbeddedClientSecret] = useState("");
+  const [planId, setPlanId] = useState<"standard" | "creator" | "pro">("standard");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = new URLSearchParams(window.location.search).get("plan");
+    if (raw === "creator" || raw === "pro" || raw === "standard") {
+      setPlanId(raw);
+    }
+  }, []);
 
   useEffect(() => {
     async function loadBilling() {
@@ -74,7 +83,7 @@ export default function BillingPage() {
       return;
     }
     try {
-      const { client_secret } = await apiClient.createEmbeddedCheckout();
+      const { client_secret } = await apiClient.createEmbeddedCheckout(planId);
       setEmbeddedClientSecret(client_secret);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start checkout");
@@ -138,7 +147,7 @@ export default function BillingPage() {
               disabled={!stripeReady || checkoutLoading || Boolean(embeddedClientSecret)}
               onClick={() => void startCheckout()}
             >
-              {checkoutLoading ? "Starting..." : "Enter payment details"}
+              {checkoutLoading ? "Starting..." : `Subscribe (${planId})`}
             </button>
             <button
               type="button"
@@ -150,8 +159,9 @@ export default function BillingPage() {
             </button>
           </div>
           <p className="text-xs text-skill-muted">
-            Card number, name, and billing address are collected by Stripe Embedded Checkout.
-            Test checkout grants 4,200 credits after the webhook receives checkout.session.completed.
+            Plan from pricing: <span className="font-semibold capitalize">{planId}</span>
+            {" "}(Standard 4,200 / Creator 7,400 / Pro 21,100 credits after webhook).
+            Card details are collected by Stripe Embedded Checkout.
           </p>
         </div>
 
