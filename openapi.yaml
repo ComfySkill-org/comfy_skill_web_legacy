@@ -159,6 +159,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/JobResponse"
 
+  /jobs/{job_id}/events:
+    get:
+      summary: List job timeline events
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job_id, events, total]
+                properties:
+                  job_id: { type: string, format: uuid }
+                  total: { type: integer }
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, event_type, created_at]
+                      properties:
+                        id: { type: string, format: uuid }
+                        event_type: { type: string }
+                        payload: { type: object, nullable: true }
+                        created_at: { type: string, format: date-time }
+
   /billing/balance:
     get:
       summary: Credit balance

@@ -146,6 +146,18 @@ export const apiClient = {
 
   getJob: (id: string) => api<Job>(`/jobs/${id}`),
 
+  getJobEvents: (id: string) =>
+    api<{
+      job_id: string;
+      events: Array<{
+        id: string;
+        event_type: string;
+        payload: Record<string, unknown> | null;
+        created_at: string;
+      }>;
+      total: number;
+    }>(`/jobs/${id}/events`),
+
   listJobs: () => api<{ jobs: Job[]; total: number }>("/jobs"),
 
   listProjects: () => api<ProjectSummary[]>("/projects"),
