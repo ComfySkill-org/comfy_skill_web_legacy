@@ -53,6 +53,7 @@ export default function StudioPage() {
   const [generateError, setGenerateError] = useState("");
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [syncLabel, setSyncLabel] = useState("local");
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [assets, setAssets] = useState<
@@ -216,6 +217,12 @@ export default function StudioPage() {
         setSelectedId(null);
         setLinkSourceId(null);
         setInspectId(null);
+        setHelpOpen(false);
+        return;
+      }
+      if (e.key === "?" && !isTypingTarget(e.target)) {
+        e.preventDefault();
+        setHelpOpen((open) => !open);
         return;
       }
       if (!isTypingTarget(e.target)) {
@@ -1038,6 +1045,17 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                setHelpOpen(true);
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Studio help (?)"
+            >
+              Help
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
                 resetProject();
               }}
               className="rounded-full px-3 py-1 text-xs text-slate-400 hover:text-white"
@@ -1187,6 +1205,52 @@ export default function StudioPage() {
           </div>
         </aside>
       </div>
+
+      {helpOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setHelpOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">Studio controls</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Keep the canvas focused on flow and results.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-xs text-slate-400 hover:text-white"
+                onClick={() => setHelpOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-xs">
+              <dt className="font-medium text-slate-300">Drag block</dt>
+              <dd className="text-slate-500">Reposition a shot or asset</dd>
+              <dt className="font-medium text-slate-300">Space + drag</dt>
+              <dd className="text-slate-500">Pan the workflow canvas</dd>
+              <dt className="font-medium text-slate-300">Mouse wheel</dt>
+              <dd className="text-slate-500">Zoom toward the pointer</dd>
+              <dt className="font-medium text-slate-300">Arrow keys</dt>
+              <dd className="text-slate-500">Nudge the selected block; Shift moves farther</dd>
+              <dt className="font-medium text-slate-300">⌘/Ctrl + D</dt>
+              <dd className="text-slate-500">Duplicate the selected block</dd>
+              <dt className="font-medium text-slate-300">⌘/Ctrl + Z</dt>
+              <dd className="text-slate-500">Undo; add Shift to redo</dd>
+              <dt className="font-medium text-slate-300">Delete</dt>
+              <dd className="text-slate-500">Remove the selected block</dd>
+              <dt className="font-medium text-slate-300">Esc</dt>
+              <dd className="text-slate-500">Close overlays and clear selection</dd>
+            </dl>
+          </div>
+        </div>
+      )}
 
       {inspectSummary && inspectBlock && (
         <div
