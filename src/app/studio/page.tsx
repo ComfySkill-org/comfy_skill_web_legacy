@@ -16,11 +16,14 @@ import {
   moveBlock,
   removeBlock,
   saveProjectLocal,
+  setViewMode,
   setViewportZoom,
+  storyboardOrderedBlocks,
   SKILL_TEMPLATES,
   type CanvasBlock,
   type CanvasBlockStatus,
   type CanvasProject,
+  type StudioViewMode,
 } from "@/lib/canvas";
 
 /**
@@ -90,6 +93,16 @@ export default function StudioPage() {
     () => (inspectBlock ? blockResultSummary(inspectBlock) : null),
     [inspectBlock],
   );
+
+  const viewMode: StudioViewMode = project.viewMode ?? "workflow";
+  const storyboardBlocks = useMemo(
+    () => storyboardOrderedBlocks(project),
+    [project],
+  );
+
+  function switchView(mode: StudioViewMode) {
+    setProject((prev) => setViewMode(prev, mode));
+  }
 
   function patchBlock(
     blockId: string,
@@ -232,9 +245,30 @@ export default function StudioPage() {
           </Link>
           <span className="text-slate-600">/</span>
           <span className="text-sm font-medium">{project.title}</span>
-          <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
-            Workflow
-          </span>
+          <div className="flex rounded-lg border border-slate-700 p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => switchView("workflow")}
+              className={`rounded-md px-2 py-1 ${
+                viewMode === "workflow"
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Workflow
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView("storyboard")}
+              className={`rounded-md px-2 py-1 ${
+                viewMode === "storyboard"
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              Storyboard
+            </button>
+          </div>
         </div>
         <Link href="/app" className="text-xs text-slate-400 hover:text-white">
           Legacy form
@@ -252,6 +286,58 @@ export default function StudioPage() {
           }}
           onClick={() => setSelectedId(null)}
         >
+          {viewMode === "storyboard" ? (
+            <div
+              className="flex h-full gap-4 overflow-x-auto px-6 py-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {storyboardBlocks.length === 0 ? (
+                <p className="text-sm text-slate-500">Add blocks to build the storyboard.</p>
+              ) : (
+                storyboardBlocks.map((block, index) => {
+                  const active = block.id === selectedId;
+                  return (
+                    <button
+                      key={block.id}
+                      type="button"
+                      onClick={() => selectBlock(block.id)}
+                      onDoubleClick={() => setInspectId(block.id)}
+                      className={`flex w-56 shrink-0 flex-col overflow-hidden rounded-xl border text-left shadow-lg ${
+                        active
+                          ? "border-sky-400 ring-2 ring-sky-400/40"
+                          : "border-slate-700 hover:border-slate-500"
+                      } bg-slate-900/95`}
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
+                        <span className="text-xs font-medium">
+                          {index + 1}. {block.title}
+                        </span>
+                        <span className="text-[10px] uppercase text-slate-500">{block.type}</span>
+                      </div>
+                      <div className="flex h-36 items-center justify-center bg-slate-950 p-2">
+                        {block.mediaUrls[0] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={block.mediaUrls[0]}
+                            alt=""
+                            className="max-h-full max-w-full rounded object-contain"
+                          />
+                        ) : (
+                          <p className="line-clamp-4 px-2 text-center text-[11px] text-slate-500">
+                            {block.bodyText || block.params.prompt || "Empty"}
+                          </p>
+                        )}
+                      </div>
+                      <div className="border-t border-slate-800 px-3 py-2 text-[10px] text-slate-500">
+                        {block.status}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <>
           <svg
             className="pointer-events-none absolute inset-0 h-full w-full origin-top-left"
             style={{ transform: `scale(${project.viewport.zoom})` }}
@@ -470,6 +556,8 @@ export default function StudioPage() {
               {Math.round(project.viewport.zoom * 100)}% · saved locally
             </span>
           </div>
+            </>
+          )}
         </main>
 
         {/* Right — params when selected */}

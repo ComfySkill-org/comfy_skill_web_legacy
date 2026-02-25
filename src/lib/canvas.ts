@@ -44,12 +44,16 @@ export interface CanvasViewport {
   zoom: number;
 }
 
+/** Product-level view (PRD-legacy C11) — not a ComfyUI node editor. */
+export type StudioViewMode = "workflow" | "storyboard";
+
 export interface CanvasProject {
   id: string;
   title: string;
   blocks: CanvasBlock[];
   edges: CanvasEdge[];
   viewport: CanvasViewport;
+  viewMode?: StudioViewMode;
 }
 
 const STORAGE_KEY = "comfyskill.studio.project.v1";
@@ -61,6 +65,7 @@ export function createEmptyProject(title = "Untitled project"): CanvasProject {
     blocks: [],
     edges: [],
     viewport: { x: 0, y: 0, zoom: 1 },
+    viewMode: "workflow",
   };
 }
 
@@ -317,6 +322,19 @@ export function blockResultSummary(block: CanvasBlock): {
     primaryMedia: block.mediaUrls[0] ?? null,
   };
 }
+
+export function setViewMode(
+  project: CanvasProject,
+  viewMode: StudioViewMode,
+): CanvasProject {
+  return { ...project, viewMode };
+}
+
+/** Storyboard order: left-to-right, then top-to-bottom. */
+export function storyboardOrderedBlocks(project: CanvasProject): CanvasBlock[] {
+  return [...project.blocks].sort((a, b) => a.x - b.x || a.y - b.y);
+}
+
 
 
 
