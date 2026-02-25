@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { apiClient, isPlanStripeReady } from "@/lib/api";
+import { apiClient, getToken, isFirebaseEnabled, isPlanStripeReady, type User } from "@/lib/api";
 import {
   estimateGenerations,
   PLAN_MONTHLY_CREDITS,
   QUALITY_CREDITS,
   QUALITY_TIER_OPTIONS,
 } from "@/lib/credits";
+import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 const PLANS = [
   {
@@ -38,6 +39,7 @@ export default function PricingPage() {
   const [stripeStatus, setStripeStatus] = useState<Awaited<
     ReturnType<typeof apiClient.stripeStatus>
   > | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     void apiClient
@@ -46,14 +48,43 @@ export default function PricingPage() {
       .catch(() => setStripeStatus(null));
   }, []);
 
+  useEffect(() => {
+    const loadUser = () =>
+      apiClient
+        .me()
+        .then(setUser)
+        .catch(() => setUser(null));
+
+    if (isFirebaseEnabled()) {
+      const unsub = subscribeToAuthToken((token) => {
+        if (token) void loadUser();
+        else setUser(null);
+      });
+      if (getFirebaseAuth()?.currentUser) void loadUser();
+      return unsub;
+    }
+
+    if (!getToken()) return;
+    void loadUser();
+  }, []);
+
   const stripeReady = Boolean(stripeStatus?.configured && stripeStatus?.price_configured);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-2 text-center text-3xl font-bold">Pricing</h1>
-      <p className="mb-10 text-center text-skill-muted">
+      <p className="mb-4 text-center text-skill-muted">
         Monthly subscription with credits. When credits run out, upgrade or renew.
       </p>
+      {user && (
+        <p className="mb-10 text-center text-sm text-skill-muted">
+          {user.balance_credits.toLocaleString()} credits ·{" "}
+          <Link href="/settings/billing" className="underline hover:text-skill-ink">
+            Manage in Billing
+          </Link>
+        </p>
+      )}
+      {!user && <div className="mb-10" />}
       <div className="grid gap-4 md:grid-cols-3">
         {PLANS.map((plan) => {
           const planReady = isPlanStripeReady(plan.id, stripeStatus);
@@ -83,10 +114,14 @@ export default function PricingPage() {
               )}
               {stripeStatus === null || planReady ? (
                 <Link
-                  href={`/login?plan=${plan.id}`}
+                  href={
+                    user
+                      ? `/settings/billing?plan=${plan.id}`
+                      : `/login?plan=${plan.id}`
+                  }
                   className="btn-primary mt-5 w-full"
                 >
-                  Subscribe
+                  {user ? "Manage plan" : "Subscribe"}
                 </Link>
               ) : (
                 <span className="btn-secondary mt-5 inline-block w-full cursor-not-allowed text-center opacity-70">
