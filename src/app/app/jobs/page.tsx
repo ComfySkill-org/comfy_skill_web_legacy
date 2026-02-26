@@ -11,14 +11,18 @@ import {
   countJobsByQualityFilter,
   countJobsBySourceFilter,
   formatJobCreditsLabel,
+  formatJobDuration,
   hasActiveJobListFilters,
   JOB_QUALITY_FILTERS,
+  JOB_SORT_OPTIONS,
   JOB_SOURCE_FILTERS,
   matchesJobPromptSearch,
   matchesJobQualityFilter,
   matchesJobSourceFilter,
   parseJobListSearchParams,
+  sortJobs,
   studioJobHref,
+  type JobSortOption,
   sumJobCredits,
   type JobQualityFilter,
   type JobSourceFilter,
@@ -56,6 +60,7 @@ export default function AppJobsPage() {
   const [qualityFilter, setQualityFilter] = useState<JobQualityFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<JobSourceFilter>("all");
   const [promptQuery, setPromptQuery] = useState("");
+  const [sort, setSort] = useState<JobSortOption>("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
@@ -96,6 +101,11 @@ export default function AppJobsPage() {
   const jobSourceFilterCounts = useMemo(
     () => countJobsBySourceFilter(jobs),
     [jobs],
+  );
+
+  const sortedFilteredJobs = useMemo(
+    () => sortJobs(filteredJobs, sort),
+    [filteredJobs, sort],
   );
 
   const filteredCreditsTotal = useMemo(() => sumJobCredits(filteredJobs), [filteredJobs]);
@@ -143,6 +153,7 @@ export default function AppJobsPage() {
     setQualityFilter(parsed.quality);
     setSourceFilter(parsed.source);
     setPromptQuery(parsed.prompt);
+    setSort(parsed.sort);
 
     const jobId = params.get("job");
     if (!jobId) return;
@@ -159,6 +170,7 @@ export default function AppJobsPage() {
         quality: qualityFilter,
         source: sourceFilter,
         prompt: promptQuery,
+        sort,
       },
       highlightJobId,
     );
@@ -167,7 +179,7 @@ export default function AppJobsPage() {
     if (nextUrl !== currentUrl) {
       window.history.replaceState(null, "", nextUrl);
     }
-  }, [filter, qualityFilter, sourceFilter, promptQuery, highlightJobId]);
+  }, [filter, qualityFilter, sourceFilter, promptQuery, sort, highlightJobId]);
 
   const hasActiveFilters = hasActiveJobListFilters({
     status: filter,
@@ -412,18 +424,34 @@ export default function AppJobsPage() {
             </button>
           )}
 
-          <p className="mb-4 text-sm text-skill-muted">
-            Showing {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"} ·{" "}
-            {filteredCreditsTotal.toLocaleString()} credits (charged or estimated)
-          </p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-skill-muted">
+              Showing {sortedFilteredJobs.length} job{sortedFilteredJobs.length === 1 ? "" : "s"} ·{" "}
+              {filteredCreditsTotal.toLocaleString()} credits (charged or estimated)
+            </p>
+            <label className="text-sm">
+              <span className="sr-only">Sort jobs</span>
+              <select
+                className="input py-1 text-sm"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as JobSortOption)}
+              >
+                {JOB_SORT_OPTIONS.map(({ id, label }) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-          {filteredJobs.length === 0 ? (
+          {sortedFilteredJobs.length === 0 ? (
             <p className="text-sm text-skill-muted">
               No jobs match the current filters.
             </p>
           ) : (
             <div className="space-y-3">
-              {filteredJobs.map((job) => (
+              {sortedFilteredJobs.map((job) => (
             <article
               key={job.id}
               id={`job-${job.id}`}
@@ -460,6 +488,12 @@ export default function AppJobsPage() {
                   <span className="text-xs text-skill-muted">
                     {new Date(job.created_at).toLocaleString()}
                   </span>
+                  {(() => {
+                    const duration = formatJobDuration(job);
+                    return duration ? (
+                      <span className="text-xs text-skill-muted">{duration}</span>
+                    ) : null;
+                  })()}
                 </div>
                 <p className="line-clamp-2 text-skill-ink">{job.prompt_text}</p>
                 {job.error_message && (

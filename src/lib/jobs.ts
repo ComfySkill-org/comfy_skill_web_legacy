@@ -136,7 +136,18 @@ export type JobListQueryState = {
   quality: JobQualityFilter;
   source: JobSourceFilter;
   prompt: string;
+  sort: JobSortOption;
 };
+
+export type JobSortOption = "newest" | "oldest" | "credits_desc";
+
+export const JOB_SORT_OPTIONS: { id: JobSortOption; label: string }[] = [
+  { id: "newest", label: "Newest first" },
+  { id: "oldest", label: "Oldest first" },
+  { id: "credits_desc", label: "Most credits" },
+];
+
+const JOB_LIST_SORT_VALUES: JobSortOption[] = ["newest", "oldest", "credits_desc"];
 
 const JOB_LIST_STATUS_VALUES: JobStatusFilter[] = [
   "all",
@@ -173,6 +184,9 @@ export function parseJobListSearchParams(
       ? (quality as JobQualityFilter)
       : "all",
     prompt: params.get("q") ?? "",
+    sort: JOB_LIST_SORT_VALUES.includes(params.get("sort") as JobSortOption)
+      ? (params.get("sort") as JobSortOption)
+      : "newest",
   };
 }
 
@@ -185,6 +199,7 @@ export function buildJobListSearchParams(
   if (state.quality !== "all") params.set("quality", state.quality);
   if (state.source !== "all") params.set("source", state.source);
   if (state.prompt.trim()) params.set("q", state.prompt.trim());
+  if (state.sort !== "newest") params.set("sort", state.sort);
   if (highlightJobId) params.set("job", highlightJobId);
   const query = params.toString();
   return query ? `?${query}` : "";
@@ -197,4 +212,36 @@ export function hasActiveJobListFilters(state: JobListQueryState): boolean {
     state.source !== "all" ||
     state.prompt.trim() !== ""
   );
+}
+
+export function sortJobs<T extends Job>(jobs: readonly T[], sort: JobSortOption): T[] {
+  const copy = [...jobs];
+  copy.sort((a, b) => {
+    if (sort === "credits_desc") {
+      const aCredits = a.credits_charged ?? a.credits_estimated;
+      const bCredits = b.credits_charged ?? b.credits_estimated;
+      return bCredits - aCredits;
+    }
+    const aTime = new Date(a.created_at).getTime();
+    const bTime = new Date(b.created_at).getTime();
+    return sort === "newest" ? bTime - aTime : aTime - bTime;
+  });
+  return copy;
+}
+
+export function formatJobDuration(job: Job): string | null {
+  if (job.status === "pending" || job.status === "running") return "Running…";
+  if (!job.completed_at) return null;
+
+  const seconds = Math.max(
+    0,
+    Math.round(
+      (new Date(job.completed_at).getTime() - new Date(job.created_at).getTime()) / 1000,
+    ),
+  );
+  if (seconds < 60) return `Completed in ${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return remainder > 0 ? `Completed in ${minutes}m ${remainder}s` : `Completed in ${minutes}m`;
 }
