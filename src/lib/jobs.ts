@@ -130,3 +130,71 @@ export function sumJobCredits(jobs: readonly Job[]): number {
     0,
   );
 }
+
+export type JobListQueryState = {
+  status: JobStatusFilter;
+  quality: JobQualityFilter;
+  source: JobSourceFilter;
+  prompt: string;
+};
+
+const JOB_LIST_STATUS_VALUES: JobStatusFilter[] = [
+  "all",
+  "in_progress",
+  "completed",
+  "failed",
+];
+
+const JOB_LIST_SOURCE_VALUES: JobSourceFilter[] = ["all", "studio", "quick_form"];
+
+const JOB_LIST_QUALITY_VALUES: JobQualityFilter[] = [
+  "all",
+  "premium",
+  "standard",
+  "budget",
+];
+
+export function parseJobListSearchParams(
+  search: string | URLSearchParams,
+): JobListQueryState {
+  const params = typeof search === "string" ? new URLSearchParams(search) : search;
+  const status = params.get("status");
+  const source = params.get("source");
+  const quality = params.get("quality");
+
+  return {
+    status: JOB_LIST_STATUS_VALUES.includes(status as JobStatusFilter)
+      ? (status as JobStatusFilter)
+      : "all",
+    source: JOB_LIST_SOURCE_VALUES.includes(source as JobSourceFilter)
+      ? (source as JobSourceFilter)
+      : "all",
+    quality: JOB_LIST_QUALITY_VALUES.includes(quality as JobQualityFilter)
+      ? (quality as JobQualityFilter)
+      : "all",
+    prompt: params.get("q") ?? "",
+  };
+}
+
+export function buildJobListSearchParams(
+  state: JobListQueryState,
+  highlightJobId?: string | null,
+): string {
+  const params = new URLSearchParams();
+  if (state.status !== "all") params.set("status", state.status);
+  if (state.quality !== "all") params.set("quality", state.quality);
+  if (state.source !== "all") params.set("source", state.source);
+  if (state.prompt.trim()) params.set("q", state.prompt.trim());
+  if (highlightJobId) params.set("job", highlightJobId);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export function hasActiveJobListFilters(state: JobListQueryState): boolean {
+  return (
+    state.status !== "all" ||
+    state.quality !== "all" ||
+    state.source !== "all" ||
+    state.prompt.trim() !== ""
+  );
+}

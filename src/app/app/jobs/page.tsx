@@ -7,14 +7,17 @@ import { apiClient, getToken, isFirebaseEnabled, type Job } from "@/lib/api";
 import { isJobInsufficientCreditsError, isLowCreditBalance, qualityTierLabel } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
+  buildJobListSearchParams,
   countJobsByQualityFilter,
   countJobsBySourceFilter,
   formatJobCreditsLabel,
+  hasActiveJobListFilters,
   JOB_QUALITY_FILTERS,
   JOB_SOURCE_FILTERS,
   matchesJobPromptSearch,
   matchesJobQualityFilter,
   matchesJobSourceFilter,
+  parseJobListSearchParams,
   studioJobHref,
   sumJobCredits,
   type JobQualityFilter,
@@ -134,12 +137,44 @@ export default function AppJobsPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const jobId = new URLSearchParams(window.location.search).get("job");
+    const params = new URLSearchParams(window.location.search);
+    const parsed = parseJobListSearchParams(params);
+    setFilter(parsed.status);
+    setQualityFilter(parsed.quality);
+    setSourceFilter(parsed.source);
+    setPromptQuery(parsed.prompt);
+
+    const jobId = params.get("job");
     if (!jobId) return;
     setHighlightJobId(jobId);
     setFilter("all");
     setExpandedTimelineIds((current) => new Set(current).add(jobId));
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const next = buildJobListSearchParams(
+      {
+        status: filter,
+        quality: qualityFilter,
+        source: sourceFilter,
+        prompt: promptQuery,
+      },
+      highlightJobId,
+    );
+    const nextUrl = `${window.location.pathname}${next}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }, [filter, qualityFilter, sourceFilter, promptQuery, highlightJobId]);
+
+  const hasActiveFilters = hasActiveJobListFilters({
+    status: filter,
+    quality: qualityFilter,
+    source: sourceFilter,
+    prompt: promptQuery,
+  });
 
   useEffect(() => {
     if (!highlightJobId || loading) return;
@@ -361,6 +396,21 @@ export default function AppJobsPage() {
               </button>
             ))}
           </div>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="mb-4 text-sm underline hover:text-skill-ink"
+              onClick={() => {
+                setFilter("all");
+                setQualityFilter("all");
+                setSourceFilter("all");
+                setPromptQuery("");
+              }}
+            >
+              Clear filters
+            </button>
+          )}
 
           <p className="mb-4 text-sm text-skill-muted">
             Showing {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"} ·{" "}
