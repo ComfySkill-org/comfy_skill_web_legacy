@@ -59,6 +59,9 @@ export default function StudioPage() {
   >([]);
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [historyTick, setHistoryTick] = useState(0);
+  const [jobEvents, setJobEvents] = useState<
+    Array<{ id: string; event_type: string; created_at: string }>
+  >([]);
   const historyRef = useRef(new ProjectHistory());
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -293,6 +296,26 @@ export default function StudioPage() {
     [project.blocks, selectedId],
   );
   selectedIdRef.current = selectedId;
+
+  useEffect(() => {
+    const jobId = selected?.jobId;
+    if (!jobId) {
+      setJobEvents([]);
+      return;
+    }
+    let cancelled = false;
+    void apiClient
+      .getJobEvents(jobId)
+      .then((res) => {
+        if (!cancelled) setJobEvents(res.events);
+      })
+      .catch(() => {
+        if (!cancelled) setJobEvents([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.jobId, selected?.status]);
 
   const inspectBlock = useMemo(
     () => project.blocks.find((b) => b.id === inspectId) ?? null,
@@ -535,6 +558,12 @@ export default function StudioPage() {
         await new Promise((r) => setTimeout(r, 1500));
         current = await apiClient.getJob(current.id);
         patchBlock(selected.id, { status: current.status as CanvasBlockStatus });
+        try {
+          const timeline = await apiClient.getJobEvents(current.id);
+          setJobEvents(timeline.events);
+        } catch {
+          /* keep last timeline snapshot */
+        }
       }
 
       if (current.status === "completed" && current.output_url) {
@@ -546,6 +575,12 @@ export default function StudioPage() {
       } else {
         patchBlock(selected.id, { status: "failed" });
         setGenerateError(current.error_message || "Generation failed");
+      }
+      try {
+        const timeline = await apiClient.getJobEvents(current.id);
+        setJobEvents(timeline.events);
+      } catch {
+        /* ignore */
       }
     } catch (err) {
       patchBlock(selected.id, { status: "failed" });
@@ -1098,6 +1133,30 @@ export default function StudioPage() {
                     Runs POST /jobs and writes the result back onto this canvas block. Double-click
                     a block to inspect.
                   </p>
+                )}
+                {selected.jobId && jobEvents.length > 0 && (
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                    <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                      Job timeline
+                    </div>
+                    <ol className="mt-2 space-y-1.5">
+                      {jobEvents.map((ev) => (
+                        <li
+                          key={ev.id}
+                          className="flex items-baseline justify-between gap-2 text-[11px]"
+                        >
+                          <span className="font-medium text-slate-300">{ev.event_type}</span>
+                          <span className="shrink-0 text-slate-600">
+                            {new Date(ev.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 )}
               </div>
             ) : (
