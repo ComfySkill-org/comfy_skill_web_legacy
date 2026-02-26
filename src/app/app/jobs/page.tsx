@@ -8,12 +8,16 @@ import { isJobInsufficientCreditsError, isLowCreditBalance, qualityTierLabel } f
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
   countJobsByQualityFilter,
+  countJobsBySourceFilter,
   formatJobCreditsLabel,
   JOB_QUALITY_FILTERS,
+  JOB_SOURCE_FILTERS,
   matchesJobQualityFilter,
+  matchesJobSourceFilter,
   studioJobHref,
   sumJobCredits,
   type JobQualityFilter,
+  type JobSourceFilter,
 } from "@/lib/jobs";
 import { JobEventTimeline } from "@/components/JobEventTimeline";
 
@@ -46,6 +50,7 @@ export default function AppJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filter, setFilter] = useState<JobFilter>("all");
   const [qualityFilter, setQualityFilter] = useState<JobQualityFilter>("all");
+  const [sourceFilter, setSourceFilter] = useState<JobSourceFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
@@ -56,9 +61,12 @@ export default function AppJobsPage() {
   const filteredJobs = useMemo(
     () =>
       jobs.filter(
-        (job) => matchesJobFilter(job, filter) && matchesJobQualityFilter(job, qualityFilter),
+        (job) =>
+          matchesJobFilter(job, filter) &&
+          matchesJobQualityFilter(job, qualityFilter) &&
+          matchesJobSourceFilter(job, sourceFilter),
       ),
-    [jobs, filter, qualityFilter],
+    [jobs, filter, qualityFilter, sourceFilter],
   );
 
   const jobFilterCounts = useMemo(() => {
@@ -79,6 +87,10 @@ export default function AppJobsPage() {
   }, [jobs]);
 
   const jobQualityFilterCounts = useMemo(() => countJobsByQualityFilter(jobs), [jobs]);
+  const jobSourceFilterCounts = useMemo(
+    () => countJobsBySourceFilter(jobs),
+    [jobs],
+  );
 
   const filteredCreditsTotal = useMemo(() => sumJobCredits(filteredJobs), [filteredJobs]);
 
@@ -313,6 +325,29 @@ export default function AppJobsPage() {
             ))}
           </div>
 
+          <div
+            className="mb-4 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Filter jobs by source"
+          >
+            {JOB_SOURCE_FILTERS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={sourceFilter === id}
+                className={`rounded-full border px-3 py-1 text-sm transition ${
+                  sourceFilter === id
+                    ? "border-skill-blue-dark bg-skill-blue/20 font-semibold"
+                    : "border-skill-blue/20 bg-white hover:bg-skill-yellow/30"
+                }`}
+                onClick={() => setSourceFilter(id)}
+              >
+                {label} ({jobSourceFilterCounts[id]})
+              </button>
+            ))}
+          </div>
+
           <p className="mb-4 text-sm text-skill-muted">
             Showing {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"} ·{" "}
             {filteredCreditsTotal.toLocaleString()} credits (charged or estimated)
@@ -353,6 +388,9 @@ export default function AppJobsPage() {
                   </span>
                   <span className="text-skill-muted">
                     {qualityTierLabel(job.quality_tier)}
+                  </span>
+                  <span className="rounded-full bg-skill-yellow/40 px-2 py-0.5 text-[10px] font-medium text-skill-muted">
+                    {job.project_id ? "Studio" : "Quick form"}
                   </span>
                   <span className="text-skill-muted">{formatJobCreditsLabel(job)}</span>
                   <span className="text-xs text-skill-muted">

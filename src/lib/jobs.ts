@@ -44,6 +44,37 @@ export function studioJobHref(job: Job): string {
   return `/studio?${params.toString()}`;
 }
 
+export type JobSourceFilter = "all" | "studio" | "quick_form";
+
+export const JOB_SOURCE_FILTERS: { id: JobSourceFilter; label: string }[] = [
+  { id: "all", label: "All sources" },
+  { id: "studio", label: "Studio" },
+  { id: "quick_form", label: "Quick form" },
+];
+
+export function matchesJobSourceFilter(job: Job, filter: JobSourceFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "studio") return Boolean(job.project_id);
+  return !job.project_id;
+}
+
+export function countJobsBySourceFilter(
+  jobs: readonly Job[],
+): Record<JobSourceFilter, number> {
+  const counts: Record<JobSourceFilter, number> = {
+    all: jobs.length,
+    studio: 0,
+    quick_form: 0,
+  };
+
+  for (const job of jobs) {
+    if (job.project_id) counts.studio += 1;
+    else counts.quick_form += 1;
+  }
+
+  return counts;
+}
+
 export type JobQualityFilter = "all" | QualityTier;
 
 export const JOB_QUALITY_FILTERS: { id: JobQualityFilter; label: string }[] = [
