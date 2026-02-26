@@ -15,6 +15,7 @@ import {
   sumJobCredits,
   type JobQualityFilter,
 } from "@/lib/jobs";
+import { JobEventTimeline } from "@/components/JobEventTimeline";
 
 function statusTone(status: string): string {
   if (status === "completed") return "text-green-700";
@@ -49,6 +50,7 @@ export default function AppJobsPage() {
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
   const [highlightJobId, setHighlightJobId] = useState<string | null>(null);
+  const [expandedTimelineIds, setExpandedTimelineIds] = useState<Set<string>>(new Set());
   const [balanceCredits, setBalanceCredits] = useState<number | null>(null);
 
   const filteredJobs = useMemo(
@@ -121,6 +123,7 @@ export default function AppJobsPage() {
     if (!jobId) return;
     setHighlightJobId(jobId);
     setFilter("all");
+    setExpandedTimelineIds((current) => new Set(current).add(jobId));
   }, []);
 
   useEffect(() => {
@@ -409,7 +412,24 @@ export default function AppJobsPage() {
                       Open studio
                     </Link>
                   )}
+                  <button
+                    type="button"
+                    className="underline hover:text-skill-ink"
+                    onClick={() =>
+                      setExpandedTimelineIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(job.id)) next.delete(job.id);
+                        else next.add(job.id);
+                        return next;
+                      })
+                    }
+                  >
+                    {expandedTimelineIds.has(job.id) ? "Hide timeline" : "Show timeline"}
+                  </button>
                 </div>
+                {expandedTimelineIds.has(job.id) && (
+                  <JobEventTimeline jobId={job.id} status={job.status} />
+                )}
               </div>
             </article>
               ))}
