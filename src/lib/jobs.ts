@@ -58,6 +58,12 @@ export function matchesJobSourceFilter(job: Job, filter: JobSourceFilter): boole
   return !job.project_id;
 }
 
+export function matchesJobPromptSearch(job: Job, query: string): boolean {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return true;
+  return job.prompt_text.toLocaleLowerCase().includes(needle);
+}
+
 export function countJobsBySourceFilter(
   jobs: readonly Job[],
 ): Record<JobSourceFilter, number> {

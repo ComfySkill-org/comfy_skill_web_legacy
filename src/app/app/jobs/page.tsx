@@ -12,6 +12,7 @@ import {
   formatJobCreditsLabel,
   JOB_QUALITY_FILTERS,
   JOB_SOURCE_FILTERS,
+  matchesJobPromptSearch,
   matchesJobQualityFilter,
   matchesJobSourceFilter,
   studioJobHref,
@@ -51,6 +52,7 @@ export default function AppJobsPage() {
   const [filter, setFilter] = useState<JobFilter>("all");
   const [qualityFilter, setQualityFilter] = useState<JobQualityFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<JobSourceFilter>("all");
+  const [promptQuery, setPromptQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
@@ -64,9 +66,10 @@ export default function AppJobsPage() {
         (job) =>
           matchesJobFilter(job, filter) &&
           matchesJobQualityFilter(job, qualityFilter) &&
-          matchesJobSourceFilter(job, sourceFilter),
+          matchesJobSourceFilter(job, sourceFilter) &&
+          matchesJobPromptSearch(job, promptQuery),
       ),
-    [jobs, filter, qualityFilter, sourceFilter],
+    [jobs, filter, qualityFilter, sourceFilter, promptQuery],
   );
 
   const jobFilterCounts = useMemo(() => {
@@ -279,6 +282,17 @@ export default function AppJobsPage() {
 
       {!loading && jobs.length > 0 && (
         <>
+          <label className="mb-4 block text-sm">
+            <span className="sr-only">Search prompts</span>
+            <input
+              className="input w-full max-w-md"
+              type="search"
+              placeholder="Search prompts…"
+              value={promptQuery}
+              onChange={(e) => setPromptQuery(e.target.value)}
+            />
+          </label>
+
           <div
             className="mb-4 flex flex-wrap gap-2"
             role="tablist"
