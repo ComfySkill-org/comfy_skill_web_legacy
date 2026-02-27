@@ -401,6 +401,45 @@ export function resetViewportPan(project: CanvasProject): CanvasProject {
   };
 }
 
+/** Center every result block inside the visible workflow area (PRD-legacy C1/C10). */
+export function fitProjectInViewport(
+  project: CanvasProject,
+  viewportWidth: number,
+  viewportHeight: number,
+  padding = 64,
+): CanvasProject {
+  if (project.blocks.length === 0 || viewportWidth <= 0 || viewportHeight <= 0) {
+    return project;
+  }
+
+  const minX = Math.min(...project.blocks.map((block) => block.x));
+  const minY = Math.min(...project.blocks.map((block) => block.y));
+  const maxX = Math.max(...project.blocks.map((block) => block.x + block.width));
+  const maxY = Math.max(...project.blocks.map((block) => block.y + block.height));
+  const contentWidth = Math.max(1, maxX - minX);
+  const contentHeight = Math.max(1, maxY - minY);
+  const availableWidth = Math.max(1, viewportWidth - padding * 2);
+  const availableHeight = Math.max(1, viewportHeight - padding * 2);
+  const zoom = Math.min(
+    2,
+    Math.max(
+      0.35,
+      Math.floor(
+        Math.min(availableWidth / contentWidth, availableHeight / contentHeight) * 100,
+      ) / 100,
+    ),
+  );
+
+  return {
+    ...project,
+    viewport: {
+      x: (viewportWidth - contentWidth * zoom) / 2 - minX * zoom,
+      y: (viewportHeight - contentHeight * zoom) / 2 - minY * zoom,
+      zoom,
+    },
+  };
+}
+
 /** Read-only summary for the result inspect overlay (PRD-legacy C12). */
 export function blockResultSummary(block: CanvasBlock): {
   title: string;

@@ -13,6 +13,7 @@ import {
   createTextBlock,
   createVideoBlock,
   duplicateBlock,
+  fitProjectInViewport,
   insertAssetBlock,
   loadProjectLocal,
   moveBlock,
@@ -1040,6 +1041,21 @@ export default function StudioPage() {
               title="Reset pan"
             >
               Pan
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const canvas = canvasMainRef.current;
+                if (!canvas) return;
+                commitChange((prev) =>
+                  fitProjectInViewport(prev, canvas.clientWidth, canvas.clientHeight),
+                );
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              title="Fit all blocks in view"
+            >
+              Fit
             </button>
             <button
               type="button"
