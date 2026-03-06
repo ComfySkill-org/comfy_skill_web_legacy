@@ -171,6 +171,9 @@ export default function StudioPage() {
   const [jobEvents, setJobEvents] = useState<
     Array<{ id: string; event_type: string; created_at: string }>
   >([]);
+  const [inspectJobEvents, setInspectJobEvents] = useState<
+    Array<{ id: string; event_type: string; created_at: string }>
+  >([]);
   const historyRef = useRef(new ProjectHistory());
   const projectRef = useRef(project);
   projectRef.current = project;
@@ -1103,7 +1106,41 @@ export default function StudioPage() {
   useEffect(() => {
     setInspectMediaIndex(0);
     setPromptCopied(false);
+    setMediaLinkCopied(false);
+    setInspectJobEvents([]);
   }, [inspectId]);
+
+  useEffect(() => {
+    const jobId = inspectBlock?.jobId;
+    if (!inspectId || !jobId) {
+      setInspectJobEvents([]);
+      return;
+    }
+    let cancelled = false;
+
+    function refreshInspectJobEvents() {
+      void apiClient
+        .getJobEvents(jobId)
+        .then((res) => {
+          if (!cancelled) setInspectJobEvents(res.events);
+        })
+        .catch(() => {
+          if (!cancelled) setInspectJobEvents([]);
+        });
+    }
+
+    refreshInspectJobEvents();
+
+    const inFlight =
+      inspectBlock?.status === "pending" || inspectBlock?.status === "running";
+    const timer = inFlight ? window.setInterval(refreshInspectJobEvents, 2000) : undefined;
+
+    return () => {
+      cancelled = true;
+      if (timer) window.clearInterval(timer);
+    };
+  }, [inspectId, inspectBlock?.jobId, inspectBlock?.status]);
+
   useEffect(() => {
     setMediaLinkCopied(false);
   }, [inspectId, inspectMediaIndex]);
@@ -4796,6 +4833,20 @@ export default function StudioPage() {
               <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-500">
                 {inspectBlock.type} · {inspectSummary.status} · {inspectSummary.quality}
               </p>
+              {inspectSummary.jobId && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="font-mono text-slate-500">
+                    Job {inspectSummary.jobId.slice(0, 8)}…
+                  </span>
+                  <Link
+                    href={`/app/jobs?job=${inspectSummary.jobId}`}
+                    data-testid="studio-inspect-job-link"
+                    className="text-sky-400 underline hover:text-sky-300"
+                  >
+                    View in history
+                  </Link>
+                </div>
+              )}
               <p className="mt-4 text-xs leading-relaxed text-slate-300">
                 {inspectSummary.prompt || "No prompt"}
               </p>
@@ -4812,6 +4863,38 @@ export default function StudioPage() {
                 >
                   {promptCopied ? "Prompt copied" : "Copy prompt"}
                 </button>
+              )}
+              {inspectSummary.jobId && (
+                <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/60 p-2">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                    Job events
+                  </p>
+                  {inspectJobEvents.length === 0 ? (
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      {inspectSummary.status === "pending" ||
+                      inspectSummary.status === "running"
+                        ? "Waiting for worker events…"
+                        : "No events recorded"}
+                    </p>
+                  ) : (
+                    <ol className="mt-1 space-y-1">
+                      {inspectJobEvents.slice(-4).map((ev) => (
+                        <li
+                          key={ev.id}
+                          className="flex items-baseline justify-between gap-2 text-[10px]"
+                        >
+                          <span className="text-slate-300">{ev.event_type}</span>
+                          <span className="shrink-0 text-slate-600">
+                            {new Date(ev.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
               )}
               {inspectSummary.mediaCount > 1 && (
                 <div className="mt-4">

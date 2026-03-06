@@ -962,6 +962,7 @@ export function blockResultSummary(block: CanvasBlock): {
   status: CanvasBlockStatus;
   mediaCount: number;
   primaryMedia: string | null;
+  jobId: string | null;
 } {
   return {
     title: block.title,
@@ -970,6 +971,7 @@ export function blockResultSummary(block: CanvasBlock): {
     status: block.status,
     mediaCount: block.mediaUrls.length,
     primaryMedia: block.mediaUrls[0] ?? null,
+    jobId: block.jobId ?? null,
   };
 }
 
