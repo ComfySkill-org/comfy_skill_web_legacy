@@ -1522,9 +1522,35 @@ export default function StudioPage() {
               </p>
               {inspectSummary.mediaCount > 1 && (
                 <div className="mt-4">
-                  <p className="text-[11px] text-slate-500">
-                    Result {inspectMediaIndex + 1} of {inspectSummary.mediaCount}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-slate-500">
+                      Result {inspectMediaIndex + 1} of {inspectSummary.mediaCount}
+                    </p>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInspectMediaIndex((index) =>
+                            index === 0 ? inspectSummary.mediaCount - 1 : index - 1,
+                          )
+                        }
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:border-slate-500 hover:text-white"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInspectMediaIndex((index) =>
+                            index === inspectSummary.mediaCount - 1 ? 0 : index + 1,
+                          )
+                        }
+                        className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:border-slate-500 hover:text-white"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
                   <div className="mt-2 grid grid-cols-4 gap-2">
                     {inspectBlock.mediaUrls.map((url, index) => (
                       <button
@@ -1545,16 +1571,28 @@ export default function StudioPage() {
                   </div>
                 </div>
               )}
-              <button
-                type="button"
-                className="mt-auto rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500"
-                onClick={() => {
-                  setSelectedId(inspectBlock.id);
-                  setInspectId(null);
-                }}
-              >
-                Edit in side panel
-              </button>
+              <div className="mt-auto space-y-2">
+                {inspectMedia && (
+                  <a
+                    href={inspectMedia}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-lg border border-slate-700 px-3 py-2 text-center text-sm text-slate-300 hover:border-slate-500 hover:text-white"
+                  >
+                    Open original
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500"
+                  onClick={() => {
+                    setSelectedId(inspectBlock.id);
+                    setInspectId(null);
+                  }}
+                >
+                  Edit in side panel
+                </button>
+              </div>
             </div>
           </div>
         </div>
