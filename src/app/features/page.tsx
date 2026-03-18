@@ -6,21 +6,28 @@ export default function FeaturesPage() {
       <h1 className="mb-6 text-3xl font-bold">Features</h1>
       <div className="space-y-4">
         <div className="card">
-          <h2 className="font-semibold">Milestone 0 — Text to image</h2>
+          <h2 className="font-semibold">Studio canvas</h2>
           <p className="mt-2 text-sm text-skill-muted">
-            Describe an image, pick quality (good / medium / budget). No model names, no node
-            graphs.
+            Infinite canvas for shots and beats. See flow relationships and generation results
+            (image / text) on the board; change prompts and quality in the right panel only.
+          </p>
+        </div>
+        <div className="card">
+          <h2 className="font-semibold">Skill openings</h2>
+          <p className="mt-2 text-sm text-skill-muted">
+            Start from productized templates — Pixar-style short, viral remake, scene beat —
+            then refine on the canvas without learning ComfyUI nodes.
           </p>
         </div>
         <div className="card opacity-70">
-          <h2 className="font-semibold">Coming soon — Skill categories</h2>
+          <h2 className="font-semibold">Coming soon — Video blocks</h2>
           <p className="mt-2 text-sm text-skill-muted">
-            E-commerce, short drama, ASMR, anime realism, 3D, game scenes, music, and more.
+            Short motion and frame sequences as first-class canvas results.
           </p>
         </div>
       </div>
-      <Link href="/app" className="btn-primary mt-8 inline-block">
-        Try it now
+      <Link href="/studio" className="btn-primary mt-8 inline-block">
+        Open studio
       </Link>
     </div>
   );
