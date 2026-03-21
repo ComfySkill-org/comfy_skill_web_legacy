@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { apiClient } from "@/lib/api";
 import {
   createEmptyProject,
   createImageBlock,
   type CanvasBlock,
+  type CanvasBlockStatus,
   type CanvasProject,
 } from "@/lib/canvas";
 
@@ -29,18 +31,22 @@ export default function StudioPage() {
     return p;
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
 
   const selected = useMemo(
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
   );
 
-  function updateSelected(patch: Partial<CanvasBlock> & { params?: CanvasBlock["params"] }) {
-    if (!selectedId) return;
+  function patchBlock(
+    blockId: string,
+    patch: Partial<CanvasBlock> & { params?: CanvasBlock["params"] },
+  ) {
     setProject((prev) => ({
       ...prev,
       blocks: prev.blocks.map((b) =>
-        b.id === selectedId
+        b.id === blockId
           ? {
               ...b,
               ...patch,
@@ -51,6 +57,11 @@ export default function StudioPage() {
     }));
   }
 
+  function updateSelected(patch: Partial<CanvasBlock> & { params?: CanvasBlock["params"] }) {
+    if (!selectedId) return;
+    patchBlock(selectedId, patch);
+  }
+
   function addBlock() {
     const block = createImageBlock({
       x: 80 + project.blocks.length * 40,
@@ -59,6 +70,47 @@ export default function StudioPage() {
     });
     setProject((prev) => ({ ...prev, blocks: [...prev.blocks, block] }));
     setSelectedId(block.id);
+  }
+
+  async function generateSelected() {
+    if (!selected) return;
+    const prompt = selected.params.prompt.trim();
+    if (!prompt) {
+      setGenerateError("Enter a prompt in the right panel first.");
+      return;
+    }
+
+    setGenerateError("");
+    setGenerating(true);
+    patchBlock(selected.id, { status: "pending" });
+
+    try {
+      const { job } = await apiClient.createJob(prompt, selected.params.quality_tier);
+      patchBlock(selected.id, { jobId: job.id, status: job.status as CanvasBlockStatus });
+
+      let current = job;
+      while (current.status !== "completed" && current.status !== "failed") {
+        await new Promise((r) => setTimeout(r, 1500));
+        current = await apiClient.getJob(current.id);
+        patchBlock(selected.id, { status: current.status as CanvasBlockStatus });
+      }
+
+      if (current.status === "completed" && current.output_url) {
+        patchBlock(selected.id, {
+          status: "completed",
+          mediaUrls: [current.output_url],
+          bodyText: prompt,
+        });
+      } else {
+        patchBlock(selected.id, { status: "failed" });
+        setGenerateError(current.error_message || "Generation failed");
+      }
+    } catch (err) {
+      patchBlock(selected.id, { status: "failed" });
+      setGenerateError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
@@ -229,9 +281,21 @@ export default function StudioPage() {
                     <option value="budget">Budget</option>
                   </select>
                 </label>
-                <p className="text-[11px] text-slate-500">
-                  Generate wiring (POST /jobs → write back media) lands in the next iteration.
-                </p>
+                <button
+                  type="button"
+                  disabled={generating}
+                  onClick={() => void generateSelected()}
+                  className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
+                >
+                  {generating ? "Generating…" : "Generate"}
+                </button>
+                {generateError ? (
+                  <p className="text-[11px] text-rose-400">{generateError}</p>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    Runs POST /jobs and writes the result back onto this canvas block.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-3 text-xs text-slate-400">

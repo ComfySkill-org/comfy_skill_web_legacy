@@ -68,6 +68,9 @@ export function SiteHeader() {
           </Link>
           {user ? (
             <>
+              <Link href="/studio" className="text-skill-muted hover:text-skill-ink">
+                Studio
+              </Link>
               <Link href="/app" className="text-skill-muted hover:text-skill-ink">
                 Create
               </Link>
@@ -127,6 +130,13 @@ export function SiteHeader() {
                     </div>
 
                     <div className="p-2 text-sm">
+                      <Link
+                        href="/studio"
+                        role="menuitem"
+                        className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"
+                      >
+                        Studio
+                      </Link>
                       <Link
                         href="/app"
                         role="menuitem"
