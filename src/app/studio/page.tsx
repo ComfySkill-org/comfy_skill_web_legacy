@@ -10,6 +10,7 @@ import {
   createImageBlock,
   createStarterProject,
   createTextBlock,
+  createVideoBlock,
   loadProjectLocal,
   moveBlock,
   removeBlock,
@@ -101,20 +102,20 @@ export default function StudioPage() {
     patchBlock(selectedId, patch);
   }
 
-  function addBlock(type: "image" | "text" = "image") {
+  function addBlock(type: "image" | "text" | "video" = "image") {
     const offset = project.blocks.length;
-    const block =
-      type === "text"
-        ? createTextBlock({
-            x: 80 + offset * 40,
-            y: 80 + offset * 30,
-            title: `Text ${offset + 1}`,
-          })
-        : createImageBlock({
-            x: 80 + offset * 40,
-            y: 80 + offset * 30,
-            title: `Shot ${String.fromCharCode(65 + offset)}`,
-          });
+    const pos = { x: 80 + offset * 40, y: 80 + offset * 30 };
+    let block;
+    if (type === "text") {
+      block = createTextBlock({ ...pos, title: `Text ${offset + 1}` });
+    } else if (type === "video") {
+      block = createVideoBlock({ ...pos, title: `Clip ${offset + 1}` });
+    } else {
+      block = createImageBlock({
+        ...pos,
+        title: `Shot ${String.fromCharCode(65 + offset)}`,
+      });
+    }
     setProject((prev) => ({ ...prev, blocks: [...prev.blocks, block] }));
     setSelectedId(block.id);
   }
@@ -320,6 +321,31 @@ export default function StudioPage() {
                     <p className="line-clamp-6 w-full text-left text-xs text-slate-300">
                       {block.bodyText || block.params.prompt || "Empty text block"}
                     </p>
+                  ) : block.type === "video" ? (
+                    <div className="flex w-full flex-col gap-2">
+                      <div className="grid grid-cols-4 gap-1">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className="flex aspect-video items-center justify-center rounded bg-slate-800 text-[9px] text-slate-500"
+                          >
+                            {block.mediaUrls[i] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={block.mediaUrls[i]}
+                                alt=""
+                                className="h-full w-full rounded object-cover"
+                              />
+                            ) : (
+                              `F${i + 1}`
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="line-clamp-2 text-[10px] text-slate-500">
+                        {block.bodyText || block.params.prompt || "Video placeholder"}
+                      </p>
+                    </div>
                   ) : block.mediaUrls[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -358,6 +384,16 @@ export default function StudioPage() {
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
             >
               + Text
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                addBlock("video");
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
+            >
+              + Video
             </button>
             <button
               type="button"

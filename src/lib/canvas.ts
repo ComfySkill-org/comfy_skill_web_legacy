@@ -105,6 +105,26 @@ export function createTextBlock(
   };
 }
 
+/** Video block — preview frames / clip URL later; MVP shows a storyboard placeholder. */
+export function createVideoBlock(
+  partial?: Partial<Pick<CanvasBlock, "x" | "y" | "title" | "bodyText" | "params" | "mediaUrls">>,
+): CanvasBlock {
+  return {
+    id: crypto.randomUUID(),
+    type: "video",
+    title: partial?.title ?? "Video block",
+    x: partial?.x ?? 120,
+    y: partial?.y ?? 120,
+    width: 320,
+    height: 200,
+    bodyText: partial?.bodyText ?? "",
+    mediaUrls: partial?.mediaUrls ?? [],
+    status: "idle",
+    jobId: null,
+    params: partial?.params ?? defaultParams(),
+  };
+}
+
 /** Client-side persistence until Postgres projects API lands (PRD-legacy C7). */
 export function saveProjectLocal(project: CanvasProject): void {
   if (typeof window === "undefined") return;
@@ -223,6 +243,14 @@ export const SKILL_TEMPLATES: SkillTemplate[] = [
     prompt: "Write a one-sentence scene beat for the next shot",
     bodyText: "INT. LOCATION — DAY\nA single beat that sets emotion before the cut.",
   },
+  {
+    id: "motion-hook",
+    title: "Motion hook",
+    blurb: "Video block placeholder for a short cut",
+    blockType: "video",
+    prompt: "3-second camera push-in on the hero product, soft rim light, 24fps feel",
+    bodyText: "Clip TBD — frames will appear here after generation.",
+  },
 ];
 
 export function applySkillTemplate(
@@ -239,10 +267,14 @@ export function applySkillTemplate(
       quality_tier: "standard" as const,
     },
   };
-  const block =
-    template.blockType === "text"
-      ? createTextBlock({ ...base, bodyText: template.bodyText ?? "" })
-      : createImageBlock(base);
+  let block: CanvasBlock;
+  if (template.blockType === "text") {
+    block = createTextBlock({ ...base, bodyText: template.bodyText ?? "" });
+  } else if (template.blockType === "video") {
+    block = createVideoBlock({ ...base, bodyText: template.bodyText ?? "" });
+  } else {
+    block = createImageBlock(base);
+  }
   return {
     project: { ...project, blocks: [...project.blocks, block] },
     blockId: block.id,
