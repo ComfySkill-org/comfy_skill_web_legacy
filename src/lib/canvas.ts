@@ -299,5 +299,25 @@ export function setViewportZoom(project: CanvasProject, zoom: number): CanvasPro
   };
 }
 
+/** Read-only summary for the result inspect overlay (PRD-legacy C12). */
+export function blockResultSummary(block: CanvasBlock): {
+  title: string;
+  prompt: string;
+  quality: string;
+  status: CanvasBlockStatus;
+  mediaCount: number;
+  primaryMedia: string | null;
+} {
+  return {
+    title: block.title,
+    prompt: block.params.prompt || block.bodyText || "",
+    quality: block.params.quality_tier,
+    status: block.status,
+    mediaCount: block.mediaUrls.length,
+    primaryMedia: block.mediaUrls[0] ?? null,
+  };
+}
+
+
 
 

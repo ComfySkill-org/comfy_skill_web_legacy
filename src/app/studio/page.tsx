@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api";
 import {
   addEdgeBetween,
   applySkillTemplate,
+  blockResultSummary,
   clearProjectLocal,
   createImageBlock,
   createStarterProject,
@@ -33,6 +34,7 @@ export default function StudioPage() {
   const [linkSourceId, setLinkSourceId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const [inspectId, setInspectId] = useState<string | null>(null);
   const dragRef = useRef<{
     id: string;
     startClientX: number;
@@ -77,6 +79,16 @@ export default function StudioPage() {
   const selected = useMemo(
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
+  );
+
+  const inspectBlock = useMemo(
+    () => project.blocks.find((b) => b.id === inspectId) ?? null,
+    [project.blocks, inspectId],
+  );
+
+  const inspectSummary = useMemo(
+    () => (inspectBlock ? blockResultSummary(inspectBlock) : null),
+    [inspectBlock],
   );
 
   function patchBlock(
@@ -196,7 +208,7 @@ export default function StudioPage() {
       if (current.status === "completed" && current.output_url) {
         patchBlock(selected.id, {
           status: "completed",
-          mediaUrls: [current.output_url],
+          mediaUrls: [current.output_url, ...selected.mediaUrls].slice(0, 8),
           bodyText: prompt,
         });
       } else {
@@ -290,6 +302,10 @@ export default function StudioPage() {
                 onClick={(e) => {
                   e.stopPropagation();
                   selectBlock(block.id);
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  setInspectId(block.id);
                 }}
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
@@ -529,11 +545,19 @@ export default function StudioPage() {
                 >
                   {generating ? "Generating…" : "Generate"}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setInspectId(selected.id)}
+                  className="w-full rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-sky-500/60"
+                >
+                  Inspect result
+                </button>
                 {generateError ? (
                   <p className="text-[11px] text-rose-400">{generateError}</p>
                 ) : (
                   <p className="text-[11px] text-slate-500">
-                    Runs POST /jobs and writes the result back onto this canvas block.
+                    Runs POST /jobs and writes the result back onto this canvas block. Double-click
+                    a block to inspect.
                   </p>
                 )}
               </div>
@@ -558,6 +582,57 @@ export default function StudioPage() {
           </div>
         </aside>
       </div>
+
+      {inspectSummary && inspectBlock && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+          onClick={() => setInspectId(null)}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex min-h-[240px] flex-1 items-center justify-center bg-slate-950 p-4">
+              {inspectSummary.primaryMedia ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={inspectSummary.primaryMedia}
+                  alt=""
+                  className="max-h-[70vh] max-w-full rounded object-contain"
+                />
+              ) : (
+                <p className="whitespace-pre-wrap text-sm text-slate-300">
+                  {inspectBlock.bodyText || inspectSummary.prompt || "No media yet"}
+                </p>
+              )}
+            </div>
+            <div className="flex w-72 shrink-0 flex-col border-l border-slate-800 p-4">
+              <h3 className="text-sm font-semibold">{inspectSummary.title}</h3>
+              <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-500">
+                {inspectBlock.type} · {inspectSummary.status} · {inspectSummary.quality}
+              </p>
+              <p className="mt-4 text-xs leading-relaxed text-slate-300">
+                {inspectSummary.prompt || "No prompt"}
+              </p>
+              {inspectSummary.mediaCount > 1 && (
+                <p className="mt-3 text-[11px] text-slate-500">
+                  {inspectSummary.mediaCount} results kept on this block
+                </p>
+              )}
+              <button
+                type="button"
+                className="mt-auto rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500"
+                onClick={() => {
+                  setSelectedId(inspectBlock.id);
+                  setInspectId(null);
+                }}
+              >
+                Edit in side panel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
