@@ -52,6 +52,7 @@ export default function StudioPage() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   const [inspectId, setInspectId] = useState<string | null>(null);
+  const [inspectMediaIndex, setInspectMediaIndex] = useState(0);
   const [syncLabel, setSyncLabel] = useState("local");
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [assets, setAssets] = useState<
@@ -326,6 +327,12 @@ export default function StudioPage() {
     () => (inspectBlock ? blockResultSummary(inspectBlock) : null),
     [inspectBlock],
   );
+
+  useEffect(() => {
+    setInspectMediaIndex(0);
+  }, [inspectId]);
+
+  const inspectMedia = inspectBlock?.mediaUrls[inspectMediaIndex] ?? null;
 
   const viewMode: StudioViewMode = project.viewMode ?? "workflow";
   viewModeRef.current = viewMode;
@@ -1191,10 +1198,10 @@ export default function StudioPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex min-h-[240px] flex-1 items-center justify-center bg-slate-950 p-4">
-              {inspectSummary.primaryMedia ? (
+              {inspectMedia ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={inspectSummary.primaryMedia}
+                  src={inspectMedia}
                   alt=""
                   className="max-h-[70vh] max-w-full rounded object-contain"
                 />
@@ -1213,9 +1220,29 @@ export default function StudioPage() {
                 {inspectSummary.prompt || "No prompt"}
               </p>
               {inspectSummary.mediaCount > 1 && (
-                <p className="mt-3 text-[11px] text-slate-500">
-                  {inspectSummary.mediaCount} results kept on this block
-                </p>
+                <div className="mt-4">
+                  <p className="text-[11px] text-slate-500">
+                    Result {inspectMediaIndex + 1} of {inspectSummary.mediaCount}
+                  </p>
+                  <div className="mt-2 grid grid-cols-4 gap-2">
+                    {inspectBlock.mediaUrls.map((url, index) => (
+                      <button
+                        key={`${url}-${index}`}
+                        type="button"
+                        onClick={() => setInspectMediaIndex(index)}
+                        className={`overflow-hidden rounded border ${
+                          index === inspectMediaIndex
+                            ? "border-sky-400"
+                            : "border-slate-700 hover:border-slate-500"
+                        }`}
+                        aria-label={`View result ${index + 1}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" className="aspect-square w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               <button
                 type="button"
