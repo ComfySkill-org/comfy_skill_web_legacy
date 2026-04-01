@@ -17,6 +17,7 @@ import {
   alignProjectBlocksToGrid,
   apiProjectToCanvas,
   applySkillTemplate,
+  BLOCK_STATUS_META,
   BLOCK_TYPE_LABELS,
   blockResultSummary,
   blockLinkSummary,
@@ -72,17 +73,6 @@ const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
 const PROJECT_LIST_PREFERENCE_KEY = "comfyskill.studio.project-list";
 type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
 type ProjectSort = "updated-desc" | "updated-asc" | "title-asc" | "title-desc";
-
-const BLOCK_STATUS_META: Record<
-  CanvasBlockStatus,
-  { label: string; className: string }
-> = {
-  idle: { label: "Draft", className: "bg-slate-700/70 text-slate-300" },
-  pending: { label: "Queued", className: "bg-amber-500/15 text-amber-300" },
-  running: { label: "Generating", className: "bg-sky-500/15 text-sky-300" },
-  completed: { label: "Ready", className: "bg-emerald-500/15 text-emerald-300" },
-  failed: { label: "Failed", className: "bg-rose-500/15 text-rose-300" },
-};
 
 function projectUpdatedTimestamp(updatedAt: string | null): number {
   if (!updatedAt) return 0;
@@ -3002,7 +2992,8 @@ export default function StudioPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex h-[calc(100%-36px)] items-center justify-center px-3">
+                <div className="flex h-[calc(100%-36px)] flex-col">
+                  <div className="flex min-h-0 flex-1 items-center justify-center px-3">
                   {block.type === "text" ? (
                     <p className="line-clamp-6 w-full text-left text-xs text-slate-300">
                       {block.bodyText || block.params.prompt || "Empty text block"}
@@ -3054,6 +3045,15 @@ export default function StudioPage() {
                   ) : (
                     <p className="line-clamp-4 text-center text-xs text-slate-500">
                       {block.params.prompt || "No result yet — edit params on the right"}
+                    </p>
+                  )}
+                  </div>
+                  {block.params.prompt && block.type === "image" && (
+                    <p
+                      className="shrink-0 border-t border-slate-800 px-3 py-1.5 line-clamp-2 text-[10px] text-slate-500"
+                      title={block.params.prompt}
+                    >
+                      {block.params.prompt}
                     </p>
                   )}
                 </div>
@@ -3607,6 +3607,16 @@ export default function StudioPage() {
           <div className="flex-1 overflow-y-auto p-4">
             {selected ? (
               <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">
+                    {BLOCK_TYPE_LABELS[selected.type]}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-medium ${BLOCK_STATUS_META[selected.status].className}`}
+                  >
+                    {BLOCK_STATUS_META[selected.status].label}
+                  </span>
+                </div>
                 <label className="block text-xs text-slate-400">
                   Title
                   <input
@@ -3788,9 +3798,11 @@ export default function StudioPage() {
                       }
                       className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 outline-none focus:border-sky-500"
                     >
-                      <option value="image">Image</option>
-                      <option value="text">Text</option>
-                      <option value="video">Video</option>
+                      {(Object.keys(BLOCK_TYPE_LABELS) as CanvasBlock["type"][]).map((type) => (
+                        <option key={type} value={type}>
+                          {BLOCK_TYPE_LABELS[type]}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label className="block text-xs text-slate-400">

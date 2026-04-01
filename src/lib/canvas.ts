@@ -20,6 +20,17 @@ export type CanvasBlockStatus =
   | "completed"
   | "failed";
 
+export const BLOCK_STATUS_META: Record<
+  CanvasBlockStatus,
+  { label: string; className: string }
+> = {
+  idle: { label: "Draft", className: "bg-slate-700/70 text-slate-300" },
+  pending: { label: "Queued", className: "bg-amber-500/15 text-amber-300" },
+  running: { label: "Generating", className: "bg-sky-500/15 text-sky-300" },
+  completed: { label: "Ready", className: "bg-emerald-500/15 text-emerald-300" },
+  failed: { label: "Failed", className: "bg-rose-500/15 text-rose-300" },
+};
+
 export interface CanvasBlockParams {
   prompt: string;
   quality_tier: "premium" | "standard" | "budget";
