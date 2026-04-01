@@ -17,6 +17,7 @@ import {
   alignProjectBlocksToGrid,
   apiProjectToCanvas,
   applySkillTemplate,
+  BLOCK_TYPE_LABELS,
   blockResultSummary,
   blockLinkSummary,
   canvasProjectToApiPut,
@@ -2517,7 +2518,34 @@ export default function StudioPage() {
                 </div>
               )}
               {storyboardBlocks.length === 0 ? (
-                <p className="text-sm text-slate-500">Add blocks to build the storyboard.</p>
+                <div className="mx-auto flex max-w-sm flex-col items-center rounded-xl border border-dashed border-slate-700 bg-slate-900/80 p-6 text-center">
+                  <p className="text-sm font-medium text-slate-200">Start the storyboard</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Add blocks on the workflow canvas, then switch back to review the beat order.
+                  </p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    <button
+                      type="button"
+                      className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium hover:bg-sky-500"
+                      onClick={() => {
+                        switchView("workflow");
+                        addBlock("image");
+                      }}
+                    >
+                      + Image shot
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium hover:border-slate-400"
+                      onClick={() => {
+                        switchView("workflow");
+                        addBlock("text");
+                      }}
+                    >
+                      + Text beat
+                    </button>
+                  </div>
+                </div>
               ) : (
                 storyboardBlocks.map((block, index) => {
                   const active = block.id === selectedId;
@@ -2609,7 +2637,9 @@ export default function StudioPage() {
                               Out of order
                             </span>
                           )}
-                          <span className="text-[10px] uppercase text-slate-500">{block.type}</span>
+                          <span className="text-[10px] uppercase text-slate-500">
+                            {BLOCK_TYPE_LABELS[block.type]}
+                          </span>
                         </div>
                       </div>
                       <div className="flex h-36 items-center justify-center bg-slate-950 p-2">
@@ -2761,6 +2791,30 @@ export default function StudioPage() {
               startCanvasPan(e, projectRef.current.viewport);
             }}
           >
+          {project.blocks.length === 0 && (
+            <div className="pointer-events-auto absolute left-1/2 top-1/2 z-40 w-72 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-700 bg-slate-900/95 p-5 text-center shadow-xl">
+              <p className="text-sm font-medium text-slate-200">Start your canvas</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Add a shot or text beat, then edit prompts in the right panel.
+              </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium hover:bg-sky-500"
+                  onClick={() => addBlock("image")}
+                >
+                  + Image shot
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium hover:border-slate-400"
+                  onClick={() => addBlock("text")}
+                >
+                  + Text beat
+                </button>
+              </div>
+            </div>
+          )}
           {project.blocks.map((block) => {
             const active = block.id === selectedId;
             const isLinkSource = block.id === linkSourceId;
@@ -2939,7 +2993,7 @@ export default function StudioPage() {
                   <span className="text-xs font-medium">{block.title}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase tracking-wide text-slate-500">
-                      {block.type}
+                      {BLOCK_TYPE_LABELS[block.type]}
                     </span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${BLOCK_STATUS_META[block.status].className}`}

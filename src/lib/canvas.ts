@@ -7,6 +7,12 @@ import type { ApiProject } from "@/lib/api";
 
 export type CanvasBlockType = "image" | "text" | "video";
 
+export const BLOCK_TYPE_LABELS: Record<CanvasBlockType, string> = {
+  image: "Image",
+  text: "Text",
+  video: "Video",
+};
+
 export type CanvasBlockStatus =
   | "idle"
   | "pending"
