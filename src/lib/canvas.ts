@@ -497,6 +497,32 @@ export function blockLinkSummary(
   return { incoming, outgoing };
 }
 
+export function blockLinkCounts(
+  project: CanvasProject,
+  blockId: string,
+): { incoming: number; outgoing: number } {
+  let incoming = 0;
+  let outgoing = 0;
+
+  for (const edge of project.edges) {
+    if (edge.targetBlockId === blockId) incoming += 1;
+    if (edge.sourceBlockId === blockId) outgoing += 1;
+  }
+
+  return { incoming, outgoing };
+}
+
+export function formatBlockLinkCounts(counts: {
+  incoming: number;
+  outgoing: number;
+}): string | null {
+  if (counts.incoming === 0 && counts.outgoing === 0) return null;
+  const parts: string[] = [];
+  if (counts.incoming > 0) parts.push(`←${counts.incoming}`);
+  if (counts.outgoing > 0) parts.push(`→${counts.outgoing}`);
+  return parts.join(" ");
+}
+
 export function addEdgeBetween(
   project: CanvasProject,
   sourceBlockId: string,

@@ -21,6 +21,8 @@ import {
   BLOCK_TYPE_LABELS,
   blockResultSummary,
   blockLinkSummary,
+  blockLinkCounts,
+  formatBlockLinkCounts,
   canvasProjectToApiPut,
   clearProjectLocal,
   createImageBlock,
@@ -2540,6 +2542,9 @@ export default function StudioPage() {
                   const active = block.id === selectedId;
                   const predecessors = storyboardPredecessors.get(block.id) ?? [];
                   const outOfOrder = storyboardUnresolvedIds.has(block.id);
+                  const storyboardLinkCountsLabel = formatBlockLinkCounts(
+                    blockLinkCounts(project, block.id),
+                  );
                   return (
                     <button
                       key={block.id}
@@ -2651,6 +2656,14 @@ export default function StudioPage() {
                         >
                           {BLOCK_STATUS_META[block.status].label}
                         </span>
+                        {storyboardLinkCountsLabel && (
+                          <span
+                            className="text-[10px] font-medium text-slate-400"
+                            title="Flow links on canvas"
+                          >
+                            {storyboardLinkCountsLabel}
+                          </span>
+                        )}
                         <span
                           className="truncate text-[10px] text-slate-500"
                           title={
@@ -2815,6 +2828,7 @@ export default function StudioPage() {
               linkSourceId && !isLinkSource && !linkTargetFailure,
             );
             const isInvalidLinkTarget = Boolean(linkSourceId && linkTargetFailure);
+            const linkCountsLabel = formatBlockLinkCounts(blockLinkCounts(project, block.id));
             return (
               <div
                 key={block.id}
@@ -2981,6 +2995,14 @@ export default function StudioPage() {
                 <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
                   <span className="text-xs font-medium">{block.title}</span>
                   <div className="flex items-center gap-2">
+                    {linkCountsLabel && (
+                      <span
+                        className="text-[10px] font-medium text-slate-400"
+                        title="Flow links on canvas"
+                      >
+                        {linkCountsLabel}
+                      </span>
+                    )}
                     <span className="text-[10px] uppercase tracking-wide text-slate-500">
                       {BLOCK_TYPE_LABELS[block.type]}
                     </span>
