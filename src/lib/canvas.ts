@@ -188,3 +188,65 @@ export function addEdgeBetween(
   };
 }
 
+/** Productized openings for the right panel (PRD-legacy C9). */
+export interface SkillTemplate {
+  id: string;
+  title: string;
+  blurb: string;
+  blockType: CanvasBlockType;
+  prompt: string;
+  bodyText?: string;
+}
+
+export const SKILL_TEMPLATES: SkillTemplate[] = [
+  {
+    id: "pixar-short",
+    title: "Pixar-style short",
+    blurb: "Warm character moment · soft lighting",
+    blockType: "image",
+    prompt:
+      "Pixar-style 3D character still, emotional close-up, soft cinematic lighting, shallow depth of field",
+  },
+  {
+    id: "viral-remake",
+    title: "Viral remake",
+    blurb: "Hook frame for a short-form cut",
+    blockType: "image",
+    prompt:
+      "High-contrast vertical thumbnail frame, bold subject, social-first composition, 9:16 safe margins",
+  },
+  {
+    id: "scene-beat",
+    title: "Scene beat",
+    blurb: "Text beat to place before a shot",
+    blockType: "text",
+    prompt: "Write a one-sentence scene beat for the next shot",
+    bodyText: "INT. LOCATION — DAY\nA single beat that sets emotion before the cut.",
+  },
+];
+
+export function applySkillTemplate(
+  project: CanvasProject,
+  template: SkillTemplate,
+): { project: CanvasProject; blockId: string } {
+  const offset = project.blocks.length;
+  const base = {
+    x: 100 + offset * 36,
+    y: 100 + offset * 28,
+    title: template.title,
+    params: {
+      prompt: template.prompt,
+      quality_tier: "standard" as const,
+    },
+  };
+  const block =
+    template.blockType === "text"
+      ? createTextBlock({ ...base, bodyText: template.bodyText ?? "" })
+      : createImageBlock(base);
+  return {
+    project: { ...project, blocks: [...project.blocks, block] },
+    blockId: block.id,
+  };
+}
+
+

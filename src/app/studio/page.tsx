@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/api";
 import {
   addEdgeBetween,
+  applySkillTemplate,
   clearProjectLocal,
   createImageBlock,
   createStarterProject,
@@ -12,6 +13,7 @@ import {
   loadProjectLocal,
   moveBlock,
   saveProjectLocal,
+  SKILL_TEMPLATES,
   type CanvasBlock,
   type CanvasBlockStatus,
   type CanvasProject,
@@ -136,6 +138,16 @@ export default function StudioPage() {
       return;
     }
     setLinkSourceId(selectedId);
+    setGenerateError("");
+  }
+
+  function applyTemplate(templateId: string) {
+    const template = SKILL_TEMPLATES.find((t) => t.id === templateId);
+    if (!template) return;
+    const { project: next, blockId } = applySkillTemplate(project, template);
+    setProject(next);
+    setSelectedId(blockId);
+    setLinkSourceId(null);
     setGenerateError("");
   }
 
@@ -431,11 +443,21 @@ export default function StudioPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-3 text-xs text-slate-400">
-                <p>Every skill is an opening — templates will land here.</p>
-                <div className="rounded-lg border border-dashed border-slate-700 p-4">
-                  Pixar-style short · Viral remake · …
-                </div>
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">
+                  Every skill is an opening — pick one to drop a seeded block on the canvas.
+                </p>
+                {SKILL_TEMPLATES.map((skill) => (
+                  <button
+                    key={skill.id}
+                    type="button"
+                    onClick={() => applyTemplate(skill.id)}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950/80 p-3 text-left hover:border-sky-500/60"
+                  >
+                    <div className="text-sm font-medium text-slate-100">{skill.title}</div>
+                    <div className="mt-1 text-[11px] text-slate-500">{skill.blurb}</div>
+                  </button>
+                ))}
               </div>
             )}
           </div>
