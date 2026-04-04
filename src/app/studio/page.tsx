@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/api";
 import {
+  addEdgeBetween,
   clearProjectLocal,
   createImageBlock,
   createStarterProject,
   createTextBlock,
   loadProjectLocal,
+  moveBlock,
   saveProjectLocal,
   type CanvasBlock,
   type CanvasBlockStatus,
@@ -23,8 +25,14 @@ export default function StudioPage() {
   const [project, setProject] = useState<CanvasProject>(() => createStarterProject());
   const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [linkSourceId, setLinkSourceId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const dragRef = useRef<{
+    id: string;
+    offsetX: number;
+    offsetY: number;
+  } | null>(null);
 
   useEffect(() => {
     const saved = loadProjectLocal();
@@ -36,6 +44,25 @@ export default function StudioPage() {
     if (!hydrated) return;
     saveProjectLocal(project);
   }, [project, hydrated]);
+
+  useEffect(() => {
+    function onPointerMove(e: PointerEvent) {
+      const drag = dragRef.current;
+      if (!drag) return;
+      setProject((prev) =>
+        moveBlock(prev, drag.id, e.clientX - drag.offsetX, e.clientY - drag.offsetY),
+      );
+    }
+    function onPointerUp() {
+      dragRef.current = null;
+    }
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, []);
 
   const selected = useMemo(
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
@@ -88,6 +115,27 @@ export default function StudioPage() {
     const next = createStarterProject();
     setProject(next);
     setSelectedId(null);
+    setLinkSourceId(null);
+    setGenerateError("");
+  }
+
+  function selectBlock(blockId: string) {
+    setSelectedId(blockId);
+    setLinkSourceId((prev) => {
+      if (prev && prev !== blockId) {
+        setProject((p) => addEdgeBetween(p, prev, blockId));
+        return null;
+      }
+      return prev;
+    });
+  }
+
+  function startLinkMode() {
+    if (!selectedId) {
+      setGenerateError("Select a source block, then click Link and pick the target.");
+      return;
+    }
+    setLinkSourceId(selectedId);
     setGenerateError("");
   }
 
@@ -184,12 +232,14 @@ export default function StudioPage() {
 
           {project.blocks.map((block) => {
             const active = block.id === selectedId;
+            const isLinkSource = block.id === linkSourceId;
             return (
-              <button
+              <div
                 key={block.id}
-                type="button"
-                className={`absolute rounded-lg border text-left shadow-lg transition ${
-                  active
+                role="button"
+                tabIndex={0}
+                className={`absolute cursor-grab rounded-lg border text-left shadow-lg transition active:cursor-grabbing ${
+                  active || isLinkSource
                     ? "border-sky-400 ring-2 ring-sky-400/40"
                     : "border-slate-700 hover:border-slate-500"
                 } bg-slate-900/95`}
@@ -201,7 +251,23 @@ export default function StudioPage() {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedId(block.id);
+                  selectBlock(block.id);
+                }}
+                onPointerDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.stopPropagation();
+                  selectBlock(block.id);
+                  dragRef.current = {
+                    id: block.id,
+                    offsetX: e.clientX - block.x,
+                    offsetY: e.clientY - block.y,
+                  };
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    selectBlock(block.id);
+                  }
                 }}
               >
                 <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
@@ -228,7 +294,7 @@ export default function StudioPage() {
                     </p>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
 
@@ -252,6 +318,20 @@ export default function StudioPage() {
               className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
             >
               + Text
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                startLinkMode();
+              }}
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                linkSourceId
+                  ? "bg-amber-500 text-slate-950"
+                  : "bg-slate-700 hover:bg-slate-600"
+              }`}
+            >
+              {linkSourceId ? "Pick target…" : "Link"}
             </button>
             <button
               type="button"

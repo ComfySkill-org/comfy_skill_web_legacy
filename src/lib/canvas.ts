@@ -149,3 +149,42 @@ export function createStarterProject(): CanvasProject {
   ];
   return p;
 }
+
+export function moveBlock(
+  project: CanvasProject,
+  blockId: string,
+  x: number,
+  y: number,
+): CanvasProject {
+  return {
+    ...project,
+    blocks: project.blocks.map((b) => (b.id === blockId ? { ...b, x, y } : b)),
+  };
+}
+
+/** Add a flow edge if both blocks exist and the pair is not already linked. */
+export function addEdgeBetween(
+  project: CanvasProject,
+  sourceBlockId: string,
+  targetBlockId: string,
+): CanvasProject {
+  if (sourceBlockId === targetBlockId) return project;
+  const ids = new Set(project.blocks.map((b) => b.id));
+  if (!ids.has(sourceBlockId) || !ids.has(targetBlockId)) return project;
+  const exists = project.edges.some(
+    (e) => e.sourceBlockId === sourceBlockId && e.targetBlockId === targetBlockId,
+  );
+  if (exists) return project;
+  return {
+    ...project,
+    edges: [
+      ...project.edges,
+      {
+        id: crypto.randomUUID(),
+        sourceBlockId,
+        targetBlockId,
+      },
+    ],
+  };
+}
+
