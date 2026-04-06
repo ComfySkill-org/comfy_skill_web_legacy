@@ -249,4 +249,23 @@ export function applySkillTemplate(
   };
 }
 
+export function removeBlock(project: CanvasProject, blockId: string): CanvasProject {
+  return {
+    ...project,
+    blocks: project.blocks.filter((b) => b.id !== blockId),
+    edges: project.edges.filter(
+      (e) => e.sourceBlockId !== blockId && e.targetBlockId !== blockId,
+    ),
+  };
+}
+
+export function setViewportZoom(project: CanvasProject, zoom: number): CanvasProject {
+  const clamped = Math.min(2, Math.max(0.35, Math.round(zoom * 100) / 100));
+  return {
+    ...project,
+    viewport: { ...project.viewport, zoom: clamped },
+  };
+}
+
+
 

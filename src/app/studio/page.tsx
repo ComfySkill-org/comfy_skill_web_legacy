@@ -12,7 +12,9 @@ import {
   createTextBlock,
   loadProjectLocal,
   moveBlock,
+  removeBlock,
   saveProjectLocal,
+  setViewportZoom,
   SKILL_TEMPLATES,
   type CanvasBlock,
   type CanvasBlockStatus,
@@ -32,9 +34,13 @@ export default function StudioPage() {
   const [generateError, setGenerateError] = useState("");
   const dragRef = useRef<{
     id: string;
-    offsetX: number;
-    offsetY: number;
+    startClientX: number;
+    startClientY: number;
+    origX: number;
+    origY: number;
   } | null>(null);
+  const zoomRef = useRef(project.viewport.zoom);
+  zoomRef.current = project.viewport.zoom;
 
   useEffect(() => {
     const saved = loadProjectLocal();
@@ -51,9 +57,10 @@ export default function StudioPage() {
     function onPointerMove(e: PointerEvent) {
       const drag = dragRef.current;
       if (!drag) return;
-      setProject((prev) =>
-        moveBlock(prev, drag.id, e.clientX - drag.offsetX, e.clientY - drag.offsetY),
-      );
+      const z = zoomRef.current || 1;
+      const x = drag.origX + (e.clientX - drag.startClientX) / z;
+      const y = drag.origY + (e.clientY - drag.startClientY) / z;
+      setProject((prev) => moveBlock(prev, drag.id, x, y));
     }
     function onPointerUp() {
       dragRef.current = null;
@@ -151,6 +158,17 @@ export default function StudioPage() {
     setGenerateError("");
   }
 
+  function deleteSelected() {
+    if (!selectedId) return;
+    setProject((prev) => removeBlock(prev, selectedId));
+    setSelectedId(null);
+    setLinkSourceId(null);
+  }
+
+  function zoomBy(delta: number) {
+    setProject((prev) => setViewportZoom(prev, prev.viewport.zoom + delta));
+  }
+
   async function generateSelected() {
     if (!selected) return;
     const prompt = selected.params.prompt.trim();
@@ -221,7 +239,10 @@ export default function StudioPage() {
           }}
           onClick={() => setSelectedId(null)}
         >
-          <svg className="pointer-events-none absolute inset-0 h-full w-full">
+          <svg
+            className="pointer-events-none absolute inset-0 h-full w-full origin-top-left"
+            style={{ transform: `scale(${project.viewport.zoom})` }}
+          >
             {project.edges.map((edge) => {
               const src = project.blocks.find((b) => b.id === edge.sourceBlockId);
               const tgt = project.blocks.find((b) => b.id === edge.targetBlockId);
@@ -242,6 +263,10 @@ export default function StudioPage() {
             })}
           </svg>
 
+          <div
+            className="absolute inset-0 origin-top-left"
+            style={{ transform: `scale(${project.viewport.zoom})` }}
+          >
           {project.blocks.map((block) => {
             const active = block.id === selectedId;
             const isLinkSource = block.id === linkSourceId;
@@ -271,8 +296,10 @@ export default function StudioPage() {
                   selectBlock(block.id);
                   dragRef.current = {
                     id: block.id,
-                    offsetX: e.clientX - block.x,
-                    offsetY: e.clientY - block.y,
+                    startClientX: e.clientX,
+                    startClientY: e.clientY,
+                    origX: block.x,
+                    origY: block.y,
                   };
                 }}
                 onKeyDown={(e) => {
@@ -309,6 +336,7 @@ export default function StudioPage() {
               </div>
             );
           })}
+          </div>
 
           <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl">
             <button
@@ -344,6 +372,37 @@ export default function StudioPage() {
               }`}
             >
               {linkSourceId ? "Pick target…" : "Link"}
+            </button>
+            <button
+              type="button"
+              disabled={!selectedId}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteSelected();
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-rose-600 disabled:opacity-40"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(-0.1);
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomBy(0.1);
+              }}
+              className="rounded-full bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+            >
+              +
             </button>
             <button
               type="button"
