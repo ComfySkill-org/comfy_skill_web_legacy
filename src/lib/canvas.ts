@@ -52,6 +52,8 @@ export interface CanvasProject {
   viewport: CanvasViewport;
 }
 
+const STORAGE_KEY = "comfyskill.studio.project.v1";
+
 export function createEmptyProject(title = "Untitled project"): CanvasProject {
   return {
     id: crypto.randomUUID(),
@@ -60,6 +62,10 @@ export function createEmptyProject(title = "Untitled project"): CanvasProject {
     edges: [],
     viewport: { x: 0, y: 0, zoom: 1 },
   };
+}
+
+function defaultParams(): CanvasBlockParams {
+  return { prompt: "", quality_tier: "standard" };
 }
 
 export function createImageBlock(
@@ -76,9 +82,70 @@ export function createImageBlock(
     mediaUrls: [],
     status: "idle",
     jobId: null,
-    params: partial?.params ?? {
-      prompt: "",
-      quality_tier: "standard",
-    },
+    params: partial?.params ?? defaultParams(),
   };
+}
+
+export function createTextBlock(
+  partial?: Partial<Pick<CanvasBlock, "x" | "y" | "title" | "bodyText" | "params">>,
+): CanvasBlock {
+  return {
+    id: crypto.randomUUID(),
+    type: "text",
+    title: partial?.title ?? "Text block",
+    x: partial?.x ?? 120,
+    y: partial?.y ?? 120,
+    width: 280,
+    height: 180,
+    bodyText: partial?.bodyText ?? "",
+    mediaUrls: [],
+    status: "idle",
+    jobId: null,
+    params: partial?.params ?? defaultParams(),
+  };
+}
+
+/** Client-side persistence until Postgres projects API lands (PRD-legacy C7). */
+export function saveProjectLocal(project: CanvasProject): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+  } catch {
+    /* quota / private mode — ignore */
+  }
+}
+
+export function loadProjectLocal(): CanvasProject | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CanvasProject;
+    if (!parsed?.id || !Array.isArray(parsed.blocks) || !Array.isArray(parsed.edges)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearProjectLocal(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+export function createStarterProject(): CanvasProject {
+  const p = createEmptyProject("Studio draft");
+  const a = createImageBlock({ x: 80, y: 100, title: "Shot A" });
+  const b = createImageBlock({ x: 420, y: 160, title: "Shot B" });
+  p.blocks = [a, b];
+  p.edges = [
+    {
+      id: crypto.randomUUID(),
+      sourceBlockId: a.id,
+      targetBlockId: b.id,
+    },
+  ];
+  return p;
 }

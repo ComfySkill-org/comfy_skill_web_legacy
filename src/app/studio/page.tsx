@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/api";
 import {
-  createEmptyProject,
+  clearProjectLocal,
   createImageBlock,
+  createStarterProject,
+  createTextBlock,
+  loadProjectLocal,
+  saveProjectLocal,
   type CanvasBlock,
   type CanvasBlockStatus,
   type CanvasProject,
@@ -16,23 +20,22 @@ import {
  * Center: flow + results. Right: params when a block is selected.
  */
 export default function StudioPage() {
-  const [project, setProject] = useState<CanvasProject>(() => {
-    const p = createEmptyProject("Studio draft");
-    const a = createImageBlock({ x: 80, y: 100, title: "Shot A" });
-    const b = createImageBlock({ x: 420, y: 160, title: "Shot B" });
-    p.blocks = [a, b];
-    p.edges = [
-      {
-        id: crypto.randomUUID(),
-        sourceBlockId: a.id,
-        targetBlockId: b.id,
-      },
-    ];
-    return p;
-  });
+  const [project, setProject] = useState<CanvasProject>(() => createStarterProject());
+  const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+
+  useEffect(() => {
+    const saved = loadProjectLocal();
+    if (saved) setProject(saved);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveProjectLocal(project);
+  }, [project, hydrated]);
 
   const selected = useMemo(
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
@@ -62,14 +65,30 @@ export default function StudioPage() {
     patchBlock(selectedId, patch);
   }
 
-  function addBlock() {
-    const block = createImageBlock({
-      x: 80 + project.blocks.length * 40,
-      y: 80 + project.blocks.length * 30,
-      title: `Shot ${String.fromCharCode(65 + project.blocks.length)}`,
-    });
+  function addBlock(type: "image" | "text" = "image") {
+    const offset = project.blocks.length;
+    const block =
+      type === "text"
+        ? createTextBlock({
+            x: 80 + offset * 40,
+            y: 80 + offset * 30,
+            title: `Text ${offset + 1}`,
+          })
+        : createImageBlock({
+            x: 80 + offset * 40,
+            y: 80 + offset * 30,
+            title: `Shot ${String.fromCharCode(65 + offset)}`,
+          });
     setProject((prev) => ({ ...prev, blocks: [...prev.blocks, block] }));
     setSelectedId(block.id);
+  }
+
+  function resetProject() {
+    clearProjectLocal();
+    const next = createStarterProject();
+    setProject(next);
+    setSelectedId(null);
+    setGenerateError("");
   }
 
   async function generateSelected() {
@@ -192,7 +211,11 @@ export default function StudioPage() {
                   </span>
                 </div>
                 <div className="flex h-[calc(100%-36px)] items-center justify-center px-3">
-                  {block.mediaUrls[0] ? (
+                  {block.type === "text" ? (
+                    <p className="line-clamp-6 w-full text-left text-xs text-slate-300">
+                      {block.bodyText || block.params.prompt || "Empty text block"}
+                    </p>
+                  ) : block.mediaUrls[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={block.mediaUrls[0]}
@@ -214,14 +237,34 @@ export default function StudioPage() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                addBlock();
+                addBlock("image");
               }}
               className="rounded-full bg-sky-600 px-3 py-1 text-xs font-medium hover:bg-sky-500"
             >
-              + Block
+              + Image
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                addBlock("text");
+              }}
+              className="rounded-full bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600"
+            >
+              + Text
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetProject();
+              }}
+              className="rounded-full px-3 py-1 text-xs text-slate-400 hover:text-white"
+            >
+              Reset
             </button>
             <span className="px-2 text-xs leading-6 text-slate-500">
-              {Math.round(project.viewport.zoom * 100)}%
+              {Math.round(project.viewport.zoom * 100)}% · saved locally
             </span>
           </div>
         </main>
@@ -250,6 +293,16 @@ export default function StudioPage() {
                     onChange={(e) => updateSelected({ title: e.target.value })}
                   />
                 </label>
+                {selected.type === "text" && (
+                  <label className="block text-xs text-slate-400">
+                    Body
+                    <textarea
+                      className="mt-1 h-28 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+                      value={selected.bodyText ?? ""}
+                      onChange={(e) => updateSelected({ bodyText: e.target.value })}
+                    />
+                  </label>
+                )}
                 <label className="block text-xs text-slate-400">
                   Prompt
                   <textarea
