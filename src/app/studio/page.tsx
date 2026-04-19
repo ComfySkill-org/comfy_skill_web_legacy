@@ -1,0 +1,249 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import {
+  createEmptyProject,
+  createImageBlock,
+  type CanvasBlock,
+  type CanvasProject,
+} from "@/lib/canvas";
+
+/**
+ * Studio shell — Phase 1 canvas MVP (PRD-legacy).
+ * Center: flow + results. Right: params when a block is selected.
+ */
+export default function StudioPage() {
+  const [project, setProject] = useState<CanvasProject>(() => {
+    const p = createEmptyProject("Studio draft");
+    const a = createImageBlock({ x: 80, y: 100, title: "Shot A" });
+    const b = createImageBlock({ x: 420, y: 160, title: "Shot B" });
+    p.blocks = [a, b];
+    p.edges = [
+      {
+        id: crypto.randomUUID(),
+        sourceBlockId: a.id,
+        targetBlockId: b.id,
+      },
+    ];
+    return p;
+  });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const selected = useMemo(
+    () => project.blocks.find((b) => b.id === selectedId) ?? null,
+    [project.blocks, selectedId],
+  );
+
+  function updateSelected(patch: Partial<CanvasBlock> & { params?: CanvasBlock["params"] }) {
+    if (!selectedId) return;
+    setProject((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((b) =>
+        b.id === selectedId
+          ? {
+              ...b,
+              ...patch,
+              params: patch.params ? { ...b.params, ...patch.params } : b.params,
+            }
+          : b,
+      ),
+    }));
+  }
+
+  function addBlock() {
+    const block = createImageBlock({
+      x: 80 + project.blocks.length * 40,
+      y: 80 + project.blocks.length * 30,
+      title: `Shot ${String.fromCharCode(65 + project.blocks.length)}`,
+    });
+    setProject((prev) => ({ ...prev, blocks: [...prev.blocks, block] }));
+    setSelectedId(block.id);
+  }
+
+  return (
+    <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-slate-800 px-4">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-sm text-slate-400 hover:text-white">
+            ComfySkill
+          </Link>
+          <span className="text-slate-600">/</span>
+          <span className="text-sm font-medium">{project.title}</span>
+          <span className="rounded bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+            Workflow
+          </span>
+        </div>
+        <Link href="/app" className="text-xs text-slate-400 hover:text-white">
+          Legacy form
+        </Link>
+      </header>
+
+      <div className="flex min-h-0 flex-1">
+        {/* Canvas — flow + results */}
+        <main
+          className="relative min-w-0 flex-1 overflow-hidden"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(148,163,184,0.18) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+          onClick={() => setSelectedId(null)}
+        >
+          <svg className="pointer-events-none absolute inset-0 h-full w-full">
+            {project.edges.map((edge) => {
+              const src = project.blocks.find((b) => b.id === edge.sourceBlockId);
+              const tgt = project.blocks.find((b) => b.id === edge.targetBlockId);
+              if (!src || !tgt) return null;
+              const x1 = src.x + src.width;
+              const y1 = src.y + src.height / 2;
+              const x2 = tgt.x;
+              const y2 = tgt.y + tgt.height / 2;
+              return (
+                <path
+                  key={edge.id}
+                  d={`M ${x1} ${y1} C ${x1 + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`}
+                  stroke="rgba(148,163,184,0.55)"
+                  strokeWidth={1.5}
+                  fill="none"
+                />
+              );
+            })}
+          </svg>
+
+          {project.blocks.map((block) => {
+            const active = block.id === selectedId;
+            return (
+              <button
+                key={block.id}
+                type="button"
+                className={`absolute rounded-lg border text-left shadow-lg transition ${
+                  active
+                    ? "border-sky-400 ring-2 ring-sky-400/40"
+                    : "border-slate-700 hover:border-slate-500"
+                } bg-slate-900/95`}
+                style={{
+                  left: block.x,
+                  top: block.y,
+                  width: block.width,
+                  height: block.height,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedId(block.id);
+                }}
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
+                  <span className="text-xs font-medium">{block.title}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-slate-500">
+                    {block.type} · {block.status}
+                  </span>
+                </div>
+                <div className="flex h-[calc(100%-36px)] items-center justify-center px-3">
+                  {block.mediaUrls[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={block.mediaUrls[0]}
+                      alt=""
+                      className="max-h-full max-w-full rounded object-contain"
+                    />
+                  ) : (
+                    <p className="line-clamp-4 text-center text-xs text-slate-500">
+                      {block.params.prompt || "No result yet — edit params on the right"}
+                    </p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+
+          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-2 shadow-xl">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                addBlock();
+              }}
+              className="rounded-full bg-sky-600 px-3 py-1 text-xs font-medium hover:bg-sky-500"
+            >
+              + Block
+            </button>
+            <span className="px-2 text-xs leading-6 text-slate-500">
+              {Math.round(project.viewport.zoom * 100)}%
+            </span>
+          </div>
+        </main>
+
+        {/* Right — params when selected */}
+        <aside className="flex w-80 shrink-0 flex-col border-l border-slate-800 bg-slate-900">
+          <div className="border-b border-slate-800 px-4 py-3">
+            <h2 className="text-sm font-semibold">
+              {selected ? "Block params" : "New dialogue"}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {selected
+                ? "Edit this block on the right; canvas stays result-focused."
+                : "Select a block to edit params, or add a block from the toolbar."}
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {selected ? (
+              <div className="space-y-4">
+                <label className="block text-xs text-slate-400">
+                  Title
+                  <input
+                    className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+                    value={selected.title}
+                    onChange={(e) => updateSelected({ title: e.target.value })}
+                  />
+                </label>
+                <label className="block text-xs text-slate-400">
+                  Prompt
+                  <textarea
+                    className="mt-1 h-28 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+                    value={selected.params.prompt}
+                    onChange={(e) =>
+                      updateSelected({
+                        params: { ...selected.params, prompt: e.target.value },
+                      })
+                    }
+                  />
+                </label>
+                <label className="block text-xs text-slate-400">
+                  Quality
+                  <select
+                    className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm"
+                    value={selected.params.quality_tier}
+                    onChange={(e) =>
+                      updateSelected({
+                        params: {
+                          ...selected.params,
+                          quality_tier: e.target.value as CanvasBlock["params"]["quality_tier"],
+                        },
+                      })
+                    }
+                  >
+                    <option value="premium">Good</option>
+                    <option value="standard">Medium</option>
+                    <option value="budget">Budget</option>
+                  </select>
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Generate wiring (POST /jobs → write back media) lands in the next iteration.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs text-slate-400">
+                <p>Every skill is an opening — templates will land here.</p>
+                <div className="rounded-lg border border-dashed border-slate-700 p-4">
+                  Pixar-style short · Viral remake · …
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
