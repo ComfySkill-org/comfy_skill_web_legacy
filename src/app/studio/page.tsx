@@ -917,6 +917,15 @@ export default function StudioPage() {
     () => project.blocks.find((b) => b.id === selectedId) ?? null,
     [project.blocks, selectedId],
   );
+  const selectedCreditEstimate =
+    selected?.type === "image" ? QUALITY_CREDITS[selected.params.quality_tier] : null;
+  const hasInsufficientCredits =
+    balanceCredits !== null &&
+    selectedCreditEstimate !== null &&
+    balanceCredits < selectedCreditEstimate;
+  const lowCreditBalance =
+    balanceCredits !== null &&
+    balanceCredits < (selectedCreditEstimate ?? QUALITY_CREDITS.budget);
   const linkSourceBlock = useMemo(
     () => project.blocks.find((block) => block.id === linkSourceId) ?? null,
     [project.blocks, linkSourceId],
@@ -2090,6 +2099,17 @@ export default function StudioPage() {
       setGenerateError("Enter a prompt in the right panel first.");
       return;
     }
+    if (!isStudioAuthed()) {
+      setGenerateError("Log in to generate images from the studio.");
+      return;
+    }
+    const creditEstimate = QUALITY_CREDITS[selected.params.quality_tier];
+    if (balanceCredits !== null && balanceCredits < creditEstimate) {
+      setGenerateError(
+        `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
+      );
+      return;
+    }
 
     setGenerateError("");
     setGenerating(true);
@@ -2169,7 +2189,11 @@ export default function StudioPage() {
           {balanceCredits !== null && (
             <Link
               href="/settings/billing"
-              className="rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:border-sky-500/60 hover:text-white"
+              className={`rounded-full border px-2.5 py-1 text-xs ${
+                lowCreditBalance
+                  ? "border-amber-500/60 text-amber-300 hover:border-amber-400 hover:text-amber-200"
+                  : "border-slate-700 text-slate-300 hover:border-sky-500/60 hover:text-white"
+              }`}
             >
               {balanceCredits.toLocaleString()} credits
             </Link>
@@ -3348,7 +3372,9 @@ export default function StudioPage() {
                 )}
                 <button
                   type="button"
-                  disabled={generating || selected.type !== "image"}
+                  disabled={
+                    generating || selected.type !== "image" || hasInsufficientCredits
+                  }
                   onClick={() => void generateSelected()}
                   className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
                 >
@@ -3370,6 +3396,17 @@ export default function StudioPage() {
                     {selected.type === "text"
                       ? "Edit text content directly above; no generation job is required."
                       : "Video blocks are placeholders until a video capability is connected."}
+                  </p>
+                ) : hasInsufficientCredits ? (
+                  <p className="text-[11px] text-amber-400">
+                    Need {selectedCreditEstimate} credits for this tier; you have{" "}
+                    {balanceCredits?.toLocaleString()}.{" "}
+                    <Link
+                      href="/settings/billing"
+                      className="underline hover:text-amber-300"
+                    >
+                      Add credits in Billing
+                    </Link>
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-500">
