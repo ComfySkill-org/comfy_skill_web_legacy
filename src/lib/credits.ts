@@ -17,6 +17,14 @@ export function isLowCreditBalance(balance: number): boolean {
   return balance < QUALITY_CREDITS.budget;
 }
 
+export function hasCreditsForGeneration(balance: number, tier: QualityTier): boolean {
+  return balance >= QUALITY_CREDITS[tier];
+}
+
+export function formatInsufficientCreditsMessage(creditEstimate: number): string {
+  return `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`;
+}
+
 /** Monthly credits included with each subscription plan (after webhook). */
 export const PLAN_MONTHLY_CREDITS = {
   standard: 4200,

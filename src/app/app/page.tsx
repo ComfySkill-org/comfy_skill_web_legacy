@@ -12,7 +12,12 @@ import {
   type QualityTier,
   type User,
 } from "@/lib/api";
-import { QUALITY_CREDITS } from "@/lib/credits";
+import {
+  formatInsufficientCreditsMessage,
+  hasCreditsForGeneration,
+  isLowCreditBalance,
+  QUALITY_CREDITS,
+} from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
@@ -74,10 +79,8 @@ export default function AppPage() {
     e.preventDefault();
     setError("");
     const creditEstimate = QUALITY_CREDITS[quality];
-    if (user && user.balance_credits < creditEstimate) {
-      setError(
-        `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
-      );
+    if (user && !hasCreditsForGeneration(user.balance_credits, quality)) {
+      setError(formatInsufficientCreditsMessage(creditEstimate));
       return;
     }
     setLoading(true);
@@ -88,9 +91,7 @@ export default function AppPage() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
         void apiClient.me().then(setUser).catch(() => undefined);
-        setError(
-          `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
-        );
+        setError(formatInsufficientCreditsMessage(creditEstimate));
         return;
       }
       setError(err instanceof Error ? err.message : "Generation failed");
@@ -104,8 +105,8 @@ export default function AppPage() {
   }
 
   const creditEstimate = QUALITY_CREDITS[quality];
-  const hasInsufficientCredits = user.balance_credits < creditEstimate;
-  const lowCreditBalance = user.balance_credits < QUALITY_CREDITS.budget;
+  const hasInsufficientCredits = !hasCreditsForGeneration(user.balance_credits, quality);
+  const lowCreditBalance = isLowCreditBalance(user.balance_credits);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
@@ -206,6 +207,12 @@ export default function AppPage() {
           )}
           {job.error_message && (
             <p className="text-sm text-red-600">{job.error_message}</p>
+          )}
+          {(job.status === "completed" || job.status === "failed") && (
+            <p className="text-xs text-skill-muted">
+              {(job.status === "completed" ? "Charged" : "Estimated")}{" "}
+              {(job.credits_charged ?? job.credits_estimated).toLocaleString()} credits
+            </p>
           )}
           {job.output_url && (
             // eslint-disable-next-line @next/next/no-img-element

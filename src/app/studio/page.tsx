@@ -62,7 +62,7 @@ import {
   setRemoteProjectId,
   starterOrLocal,
 } from "@/lib/projectSync";
-import { QUALITY_CREDITS } from "@/lib/credits";
+import { formatInsufficientCreditsMessage, hasCreditsForGeneration, QUALITY_CREDITS } from "@/lib/credits";
 
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
@@ -2258,10 +2258,8 @@ export default function StudioPage() {
       return;
     }
     const creditEstimate = QUALITY_CREDITS[selected.params.quality_tier];
-    if (balanceCredits !== null && balanceCredits < creditEstimate) {
-      setGenerateError(
-        `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
-      );
+    if (balanceCredits !== null && !hasCreditsForGeneration(balanceCredits, selected.params.quality_tier)) {
+      setGenerateError(formatInsufficientCreditsMessage(creditEstimate));
       return;
     }
 
@@ -2288,9 +2286,7 @@ export default function StudioPage() {
           .me()
           .then((user) => setBalanceCredits(user.balance_credits))
           .catch(() => undefined);
-        setGenerateError(
-          `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
-        );
+        setGenerateError(formatInsufficientCreditsMessage(creditEstimate));
         return;
       }
       setGenerateError(err instanceof Error ? err.message : "Generation failed");
