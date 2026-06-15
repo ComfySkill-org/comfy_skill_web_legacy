@@ -70,7 +70,7 @@ import {
   setRemoteProjectId,
   starterOrLocal,
 } from "@/lib/projectSync";
-import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficientCreditsError, isInsufficientCreditsMessage, isLowCreditBalance, QUALITY_CREDITS } from "@/lib/credits";
+import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficientCreditsError, isInsufficientCreditsMessage, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
@@ -3771,9 +3771,11 @@ export default function StudioPage() {
                         })
                       }
                     >
-                      <option value="premium">Good · 50 credits</option>
-                      <option value="standard">Medium · 20 credits</option>
-                      <option value="budget">Budget · 8 credits</option>
+                      {QUALITY_TIER_OPTIONS.map(({ tier, label }) => (
+                        <option key={tier} value={tier}>
+                          {label} · {QUALITY_CREDITS[tier]} credits
+                        </option>
+                      ))}
                     </select>
                   </label>
                 )}

@@ -17,6 +17,7 @@ import {
   hasCreditsForGeneration,
   isInsufficientCreditsError,
   isInsufficientCreditsMessage,
+  isJobInsufficientCreditsError,
   isLowCreditBalance,
   QUALITY_CREDITS,
 } from "@/lib/credits";
@@ -267,7 +268,20 @@ export default function AppPage() {
             <p className="text-xs text-skill-muted">Preset: {job.model_preset}</p>
           )}
           {job.error_message && (
-            <p className="text-sm text-red-600">{job.error_message}</p>
+            <p className="text-sm text-red-600">
+              {job.error_message}
+              {isJobInsufficientCreditsError(job.error_message) && (
+                <>
+                  {" "}
+                  <Link
+                    href="/settings/billing?plan=standard"
+                    className="underline hover:text-red-800"
+                  >
+                    Add credits in Billing
+                  </Link>
+                </>
+              )}
+            </p>
           )}
           {job && (
             <p className="text-xs text-skill-muted">{formatJobCreditsLabel(job)}</p>
