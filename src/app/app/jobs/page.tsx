@@ -11,6 +11,7 @@ import {
   formatJobCreditsLabel,
   JOB_QUALITY_FILTERS,
   matchesJobQualityFilter,
+  sumJobCredits,
   type JobQualityFilter,
 } from "@/lib/jobs";
 
@@ -76,14 +77,7 @@ export default function AppJobsPage() {
 
   const jobQualityFilterCounts = useMemo(() => countJobsByQualityFilter(jobs), [jobs]);
 
-  const filteredCreditsTotal = useMemo(
-    () =>
-      filteredJobs.reduce(
-        (total, job) => total + (job.credits_charged ?? job.credits_estimated),
-        0,
-      ),
-    [filteredJobs],
-  );
+  const filteredCreditsTotal = useMemo(() => sumJobCredits(filteredJobs), [filteredJobs]);
 
   useEffect(() => {
     async function loadJobs() {
@@ -317,7 +311,7 @@ export default function AppJobsPage() {
 
           <p className="mb-4 text-sm text-skill-muted">
             Showing {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"} ·{" "}
-            {filteredCreditsTotal.toLocaleString()} credits
+            {filteredCreditsTotal.toLocaleString()} credits (charged or estimated)
           </p>
 
           {filteredJobs.length === 0 ? (

@@ -20,15 +20,22 @@ import {
   isJobInsufficientCreditsError,
   isLowCreditBalance,
   QUALITY_CREDITS,
+  QUALITY_TIER_OPTIONS,
 } from "@/lib/credits";
 import { formatJobCreditsLabel } from "@/lib/jobs";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
-const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
-  { tier: "premium", label: "Good", hint: `Best quality · ${QUALITY_CREDITS.premium} credits` },
-  { tier: "standard", label: "Medium", hint: `Balanced · ${QUALITY_CREDITS.standard} credits` },
-  { tier: "budget", label: "Budget", hint: `Fast · ${QUALITY_CREDITS.budget} credits` },
-];
+const QUALITY_HINTS: Record<QualityTier, string> = {
+  premium: "Best quality",
+  standard: "Balanced",
+  budget: "Fast",
+};
+
+const QUALITY_OPTIONS = QUALITY_TIER_OPTIONS.map(({ tier, label }) => ({
+  tier,
+  label,
+  hint: `${QUALITY_HINTS[tier]} · ${QUALITY_CREDITS[tier]} credits`,
+}));
 
 /** Legacy single-prompt form — kept for e2e; primary UX is /studio (PRD-legacy). */
 export default function AppPage() {

@@ -43,3 +43,10 @@ export function formatJobCreditsLabel(job: Job): string {
   }
   return `${amount} credits`;
 }
+
+export function sumJobCredits(jobs: readonly Job[]): number {
+  return jobs.reduce(
+    (total, job) => total + (job.credits_charged ?? job.credits_estimated),
+    0,
+  );
+}
