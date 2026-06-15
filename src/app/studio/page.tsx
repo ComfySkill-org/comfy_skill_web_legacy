@@ -10,7 +10,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
+import { apiClient, clearAuth, ApiError, type ProjectSummary } from "@/lib/api";
 import {
   addEdgeBetween,
   alignBlockToGrid,
@@ -2278,6 +2278,16 @@ export default function StudioPage() {
       await pollBlockJobUntilDone(blockId, job.id);
     } catch (err) {
       patchBlock(blockId, { status: "failed" });
+      if (err instanceof ApiError && err.status === 402) {
+        void apiClient
+          .me()
+          .then((user) => setBalanceCredits(user.balance_credits))
+          .catch(() => undefined);
+        setGenerateError(
+          `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
+        );
+        return;
+      }
       setGenerateError(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setGenerating(false);

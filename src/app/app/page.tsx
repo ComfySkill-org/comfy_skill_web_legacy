@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import {
   apiClient,
+  ApiError,
   getToken,
   isFirebaseEnabled,
   type Job,
@@ -85,6 +86,13 @@ export default function AppPage() {
       const { job: created } = await apiClient.createJob(prompt, quality);
       setJob(created);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 402) {
+        void apiClient.me().then(setUser).catch(() => undefined);
+        setError(
+          `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
+        );
+        return;
+      }
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setLoading(false);

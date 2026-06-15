@@ -92,6 +92,16 @@ async function authHeaders(forceRefresh = false): Promise<HeadersInit> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const request = async (forceRefresh = false) =>
     fetch(`${API_URL}${path}`, {
@@ -112,7 +122,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const detail = body.detail;
-    throw new Error(typeof detail === "string" ? detail : res.statusText);
+    throw new ApiError(typeof detail === "string" ? detail : res.statusText, res.status);
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
