@@ -256,7 +256,7 @@ export default function AppPage() {
           {job.error_message && (
             <p className="text-sm text-red-600">{job.error_message}</p>
           )}
-          {(job.status === "completed" || job.status === "failed") && (
+          {job && (
             <p className="text-xs text-skill-muted">{formatJobCreditsLabel(job)}</p>
           )}
           {job.output_url && (

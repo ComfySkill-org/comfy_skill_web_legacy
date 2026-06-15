@@ -226,8 +226,8 @@ export default function BillingPage() {
           </div>
           {balance !== null && isLowCreditBalance(balance) && (
             <p className="rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Low balance — you need at least {QUALITY_CREDITS.budget} credits for a Budget
-              generation.{" "}
+              Low balance — you need at least {QUALITY_CREDITS.budget} credits for Budget or{" "}
+              {QUALITY_CREDITS.standard} for Medium generations.{" "}
               <button
                 type="button"
                 className="font-semibold underline"
