@@ -29,3 +29,17 @@ export function countJobsByQualityFilter(
 
   return counts;
 }
+
+export function formatJobCreditsLabel(job: Job): string {
+  const amount = (job.credits_charged ?? job.credits_estimated).toLocaleString();
+  if (job.status === "completed" && job.credits_charged !== null) {
+    return `Charged ${job.credits_charged.toLocaleString()} credits`;
+  }
+  if (job.status === "pending" || job.status === "running") {
+    return `Est. ${job.credits_estimated.toLocaleString()} credits`;
+  }
+  if (job.status === "failed") {
+    return `Est. ${job.credits_estimated.toLocaleString()} credits (not charged)`;
+  }
+  return `${amount} credits`;
+}

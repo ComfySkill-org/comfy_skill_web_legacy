@@ -8,6 +8,7 @@ import { isLowCreditBalance, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
   countJobsByQualityFilter,
+  formatJobCreditsLabel,
   JOB_QUALITY_FILTERS,
   matchesJobQualityFilter,
   type JobQualityFilter,
@@ -355,9 +356,7 @@ export default function AppJobsPage() {
                   <span className="text-skill-muted">
                     {QUALITY_LABELS[job.quality_tier] ?? job.quality_tier}
                   </span>
-                  <span className="text-skill-muted">
-                    {(job.credits_charged ?? job.credits_estimated).toLocaleString()} credits
-                  </span>
+                  <span className="text-skill-muted">{formatJobCreditsLabel(job)}</span>
                   <span className="text-xs text-skill-muted">
                     {new Date(job.created_at).toLocaleString()}
                   </span>

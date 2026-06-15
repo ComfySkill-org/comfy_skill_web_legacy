@@ -66,7 +66,7 @@ import {
   setRemoteProjectId,
   starterOrLocal,
 } from "@/lib/projectSync";
-import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficientCreditsError, isLowCreditBalance, QUALITY_CREDITS } from "@/lib/credits";
+import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficientCreditsError, isInsufficientCreditsMessage, isLowCreditBalance, QUALITY_CREDITS } from "@/lib/credits";
 
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
@@ -2439,7 +2439,21 @@ export default function StudioPage() {
               role="alert"
               className="absolute left-1/2 top-4 z-30 flex max-w-md -translate-x-1/2 items-start gap-3 rounded-lg border border-rose-500/40 bg-rose-950/90 px-4 py-2 text-xs text-rose-200 shadow-xl"
             >
-              <span>{generateError}</span>
+              <span>
+                {generateError}
+                {isInsufficientCreditsMessage(generateError) && (
+                  <>
+                    {" "}
+                    <Link
+                      href="/settings/billing?plan=standard"
+                      className="underline hover:text-rose-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Open Billing
+                    </Link>
+                  </>
+                )}
+              </span>
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
