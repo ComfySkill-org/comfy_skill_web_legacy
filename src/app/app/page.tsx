@@ -11,12 +11,13 @@ import {
   type QualityTier,
   type User,
 } from "@/lib/api";
+import { QUALITY_CREDITS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
-  { tier: "premium", label: "Good", hint: "Best quality · higher cost" },
-  { tier: "standard", label: "Medium", hint: "Balanced" },
-  { tier: "budget", label: "Budget", hint: "Fast · lower cost" },
+  { tier: "premium", label: "Good", hint: `Best quality · ${QUALITY_CREDITS.premium} credits` },
+  { tier: "standard", label: "Medium", hint: `Balanced · ${QUALITY_CREDITS.standard} credits` },
+  { tier: "budget", label: "Budget", hint: `Fast · ${QUALITY_CREDITS.budget} credits` },
 ];
 
 /** Legacy single-prompt form — kept for e2e; primary UX is /studio (PRD-legacy). */
@@ -71,6 +72,13 @@ export default function AppPage() {
   async function onGenerate(e: FormEvent) {
     e.preventDefault();
     setError("");
+    const creditEstimate = QUALITY_CREDITS[quality];
+    if (user && user.balance_credits < creditEstimate) {
+      setError(
+        `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`,
+      );
+      return;
+    }
     setLoading(true);
     setJob(null);
     try {
@@ -86,6 +94,10 @@ export default function AppPage() {
   if (!user) {
     return <p className="p-8 text-center text-skill-muted">Loading…</p>;
   }
+
+  const creditEstimate = QUALITY_CREDITS[quality];
+  const hasInsufficientCredits = user.balance_credits < creditEstimate;
+  const lowCreditBalance = user.balance_credits < QUALITY_CREDITS.budget;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
@@ -104,8 +116,11 @@ export default function AppPage() {
           <h1 className="text-2xl font-bold">Quick generate</h1>
           <p className="text-sm text-skill-muted">Legacy single-prompt form</p>
         </div>
-        <p className="text-sm font-medium" data-testid="credits">
-          {user.balance_credits} credits
+        <p
+          className={`text-sm font-medium ${lowCreditBalance ? "text-amber-700" : ""}`}
+          data-testid="credits"
+        >
+          {user.balance_credits.toLocaleString()} credits
         </p>
       </div>
 
@@ -146,13 +161,27 @@ export default function AppPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
+        {hasInsufficientCredits && (
+          <p className="text-sm text-amber-700">
+            Need {creditEstimate} credits for {quality}; you have{" "}
+            {user.balance_credits.toLocaleString()}.{" "}
+            <Link href="/settings/billing" className="underline hover:text-amber-900">
+              Add credits in Billing
+            </Link>
+          </p>
+        )}
+
         <button
           type="submit"
           className="btn-primary w-full"
-          disabled={loading}
+          disabled={loading || hasInsufficientCredits}
           data-testid="generate"
         >
-          {loading ? "Starting…" : "Generate"}
+          {loading
+            ? "Starting…"
+            : hasInsufficientCredits
+              ? "Insufficient credits"
+              : `Generate · ${creditEstimate} credits`}
         </button>
       </form>
 

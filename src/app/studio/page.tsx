@@ -61,12 +61,8 @@ import {
   setRemoteProjectId,
   starterOrLocal,
 } from "@/lib/projectSync";
+import { QUALITY_CREDITS } from "@/lib/credits";
 
-const QUALITY_CREDITS: Record<CanvasBlock["params"]["quality_tier"], number> = {
-  premium: 50,
-  standard: 20,
-  budget: 8,
-};
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
 const HAND_TOOL_KEY = "comfyskill.studio.hand-tool";
