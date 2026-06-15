@@ -10,7 +10,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { apiClient, clearAuth, ApiError, type ProjectSummary } from "@/lib/api";
+import { apiClient, clearAuth, type ProjectSummary } from "@/lib/api";
 import {
   addEdgeBetween,
   alignBlockToGrid,
@@ -64,7 +64,7 @@ import {
   setRemoteProjectId,
   starterOrLocal,
 } from "@/lib/projectSync";
-import { formatInsufficientCreditsMessage, hasCreditsForGeneration, QUALITY_CREDITS } from "@/lib/credits";
+import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficientCreditsError, isLowCreditBalance, QUALITY_CREDITS } from "@/lib/credits";
 
 const CANVAS_GRID_SIZE = 24;
 const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
@@ -992,11 +992,10 @@ export default function StudioPage() {
     selected?.type === "image" ? QUALITY_CREDITS[selected.params.quality_tier] : null;
   const hasInsufficientCredits =
     balanceCredits !== null &&
-    selectedCreditEstimate !== null &&
-    balanceCredits < selectedCreditEstimate;
+    selected?.type === "image" &&
+    !hasCreditsForGeneration(balanceCredits, selected.params.quality_tier);
   const lowCreditBalance =
-    balanceCredits !== null &&
-    balanceCredits < (selectedCreditEstimate ?? QUALITY_CREDITS.budget);
+    balanceCredits !== null && isLowCreditBalance(balanceCredits);
   const linkSourceBlock = useMemo(
     () => project.blocks.find((block) => block.id === linkSourceId) ?? null,
     [project.blocks, linkSourceId],
@@ -2272,7 +2271,7 @@ export default function StudioPage() {
       await pollBlockJobUntilDone(blockId, job.id);
     } catch (err) {
       patchBlock(blockId, { status: "failed" });
-      if (err instanceof ApiError && err.status === 402) {
+      if (isInsufficientCreditsError(err)) {
         void apiClient
           .me()
           .then((user) => setBalanceCredits(user.balance_credits))

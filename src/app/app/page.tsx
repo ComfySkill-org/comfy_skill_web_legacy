@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import {
   apiClient,
-  ApiError,
   getToken,
   isFirebaseEnabled,
   type Job,
@@ -15,6 +14,8 @@ import {
 import {
   formatInsufficientCreditsMessage,
   hasCreditsForGeneration,
+  isInsufficientCreditsError,
+  isInsufficientCreditsMessage,
   isLowCreditBalance,
   QUALITY_CREDITS,
 } from "@/lib/credits";
@@ -59,6 +60,29 @@ export default function AppPage() {
   }, [router]);
 
   useEffect(() => {
+    if (!user) return;
+
+    function refreshUser() {
+      void apiClient.me().then(setUser).catch(() => undefined);
+    }
+
+    function onWindowFocus() {
+      refreshUser();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") refreshUser();
+    }
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
     if (!job || job.status === "completed" || job.status === "failed") return;
     const timer = setInterval(async () => {
       try {
@@ -89,7 +113,7 @@ export default function AppPage() {
       const { job: created } = await apiClient.createJob(prompt, quality);
       setJob(created);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 402) {
+      if (isInsufficientCreditsError(err)) {
         void apiClient.me().then(setUser).catch(() => undefined);
         setError(formatInsufficientCreditsMessage(creditEstimate));
         return;
@@ -168,7 +192,22 @@ export default function AppPage() {
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600">
+            {error}
+            {isInsufficientCreditsMessage(error) && (
+              <>
+                {" "}
+                <Link
+                  href="/settings/billing?plan=standard"
+                  className="underline hover:text-red-800"
+                >
+                  Open Billing
+                </Link>
+              </>
+            )}
+          </p>
+        )}
 
         {hasInsufficientCredits && (
           <p className="text-sm text-amber-700">

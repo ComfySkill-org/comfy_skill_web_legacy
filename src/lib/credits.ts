@@ -1,4 +1,5 @@
 import type { QualityTier } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 
 /** Credit cost per quality tier — matches PRD §4.1 and backend estimates. */
 export const QUALITY_CREDITS: Record<QualityTier, number> = {
@@ -23,6 +24,14 @@ export function hasCreditsForGeneration(balance: number, tier: QualityTier): boo
 
 export function formatInsufficientCreditsMessage(creditEstimate: number): string {
   return `Need at least ${creditEstimate} credits for this quality tier. Add credits in Billing.`;
+}
+
+export function isInsufficientCreditsError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 402;
+}
+
+export function isInsufficientCreditsMessage(message: string): boolean {
+  return message.includes("Add credits in Billing");
 }
 
 /** Monthly credits included with each subscription plan (after webhook). */

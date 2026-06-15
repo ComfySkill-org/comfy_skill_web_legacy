@@ -163,6 +163,19 @@ export function SiteHeader() {
                       </div>
                     </div>
 
+                    {lowCreditBalance && (
+                      <p className="mx-4 rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        Credits are running low.{" "}
+                        <Link
+                          href="/settings/billing?plan=standard"
+                          className="font-semibold underline"
+                          onClick={() => setAccountMenuOpen(false)}
+                        >
+                          Add credits in Billing
+                        </Link>
+                      </p>
+                    )}
+
                     <div className="p-2 text-sm">
                       <Link
                         href="/studio"
