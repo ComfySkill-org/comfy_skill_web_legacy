@@ -2395,6 +2395,18 @@ export default function StudioPage() {
         </div>
       </header>
 
+      {lowCreditBalance && (
+        <div className="shrink-0 border-b border-amber-500/30 bg-amber-950/50 px-4 py-1.5 text-xs text-amber-200">
+          Credits running low for new image generations.{" "}
+          <Link
+            href="/settings/billing?plan=standard"
+            className="font-semibold underline hover:text-amber-100"
+          >
+            Add credits in Billing
+          </Link>
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1">
         {/* Canvas — flow + results */}
         <main

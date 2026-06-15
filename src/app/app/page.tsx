@@ -20,6 +20,7 @@ import {
   isLowCreditBalance,
   QUALITY_CREDITS,
 } from "@/lib/credits";
+import { formatJobCreditsLabel } from "@/lib/jobs";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
@@ -256,10 +257,7 @@ export default function AppPage() {
             <p className="text-sm text-red-600">{job.error_message}</p>
           )}
           {(job.status === "completed" || job.status === "failed") && (
-            <p className="text-xs text-skill-muted">
-              {(job.status === "completed" ? "Charged" : "Estimated")}{" "}
-              {(job.credits_charged ?? job.credits_estimated).toLocaleString()} credits
-            </p>
+            <p className="text-xs text-skill-muted">{formatJobCreditsLabel(job)}</p>
           )}
           {job.output_url && (
             // eslint-disable-next-line @next/next/no-img-element
