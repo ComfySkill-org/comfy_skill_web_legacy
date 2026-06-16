@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, type Job } from "@/lib/api";
-import { QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import { isLowCreditBalance, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
   countJobsByQualityFilter,
@@ -50,6 +50,7 @@ export default function AppJobsPage() {
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
   const [highlightJobId, setHighlightJobId] = useState<string | null>(null);
+  const [balanceCredits, setBalanceCredits] = useState<number | null>(null);
 
   const filteredJobs = useMemo(
     () =>
@@ -92,8 +93,12 @@ export default function AppJobsPage() {
       setError("");
       setLoading(true);
       try {
-        const { jobs: list } = await apiClient.listJobs();
+        const [{ jobs: list }, user] = await Promise.all([
+          apiClient.listJobs(),
+          apiClient.me(),
+        ]);
         setJobs(list);
+        setBalanceCredits(user.balance_credits);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load jobs");
         router.replace("/login");
@@ -135,9 +140,11 @@ export default function AppJobsPage() {
 
   useEffect(() => {
     function refreshJobs() {
-      void apiClient
-        .listJobs()
-        .then(({ jobs: list }) => setJobs(list))
+      void Promise.all([apiClient.listJobs(), apiClient.me()])
+        .then(([{ jobs: list }, user]) => {
+          setJobs(list);
+          setBalanceCredits(user.balance_credits);
+        })
         .catch(() => undefined);
     }
 
@@ -184,6 +191,9 @@ export default function AppJobsPage() {
     }
   }
 
+  const lowCreditBalance =
+    balanceCredits !== null && isLowCreditBalance(balanceCredits);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -192,6 +202,13 @@ export default function AppJobsPage() {
           <p className="text-sm text-skill-muted">
             Recent jobs from quick form and studio blocks.
           </p>
+          {balanceCredits !== null && (
+            <p
+              className={`mt-1 text-sm font-medium ${lowCreditBalance ? "text-amber-700" : "text-skill-muted"}`}
+            >
+              {balanceCredits.toLocaleString()} credits remaining
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-3 text-sm">
           <button
@@ -200,9 +217,11 @@ export default function AppJobsPage() {
             disabled={loading}
             onClick={() => {
               setLoading(true);
-              void apiClient
-                .listJobs()
-                .then(({ jobs: list }) => setJobs(list))
+              void Promise.all([apiClient.listJobs(), apiClient.me()])
+                .then(([{ jobs: list }, user]) => {
+                  setJobs(list);
+                  setBalanceCredits(user.balance_credits);
+                })
                 .catch((err) =>
                   setError(err instanceof Error ? err.message : "Failed to refresh jobs"),
                 )
@@ -228,6 +247,15 @@ export default function AppJobsPage() {
 
       {loading && <p className="text-sm text-skill-muted">Loading jobs…</p>}
       {error && !loading && <p className="text-sm text-red-600">{error}</p>}
+
+      {lowCreditBalance && !loading && (
+        <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Credits are running low for new generations.{" "}
+          <Link href="/settings/billing?plan=standard" className="font-semibold underline">
+            Add credits in Billing
+          </Link>
+        </p>
+      )}
 
       {!loading && !error && jobs.length === 0 && (
         <div className="card text-sm text-skill-muted">
