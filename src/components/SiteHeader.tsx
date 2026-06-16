@@ -180,6 +180,14 @@ export function SiteHeader() {
                         >
                           Add credits in Billing
                         </Link>
+                        {" · "}
+                        <Link
+                          href="/app/jobs"
+                          className="font-semibold underline"
+                          onClick={() => setAccountMenuOpen(false)}
+                        >
+                          Review usage
+                        </Link>
                       </p>
                     )}
 

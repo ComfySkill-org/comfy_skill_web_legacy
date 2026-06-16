@@ -166,6 +166,19 @@ export default function AppPage() {
         remaining at selected quality.
       </p>
 
+      {lowCreditBalance && (
+        <p className="mb-6 rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Credits are running low.{" "}
+          <Link href="/settings/billing?plan=standard" className="font-semibold underline">
+            Add credits in Billing
+          </Link>
+          {" · "}
+          <Link href="/app/jobs" className="font-semibold underline">
+            Review usage
+          </Link>
+        </p>
+      )}
+
       <form onSubmit={onGenerate} className="card space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium">Describe your image</label>
