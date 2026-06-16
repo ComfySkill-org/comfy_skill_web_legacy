@@ -34,6 +34,17 @@ export function isInsufficientCreditsMessage(message: string): boolean {
   return message.includes("Add credits in Billing");
 }
 
+export function isJobInsufficientCreditsError(message: string | null | undefined): boolean {
+  if (!message) return false;
+  if (isInsufficientCreditsMessage(message)) return true;
+  const lower = message.toLowerCase();
+  return lower.includes("insufficient") && lower.includes("credit");
+}
+
+export function qualityTierLabel(tier: QualityTier): string {
+  return QUALITY_TIER_OPTIONS.find((option) => option.tier === tier)?.label ?? tier;
+}
+
 /** Monthly credits included with each subscription plan (after webhook). */
 export const PLAN_MONTHLY_CREDITS = {
   standard: 4200,

@@ -126,6 +126,13 @@ export default function SettingsPage() {
                 {estimateGenerations(user.balance_credits, "budget").toLocaleString()} Budget
                 generations remaining
               </span>
+              <Link href="/app/jobs" className="text-xs underline hover:text-skill-ink">
+                Review generation history
+              </Link>
+              {" · "}
+              <Link href="/settings/billing" className="text-xs underline hover:text-skill-ink">
+                Billing ledger
+              </Link>
             </dd>
           </div>
         </dl>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, type Job } from "@/lib/api";
-import { isLowCreditBalance, QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import { isJobInsufficientCreditsError, isLowCreditBalance, qualityTierLabel } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
   countJobsByQualityFilter,
@@ -13,10 +13,6 @@ import {
   matchesJobQualityFilter,
   type JobQualityFilter,
 } from "@/lib/jobs";
-
-const QUALITY_LABELS = Object.fromEntries(
-  QUALITY_TIER_OPTIONS.map(({ tier, label }) => [tier, label]),
-) as Record<string, string>;
 
 function statusTone(status: string): string {
   if (status === "completed") return "text-green-700";
@@ -354,7 +350,7 @@ export default function AppJobsPage() {
                     {job.status}
                   </span>
                   <span className="text-skill-muted">
-                    {QUALITY_LABELS[job.quality_tier] ?? job.quality_tier}
+                    {qualityTierLabel(job.quality_tier)}
                   </span>
                   <span className="text-skill-muted">{formatJobCreditsLabel(job)}</span>
                   <span className="text-xs text-skill-muted">
@@ -363,7 +359,20 @@ export default function AppJobsPage() {
                 </div>
                 <p className="line-clamp-2 text-skill-ink">{job.prompt_text}</p>
                 {job.error_message && (
-                  <p className="text-red-600">{job.error_message}</p>
+                  <p className="text-red-600">
+                    {job.error_message}
+                    {isJobInsufficientCreditsError(job.error_message) && (
+                      <>
+                        {" "}
+                        <Link
+                          href="/settings/billing?plan=standard"
+                          className="underline hover:text-red-800"
+                        >
+                          Add credits in Billing
+                        </Link>
+                      </>
+                    )}
+                  </p>
                 )}
                 {job.project_id && (
                   <p className="text-xs text-skill-muted">
