@@ -93,6 +93,8 @@ export default function PricingPage() {
           Open billing
         </Link>
         . Creator/Pro use dedicated price IDs when set, otherwise fall back to Standard.
+        Generations are blocked with HTTP 402 when your balance cannot cover the selected quality
+        tier.
       </p>
     </div>
   );

@@ -32,6 +32,10 @@ export default function FeaturesPage() {
             ))}
             .
           </p>
+          <p className="mt-2 text-sm text-skill-muted">
+            When your balance is too low, generation requests return HTTP 402 and the app
+            prompts you to add credits in Billing before trying again.
+          </p>
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
             <Link href="/pricing" className="underline hover:text-skill-ink">
               View pricing
