@@ -251,6 +251,10 @@ export default function AppJobsPage() {
           <Link href="/settings/billing?plan=standard" className="font-semibold underline">
             Add credits in Billing
           </Link>
+          {" · "}
+          <Link href="/settings" className="font-semibold underline">
+            Account overview
+          </Link>
         </p>
       )}
 

@@ -46,6 +46,17 @@ export default function HomePage() {
           </div>
         ))}
       </section>
+
+      <p className="mt-10 text-center text-sm text-skill-muted">
+        Track credit usage in{" "}
+        <Link href="/app/jobs" className="underline hover:text-skill-ink">
+          generation history
+        </Link>
+        {" · "}
+        <Link href="/settings/billing" className="underline hover:text-skill-ink">
+          billing &amp; usage
+        </Link>
+      </p>
     </div>
   );
 }
