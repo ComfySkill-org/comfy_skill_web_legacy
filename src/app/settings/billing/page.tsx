@@ -11,6 +11,11 @@ import {
   isFirebaseEnabled,
   type Transaction,
 } from "@/lib/api";
+import {
+  isLowCreditBalance,
+  QUALITY_CREDITS,
+  QUALITY_TIER_OPTIONS,
+} from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -163,6 +168,33 @@ export default function BillingPage() {
           <div>
             <p className="text-sm text-skill-muted">Current balance</p>
             <p className="text-3xl font-bold">{balance ?? "..."} credits</p>
+          </div>
+          {balance !== null && isLowCreditBalance(balance) && (
+            <p className="rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Low balance — you need at least {QUALITY_CREDITS.budget} credits for a Budget
+              generation.{" "}
+              <button
+                type="button"
+                className="font-semibold underline"
+                disabled={!stripeReady || checkoutLoading || Boolean(embeddedClientSecret)}
+                onClick={() => void startCheckout()}
+              >
+                Subscribe to add credits
+              </button>
+            </p>
+          )}
+          <div className="rounded-xl border border-skill-blue/10 p-3 text-sm">
+            <p className="font-semibold">Generation costs</p>
+            <ul className="mt-2 space-y-1 text-skill-muted">
+              {QUALITY_TIER_OPTIONS.map(({ tier, label }) => (
+                <li key={tier} className="flex justify-between gap-4">
+                  <span>{label}</span>
+                  <span className="font-semibold text-skill-ink">
+                    {QUALITY_CREDITS[tier]} credits
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
           <div className="rounded-xl bg-skill-yellow/40 p-3 text-sm">
             Stripe mode:{" "}

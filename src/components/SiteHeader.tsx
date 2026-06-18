@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
-import { QUALITY_CREDITS } from "@/lib/credits";
+import { isLowCreditBalance } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 export function SiteHeader() {
@@ -79,8 +79,7 @@ export function SiteHeader() {
 
   const accountLabel = user?.email.split("@")[0] ?? "Account";
   const avatarInitial = (user?.name || user?.email || "U").trim().charAt(0).toUpperCase();
-  const lowCreditBalance =
-    user !== null && user.balance_credits < QUALITY_CREDITS.budget;
+  const lowCreditBalance = user !== null && isLowCreditBalance(user.balance_credits);
 
   return (
     <header className="sticky top-0 z-50 border-b border-skill-blue/20 bg-white/70 backdrop-blur">

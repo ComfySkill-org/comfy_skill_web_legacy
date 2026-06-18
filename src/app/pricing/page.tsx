@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 
 const PLANS = [
   {
@@ -55,6 +56,21 @@ export default function PricingPage() {
           </div>
         ))}
       </div>
+      <section className="mt-12">
+        <h2 className="text-center text-xl font-bold">Generation costs</h2>
+        <p className="mb-6 mt-2 text-center text-sm text-skill-muted">
+          Credits deducted per image generation by quality tier.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {QUALITY_TIER_OPTIONS.map(({ tier, label }) => (
+            <div key={tier} className="card text-center">
+              <p className="font-semibold">{label}</p>
+              <p className="mt-1 text-2xl font-bold">{QUALITY_CREDITS[tier]}</p>
+              <p className="text-xs text-skill-muted">credits / generation</p>
+            </div>
+          ))}
+        </div>
+      </section>
       <p className="mt-8 text-center text-sm text-skill-muted">
         Ready to test subscription checkout?{" "}
         <Link href="/settings/billing" className="underline">

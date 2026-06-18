@@ -6,3 +6,13 @@ export const QUALITY_CREDITS: Record<QualityTier, number> = {
   standard: 20,
   budget: 8,
 };
+
+export const QUALITY_TIER_OPTIONS: { tier: QualityTier; label: string }[] = [
+  { tier: "premium", label: "Good" },
+  { tier: "standard", label: "Medium" },
+  { tier: "budget", label: "Budget" },
+];
+
+export function isLowCreditBalance(balance: number): boolean {
+  return balance < QUALITY_CREDITS.budget;
+}
