@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --skill-blue: #7ec8e3;
+  --skill-yellow: #fff4b8;
+  --skill-ink: #1a2b3c;
+}
+
+body {
+  @apply bg-gradient-to-br from-skill-yellow/40 via-white to-skill-blue/30 text-skill-ink antialiased min-h-screen;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-skill-blue-dark px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-skill-blue focus:outline-none focus:ring-2 focus:ring-skill-blue/50 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-skill-blue/40 bg-white px-5 py-2.5 text-sm font-semibold text-skill-ink transition hover:bg-skill-yellow/50;
+  }
+  .card {
+    @apply rounded-2xl border border-skill-blue/20 bg-white/80 p-6 shadow-sm backdrop-blur;
+  }
+  .input {
+    @apply w-full rounded-xl border border-skill-blue/30 bg-white px-4 py-3 text-sm outline-none transition focus:border-skill-blue-dark focus:ring-2 focus:ring-skill-blue/30;
+  }
+}

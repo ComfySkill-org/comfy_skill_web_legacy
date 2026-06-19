@@ -1,0 +1,231 @@
+openapi: 3.1.0
+info:
+  title: ComfySkill Platform API
+  version: 0.1.0
+  description: Contract for public frontend ↔ private platform API (Milestone 0)
+  contact:
+    name: Kelly Yang
+    email: 124ykl@gmail.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local
+  - url: https://api-staging.comfyskill.com
+    description: Staging (TBD)
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+
+  /auth/register:
+    post:
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+
+  /me:
+    get:
+      summary: Current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+
+  /jobs:
+    get:
+      summary: List my jobs
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+    post:
+      summary: Create text2img job
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateJobResponse"
+        "402":
+          description: Insufficient credits
+
+  /jobs/{job_id}:
+    get:
+      summary: Get job status
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+
+  /billing/balance:
+    get:
+      summary: Credit balance
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance_credits: { type: integer }
+
+  /admin/jobs:
+    get:
+      summary: List all jobs (admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+        "403":
+          description: Forbidden
+
+  /admin/users:
+    get:
+      summary: List users (admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+
+  /admin/metrics:
+    get:
+      summary: Platform metrics (admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        name: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, default: bearer }
+
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        name: { type: string }
+        role: { type: string, enum: [admin, tester, user] }
+        balance_credits: { type: integer }
+
+    CreateJobRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt: { type: string, maxLength: 4000 }
+        quality_tier:
+          type: string
+          enum: [premium, standard, budget]
+          default: standard
+
+    JobResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        capability: { type: string }
+        prompt_text: { type: string }
+        quality_tier: { type: string }
+        status: { type: string }
+        model_preset: { type: string, nullable: true }
+        credits_estimated: { type: integer }
+        credits_charged: { type: integer, nullable: true }
+        output_url: { type: string, nullable: true }
+        error_message: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time, nullable: true }
+
+    CreateJobResponse:
+      type: object
+      properties:
+        job: { $ref: "#/components/schemas/JobResponse" }
+        credits_estimate: { type: integer }
+
+    JobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items: { $ref: "#/components/schemas/JobResponse" }
+        total: { type: integer }
