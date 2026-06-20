@@ -3,18 +3,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiClient, clearToken, getToken, type User } from "@/lib/api";
+import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
+import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    const loadUser = () =>
+      apiClient
+        .me()
+        .then(setUser)
+        .catch(() => {
+          void clearAuth();
+          setUser(null);
+        });
+
+    if (isFirebaseEnabled()) {
+      const unsub = subscribeToAuthToken((token) => {
+        if (token) void loadUser();
+        else setUser(null);
+      });
+      if (getFirebaseAuth()?.currentUser) void loadUser();
+      return unsub;
+    }
+
     if (!getToken()) return;
-    apiClient
-      .me()
-      .then(setUser)
-      .catch(() => clearToken());
+    void loadUser();
   }, [pathname]);
 
   return (
@@ -47,9 +63,10 @@ export function SiteHeader() {
                 type="button"
                 className="text-skill-muted hover:text-skill-ink"
                 onClick={() => {
-                  clearToken();
-                  setUser(null);
-                  window.location.href = "/";
+                  void clearAuth().then(() => {
+                    setUser(null);
+                    window.location.href = "/";
+                  });
                 }}
               >
                 Log out

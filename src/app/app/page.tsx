@@ -6,10 +6,12 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   apiClient,
   getToken,
+  isFirebaseEnabled,
   type Job,
   type QualityTier,
   type User,
 } from "@/lib/api";
+import { getFirebaseAuth } from "@/lib/firebase";
 
 const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
   { tier: "premium", label: "Good", hint: "Best quality · higher cost" },
@@ -27,7 +29,10 @@ export default function AppPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
+    const authed = isFirebaseEnabled()
+      ? Boolean(getFirebaseAuth()?.currentUser)
+      : Boolean(getToken());
+    if (!authed) {
       router.replace("/login");
       return;
     }

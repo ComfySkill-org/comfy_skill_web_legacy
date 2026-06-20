@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { apiClient, getToken, saveToken } from "@/lib/api";
+import { apiClient, getToken, isFirebaseEnabled, saveToken } from "@/lib/api";
+import { firebaseLogin } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,14 +11,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const useFirebase = isFirebaseEnabled();
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const { access_token } = await apiClient.login(email, password);
-      saveToken(access_token);
+      if (useFirebase) {
+        await firebaseLogin(email, password);
+      } else {
+        const { access_token } = await apiClient.login(email, password);
+        saveToken(access_token);
+      }
       router.push("/app");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -26,7 +32,7 @@ export default function LoginPage() {
     }
   }
 
-  if (typeof window !== "undefined" && getToken()) {
+  if (typeof window !== "undefined" && !useFirebase && getToken()) {
     router.replace("/app");
   }
 
@@ -35,7 +41,9 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} className="card w-full space-y-4">
         <h1 className="text-2xl font-bold">Log in to ComfySkill</h1>
         <p className="text-sm text-skill-muted">
-          Staging test accounts are seeded by the platform admin.
+          {useFirebase
+            ? "Sign in with Firebase (Comfy Cloud–aligned auth)."
+            : "Legacy JWT mode — set Firebase env vars for production auth."}
         </p>
         <div>
           <label className="mb-1 block text-sm font-medium">Email</label>

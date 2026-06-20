@@ -1,5 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+import {
+  firebaseLogout,
+  getFirebaseIdToken,
+  isFirebaseEnabled,
+} from "@/lib/firebase";
+
 export type QualityTier = "premium" | "standard" | "budget";
 
 export interface User {
@@ -25,7 +31,11 @@ export interface Job {
   completed_at: string | null;
 }
 
-function authHeaders(): HeadersInit {
+async function authHeaders(): Promise<HeadersInit> {
+  if (isFirebaseEnabled()) {
+    const token = await getFirebaseIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
   if (typeof window === "undefined") return {};
   const token = localStorage.getItem("comfyskill_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -36,13 +46,14 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...authHeaders(),
+      ...(await authHeaders()),
       ...init?.headers,
     },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail ?? res.statusText);
+    const detail = body.detail;
+    throw new Error(typeof detail === "string" ? detail : res.statusText);
   }
   return res.json() as Promise<T>;
 }
@@ -52,12 +63,6 @@ export const apiClient = {
     api<{ access_token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-    }),
-
-  register: (email: string, password: string, name: string) =>
-    api<User>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, name }),
     }),
 
   me: () => api<User>("/me"),
@@ -73,6 +78,8 @@ export const apiClient = {
   listJobs: () => api<{ jobs: Job[]; total: number }>("/jobs"),
 
   balance: () => api<{ balance_credits: number }>("/billing/balance"),
+
+  stripeStatus: () => api<{ configured: boolean; mode: string }>("/billing/stripe/status"),
 
   adminJobs: () => api<{ jobs: Job[]; total: number }>("/admin/jobs"),
 
@@ -108,5 +115,13 @@ export function clearToken() {
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
+  if (isFirebaseEnabled()) return null;
   return localStorage.getItem("comfyskill_token");
 }
+
+export async function clearAuth(): Promise<void> {
+  clearToken();
+  if (isFirebaseEnabled()) await firebaseLogout();
+}
+
+export { isFirebaseEnabled };
