@@ -1,11 +1,25 @@
+# Environment files — NEVER commit real keys
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Keys
+*.pem
+*.key
+*serviceAccount*.json
+*firebase-adminsdk*.json
+secrets/
+
+# Next.js
 node_modules/
 .next/
 out/
 dist/
-.env
-.env.*
-!.env.example
 .DS_Store
 *.log
 playwright-report/
 test-results/
+
+# Vercel
+.vercel

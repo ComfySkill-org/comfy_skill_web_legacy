@@ -12,10 +12,13 @@ Skill-driven frontend for ComfyUI — simple UX, powerful workflows behind the s
 - Admin dashboard (admin role only): jobs, users, metrics
 - Light blue + light yellow design system
 
-## Quick start
+## Environment & secrets
+
+- [docs/ENVIRONMENTS.md](./docs/ENVIRONMENTS.md)
+- Local: `cp .env.development.example .env.local`
+- Before push: `./scripts/check-no-secrets.sh`
 
 ```bash
-cp .env.example .env.local
 npm install
 npm run dev
 ```
