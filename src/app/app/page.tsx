@@ -220,6 +220,10 @@ export default function AppPage() {
       )}
 
       <p className="mt-6 text-center text-sm text-skill-muted">
+        <Link href="/app/jobs" className="underline">
+          Generation history
+        </Link>
+        {" · "}
         <Link href="/settings/billing?plan=standard" className="underline">
           Billing & usage
         </Link>

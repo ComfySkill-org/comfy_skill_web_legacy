@@ -179,6 +179,13 @@ export function SiteHeader() {
                         Quick form
                       </Link>
                       <Link
+                        href="/app/jobs"
+                        role="menuitem"
+                        className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"
+                      >
+                        Generation history
+                      </Link>
+                      <Link
                         href="/settings/billing?plan=standard"
                         role="menuitem"
                         className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"
