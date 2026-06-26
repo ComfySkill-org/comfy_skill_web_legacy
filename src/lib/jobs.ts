@@ -1,6 +1,49 @@
 import type { Job, QualityTier } from "@/lib/api";
 import { QUALITY_TIER_OPTIONS } from "@/lib/credits";
 
+export type JobStatusFilter = "all" | "completed" | "failed" | "in_progress";
+
+export const JOB_STATUS_FILTERS: { id: JobStatusFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "in_progress", label: "In progress" },
+  { id: "completed", label: "Completed" },
+  { id: "failed", label: "Failed" },
+];
+
+export function matchesJobStatusFilter(job: Job, filter: JobStatusFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "in_progress") {
+    return job.status === "pending" || job.status === "running";
+  }
+  return job.status === filter;
+}
+
+export function countJobsByStatusFilter(
+  jobs: readonly Job[],
+): Record<JobStatusFilter, number> {
+  const counts: Record<JobStatusFilter, number> = {
+    all: jobs.length,
+    in_progress: 0,
+    completed: 0,
+    failed: 0,
+  };
+
+  for (const job of jobs) {
+    if (job.status === "pending" || job.status === "running") counts.in_progress += 1;
+    else if (job.status === "completed") counts.completed += 1;
+    else if (job.status === "failed") counts.failed += 1;
+  }
+
+  return counts;
+}
+
+export function studioJobHref(job: Job): string {
+  if (!job.project_id) return "/studio";
+  const params = new URLSearchParams({ project: job.project_id });
+  if (job.block_id) params.set("block", job.block_id);
+  return `/studio?${params.toString()}`;
+}
+
 export type JobQualityFilter = "all" | QualityTier;
 
 export const JOB_QUALITY_FILTERS: { id: JobQualityFilter; label: string }[] = [

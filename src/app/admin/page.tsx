@@ -62,7 +62,8 @@ export default function AdminPage() {
         </a>
       </div>
       <p className="mt-4 text-sm text-skill-muted">
-        Grant credits to individual accounts from the Users page.
+        Grant credits to individual accounts from the Users page. Failed jobs with canvas links
+        open the bound studio block from All jobs.
       </p>
     </div>
   );

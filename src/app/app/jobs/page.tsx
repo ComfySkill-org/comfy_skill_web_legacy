@@ -11,6 +11,7 @@ import {
   formatJobCreditsLabel,
   JOB_QUALITY_FILTERS,
   matchesJobQualityFilter,
+  studioJobHref,
   sumJobCredits,
   type JobQualityFilter,
 } from "@/lib/jobs";
@@ -37,13 +38,6 @@ function matchesJobFilter(job: Job, filter: JobFilter): boolean {
     return job.status === "pending" || job.status === "running";
   }
   return job.status === filter;
-}
-
-function studioJobHref(job: Job): string {
-  if (!job.project_id) return "/studio";
-  const params = new URLSearchParams({ project: job.project_id });
-  if (job.block_id) params.set("block", job.block_id);
-  return `/studio?${params.toString()}`;
 }
 
 export default function AppJobsPage() {
