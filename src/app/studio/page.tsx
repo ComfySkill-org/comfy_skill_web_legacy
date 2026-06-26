@@ -68,6 +68,7 @@ import {
   getRemoteProjectId,
   isStudioAuthed,
   loadOrCreateRemoteProject,
+  loadRemoteProjectById,
   pushRemoteProject,
   setRemoteProjectId,
   starterOrLocal,
@@ -190,6 +191,7 @@ export default function StudioPage() {
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const syncRequestRef = useRef(0);
+  const pendingDeepLinkRef = useRef<{ blockId?: string } | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const wheelHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nudgeHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -345,9 +347,30 @@ export default function StudioPage() {
     let cancelled = false;
     async function hydrate() {
       const local = starterOrLocal(loadProjectLocal);
+      const params =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : null;
+      const deepProjectId = params?.get("project") ?? null;
+      const deepBlockId = params?.get("block") ?? null;
+
+      if (deepProjectId || deepBlockId) {
+        if (typeof window !== "undefined") {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("project");
+          url.searchParams.delete("block");
+          window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+        }
+        if (deepBlockId) {
+          pendingDeepLinkRef.current = { blockId: deepBlockId };
+        }
+      }
+
       if (isStudioAuthed()) {
         try {
-          const remote = await loadOrCreateRemoteProject(local);
+          const remote = deepProjectId
+            ? await loadRemoteProjectById(deepProjectId)
+            : await loadOrCreateRemoteProject(local);
           if (!cancelled) {
             setProject(remote);
             setSyncLabel("cloud");
@@ -2193,6 +2216,14 @@ export default function StudioPage() {
     setAssetsOpen(false);
     exitCanvasToolModes();
   }
+
+  useEffect(() => {
+    if (!hydrated || !pendingDeepLinkRef.current?.blockId) return;
+    const blockId = pendingDeepLinkRef.current.blockId;
+    pendingDeepLinkRef.current = null;
+    if (!projectRef.current.blocks.some((block) => block.id === blockId)) return;
+    openSelectionInWorkflow(blockId);
+  }, [hydrated]);
 
   async function pollBlockJobUntilDone(blockId: string, jobId: string) {
     const pollKey = `${blockId}:${jobId}`;

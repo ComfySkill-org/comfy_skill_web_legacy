@@ -30,6 +30,12 @@ export function isStudioAuthed(): boolean {
   return Boolean(getToken());
 }
 
+export async function loadRemoteProjectById(projectId: string): Promise<CanvasProject> {
+  const remote = await apiClient.getProject(projectId);
+  setRemoteProjectId(remote.id);
+  return apiProjectToCanvas(remote);
+}
+
 export async function loadOrCreateRemoteProject(
   localFallback: CanvasProject,
 ): Promise<CanvasProject> {

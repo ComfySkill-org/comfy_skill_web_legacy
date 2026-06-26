@@ -39,6 +39,13 @@ function matchesJobFilter(job: Job, filter: JobFilter): boolean {
   return job.status === filter;
 }
 
+function studioJobHref(job: Job): string {
+  if (!job.project_id) return "/studio";
+  const params = new URLSearchParams({ project: job.project_id });
+  if (job.block_id) params.set("block", job.block_id);
+  return `/studio?${params.toString()}`;
+}
+
 export default function AppJobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -396,7 +403,7 @@ export default function AppJobsPage() {
                     </a>
                   )}
                   {job.project_id && (
-                    <Link href="/studio" className="underline hover:text-skill-ink">
+                    <Link href={studioJobHref(job)} className="underline hover:text-skill-ink">
                       Open studio
                     </Link>
                   )}
