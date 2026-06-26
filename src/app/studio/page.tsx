@@ -1059,21 +1059,32 @@ export default function StudioPage() {
 
   useEffect(() => {
     const jobId = selected?.jobId;
+    const status = selected?.status;
     if (!jobId) {
       setJobEvents([]);
       return;
     }
     let cancelled = false;
-    void apiClient
-      .getJobEvents(jobId)
-      .then((res) => {
-        if (!cancelled) setJobEvents(res.events);
-      })
-      .catch(() => {
-        if (!cancelled) setJobEvents([]);
-      });
+
+    function refreshJobEvents() {
+      void apiClient
+        .getJobEvents(jobId)
+        .then((res) => {
+          if (!cancelled) setJobEvents(res.events);
+        })
+        .catch(() => {
+          if (!cancelled) setJobEvents([]);
+        });
+    }
+
+    refreshJobEvents();
+
+    const inFlight = status === "pending" || status === "running";
+    const timer = inFlight ? window.setInterval(refreshJobEvents, 2000) : undefined;
+
     return () => {
       cancelled = true;
+      if (timer) window.clearInterval(timer);
     };
   }, [selected?.jobId, selected?.status]);
 
@@ -3234,6 +3245,7 @@ export default function StudioPage() {
                     <img
                       src={block.mediaUrls[0]}
                       alt=""
+                      data-testid="studio-block-media"
                       className="max-h-full max-w-full rounded object-contain"
                     />
                   ) : (
@@ -3811,6 +3823,7 @@ export default function StudioPage() {
                     {BLOCK_TYPE_LABELS[selected.type]}
                   </span>
                   <span
+                    data-testid="studio-block-status"
                     className={`rounded-full px-2 py-0.5 font-medium ${BLOCK_STATUS_META[selected.status].className}`}
                   >
                     {BLOCK_STATUS_META[selected.status].label}
@@ -3948,6 +3961,7 @@ export default function StudioPage() {
                     generating || selected.type !== "image" || hasInsufficientCredits
                   }
                   onClick={() => void generateSelected()}
+                  data-testid="studio-generate"
                   className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
                 >
                   {selected.type !== "image"
@@ -3987,28 +4001,60 @@ export default function StudioPage() {
                     inspect.
                   </p>
                 )}
-                {selected.jobId && jobEvents.length > 0 && (
+                {selected.jobId &&
+                  (jobEvents.length > 0 ||
+                    selected.status === "pending" ||
+                    selected.status === "running") && (
                   <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
-                    <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                      Job timeline
-                    </div>
-                    <ol className="mt-2 space-y-1.5">
-                      {jobEvents.map((ev) => (
-                        <li
-                          key={ev.id}
-                          className="flex items-baseline justify-between gap-2 text-[11px]"
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                        Job timeline
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <button
+                          type="button"
+                          className="text-sky-400 underline hover:text-sky-300"
+                          onClick={() => {
+                            if (!selected.jobId) return;
+                            void apiClient
+                              .getJobEvents(selected.jobId)
+                              .then((res) => setJobEvents(res.events))
+                              .catch(() => setJobEvents([]));
+                          }}
                         >
-                          <span className="font-medium text-slate-300">{ev.event_type}</span>
-                          <span className="shrink-0 text-slate-600">
-                            {new Date(ev.created_at).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            })}
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
+                          Refresh
+                        </button>
+                        <Link
+                          href={`/app/jobs?job=${selected.jobId}`}
+                          className="text-sky-400 underline hover:text-sky-300"
+                        >
+                          View in history
+                        </Link>
+                      </div>
+                    </div>
+                    {jobEvents.length === 0 ? (
+                      <p className="mt-2 animate-pulse text-[11px] text-slate-500">
+                        Waiting for worker events…
+                      </p>
+                    ) : (
+                      <ol className="mt-2 space-y-1.5">
+                        {jobEvents.map((ev) => (
+                          <li
+                            key={ev.id}
+                            className="flex items-baseline justify-between gap-2 text-[11px]"
+                          >
+                            <span className="font-medium text-slate-300">{ev.event_type}</span>
+                            <span className="shrink-0 text-slate-600">
+                              {new Date(ev.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                              })}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
                   </div>
                 )}
               </div>
@@ -4118,6 +4164,9 @@ export default function StudioPage() {
                   <button
                     key={skill.id}
                     type="button"
+                    data-testid={
+                      skill.id === "pixar-short" ? "studio-skill-pixar-short" : undefined
+                    }
                     onClick={() => applyTemplate(skill.id)}
                     className="w-full rounded-lg border border-slate-700 bg-slate-950/80 p-3 text-left hover:border-sky-500/60"
                   >
