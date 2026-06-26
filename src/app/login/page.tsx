@@ -108,6 +108,10 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-skill-muted">
+        <Link href="/app" className="underline hover:text-skill-ink">
+          Quick form
+        </Link>
+        {" · "}
         <Link href="/pricing" className="underline hover:text-skill-ink">
           View pricing
         </Link>

@@ -159,6 +159,9 @@ export default function AppPage() {
         <div>
           <h1 className="text-2xl font-bold">Quick generate</h1>
           <p className="text-sm text-skill-muted">Legacy single-prompt form</p>
+          <p className="mt-1 text-xs text-skill-muted">
+            Signed in as {user.name || user.email}
+          </p>
         </div>
         <p
           className={`text-sm font-medium ${lowCreditBalance ? "text-amber-700" : ""}`}
