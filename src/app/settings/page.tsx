@@ -6,11 +6,33 @@ import { useEffect, useState } from "react";
 import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
 import { estimateGenerations, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
+import {
+  readProjectListPrefs,
+  readRememberHandTool,
+  readSnapToGrid,
+  writeProjectListPrefs,
+  writeRememberHandTool,
+  writeSnapToGrid,
+  type ProjectSort,
+  type ProjectViewFilter,
+} from "@/lib/studioPreferences";
 
 export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState("");
+  const [snapToGrid, setSnapToGrid] = useState(false);
+  const [rememberHandTool, setRememberHandTool] = useState(false);
+  const [projectListView, setProjectListView] = useState<ProjectViewFilter>("all");
+  const [projectListSort, setProjectListSort] = useState<ProjectSort>("updated-desc");
+
+  useEffect(() => {
+    setSnapToGrid(readSnapToGrid());
+    setRememberHandTool(readRememberHandTool());
+    const { view, sort } = readProjectListPrefs();
+    if (view) setProjectListView(view);
+    if (sort) setProjectListSort(sort);
+  }, []);
 
   useEffect(() => {
     async function loadUser() {
@@ -167,6 +189,70 @@ export default function SettingsPage() {
             ))}
           </ul>
         </div>
+      </div>
+
+      <div className="card mt-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Studio preferences</h2>
+          <p className="mt-1 text-sm text-skill-muted">
+            Applied the next time you open Studio.
+          </p>
+        </div>
+        <label className="flex items-center justify-between gap-4 text-sm">
+          <span>Snap blocks to grid</span>
+          <input
+            type="checkbox"
+            checked={snapToGrid}
+            onChange={(e) => {
+              setSnapToGrid(e.target.checked);
+              writeSnapToGrid(e.target.checked);
+            }}
+          />
+        </label>
+        <label className="flex items-center justify-between gap-4 text-sm">
+          <span>Remember hand tool between sessions</span>
+          <input
+            type="checkbox"
+            checked={rememberHandTool}
+            onChange={(e) => {
+              setRememberHandTool(e.target.checked);
+              writeRememberHandTool(e.target.checked);
+            }}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="text-skill-muted">Default project list view</span>
+          <select
+            className="input mt-1 w-full"
+            value={projectListView}
+            onChange={(e) => {
+              const view = e.target.value as ProjectViewFilter;
+              setProjectListView(view);
+              writeProjectListPrefs(view, projectListSort);
+            }}
+          >
+            <option value="all">All projects</option>
+            <option value="workflow">Workflow only</option>
+            <option value="storyboard">Storyboard only</option>
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="text-skill-muted">Default project list sort</span>
+          <select
+            className="input mt-1 w-full"
+            value={projectListSort}
+            onChange={(e) => {
+              const sort = e.target.value as ProjectSort;
+              setProjectListSort(sort);
+              writeProjectListPrefs(projectListView, sort);
+            }}
+          >
+            <option value="updated-desc">Updated (newest first)</option>
+            <option value="updated-asc">Updated (oldest first)</option>
+            <option value="title-asc">Title (A → Z)</option>
+            <option value="title-desc">Title (Z → A)</option>
+          </select>
+        </label>
       </div>
 
       <nav className="mt-6 grid gap-3 sm:grid-cols-2">

@@ -75,14 +75,19 @@ import {
   starterOrLocal,
 } from "@/lib/projectSync";
 import { formatInsufficientCreditsMessage, hasCreditsForGeneration, isInsufficientCreditsError, isInsufficientCreditsMessage, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import {
+  readHandToolActive,
+  readProjectListPrefs,
+  readSnapToGrid,
+  writeHandToolActive,
+  writeProjectListPrefs,
+  writeSnapToGrid,
+  type ProjectSort,
+  type ProjectViewFilter,
+} from "@/lib/studioPreferences";
 
 const CANVAS_GRID_SIZE = 24;
-const SNAP_PREFERENCE_KEY = "comfyskill.studio.snap-to-grid";
-const HAND_TOOL_KEY = "comfyskill.studio.hand-tool";
 const TOOLBAR_LAST_TOOL_KEY = "comfyskill.studio.toolbar-last-tool";
-const PROJECT_LIST_PREFERENCE_KEY = "comfyskill.studio.project-list";
-type ProjectViewFilter = ProjectSummary["view_mode"] | "all";
-type ProjectSort = "updated-desc" | "updated-asc" | "title-asc" | "title-desc";
 
 function projectUpdatedTimestamp(updatedAt: string | null): number {
   if (!updatedAt) return 0;
@@ -232,43 +237,14 @@ export default function StudioPage() {
   zoomRef.current = project.viewport.zoom;
 
   useEffect(() => {
-    try {
-      const enabled = localStorage.getItem(SNAP_PREFERENCE_KEY) === "true";
-      snapToGridRef.current = enabled;
-      setSnapToGrid(enabled);
-    } catch {
-      // Storage can be unavailable in private browsing modes.
-    }
+    const enabled = readSnapToGrid();
+    snapToGridRef.current = enabled;
+    setSnapToGrid(enabled);
   }, []);
   useEffect(() => {
-    try {
-      const stored: unknown = JSON.parse(
-        localStorage.getItem(PROJECT_LIST_PREFERENCE_KEY) ?? "null",
-      );
-      if (typeof stored !== "object" || stored === null) return;
-      const preference = stored as Record<string, unknown>;
-      if (
-        preference.view === "all" ||
-        preference.view === "workflow" ||
-        preference.view === "storyboard"
-      ) {
-        setProjectViewFilter(preference.view);
-      }
-      if (
-        preference.sort === "updated-desc" ||
-        preference.sort === "updated-asc" ||
-        preference.sort === "title-asc" ||
-        preference.sort === "title-desc"
-      ) {
-        setProjectSort(preference.sort);
-      } else if (preference.sort === "updated") {
-        setProjectSort("updated-desc");
-      } else if (preference.sort === "title") {
-        setProjectSort("title-asc");
-      }
-    } catch {
-      // Ignore malformed or unavailable local preferences.
-    }
+    const { view, sort } = readProjectListPrefs();
+    if (view) setProjectViewFilter(view);
+    if (sort) setProjectSort(sort);
   }, []);
 
   const queueRemoteSave = useCallback((snapshot: CanvasProject) => {
@@ -1269,11 +1245,7 @@ export default function StudioPage() {
     const enabled = !snapToGridRef.current;
     snapToGridRef.current = enabled;
     setSnapToGrid(enabled);
-    try {
-      localStorage.setItem(SNAP_PREFERENCE_KEY, String(enabled));
-    } catch {
-      // Keep the in-memory preference when storage is unavailable.
-    }
+    writeSnapToGrid(enabled);
   }
 
   function snapBlockPlacement(x: number, y: number) {
@@ -1294,11 +1266,7 @@ export default function StudioPage() {
   }
 
   function persistProjectListPreference(view: ProjectViewFilter, sort: ProjectSort) {
-    try {
-      localStorage.setItem(PROJECT_LIST_PREFERENCE_KEY, JSON.stringify({ view, sort }));
-    } catch {
-      // Keep the in-memory preference when storage is unavailable.
-    }
+    writeProjectListPrefs(view, sort);
   }
 
   function updateProjectViewFilter(view: ProjectViewFilter) {
@@ -1852,20 +1820,12 @@ export default function StudioPage() {
   }
 
   function persistHandToolPreference(active: boolean) {
-    try {
-      sessionStorage.setItem(HAND_TOOL_KEY, active ? "1" : "0");
-    } catch {
-      // Storage can be unavailable in private browsing modes.
-    }
+    writeHandToolActive(active);
   }
 
   function restoreHandToolPreference() {
     if (viewModeRef.current !== "workflow") return;
-    try {
-      if (sessionStorage.getItem(HAND_TOOL_KEY) !== "1") return;
-    } catch {
-      return;
-    }
+    if (!readHandToolActive()) return;
     updatePanTool(true, false);
   }
 
