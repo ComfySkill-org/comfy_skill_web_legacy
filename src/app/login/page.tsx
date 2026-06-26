@@ -19,6 +19,19 @@ function readLoginPlan(): "standard" | "creator" | "pro" | null {
   return null;
 }
 
+function readLoginNext(): string | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("next");
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
+function readLoginDestination(): string {
+  const plan = readLoginPlan();
+  if (plan) return `/settings/billing?plan=${plan}`;
+  return readLoginNext() ?? "/studio";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("tester@comfyskill.local");
@@ -34,8 +47,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const plan = readLoginPlan();
-    const destination = plan ? `/settings/billing?plan=${plan}` : "/app";
+    const destination = readLoginDestination();
 
     if (useFirebase) {
       if (getFirebaseAuth()?.currentUser) router.replace(destination);
@@ -57,9 +69,7 @@ export default function LoginPage() {
         saveToken(access_token);
       }
       const plan = readLoginPlan();
-      router.push(
-        plan ? `/settings/billing?plan=${plan}` : "/app",
-      );
+      router.push(plan ? `/settings/billing?plan=${plan}` : readLoginDestination());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -122,16 +132,16 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-skill-muted">
+        <Link href="/studio" className="underline hover:text-skill-ink">
+          Open studio
+        </Link>
+        {" · "}
         <Link href="/app" className="underline hover:text-skill-ink">
           Quick form
         </Link>
         {" · "}
         <Link href="/pricing" className="underline hover:text-skill-ink">
           View pricing
-        </Link>
-        {" · "}
-        <Link href="/studio" className="underline hover:text-skill-ink">
-          Open studio
         </Link>
       </p>
       </div>
