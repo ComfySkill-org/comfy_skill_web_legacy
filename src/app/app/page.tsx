@@ -11,7 +11,7 @@ import {
   type QualityTier,
   type User,
 } from "@/lib/api";
-import { getFirebaseAuth } from "@/lib/firebase";
+import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 const QUALITY_OPTIONS: { tier: QualityTier; label: string; hint: string }[] = [
   { tier: "premium", label: "Good", hint: "Best quality · higher cost" },
@@ -29,6 +29,17 @@ export default function AppPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const loadUser = () => apiClient.me().then(setUser).catch(() => router.replace("/login"));
+
+    if (isFirebaseEnabled()) {
+      const unsub = subscribeToAuthToken((token) => {
+        if (token) void loadUser();
+        else if (!getFirebaseAuth()?.currentUser) router.replace("/login");
+      });
+      if (getFirebaseAuth()?.currentUser) void loadUser();
+      return unsub;
+    }
+
     const authed = isFirebaseEnabled()
       ? Boolean(getFirebaseAuth()?.currentUser)
       : Boolean(getToken());
@@ -36,7 +47,7 @@ export default function AppPage() {
       router.replace("/login");
       return;
     }
-    apiClient.me().then(setUser).catch(() => router.replace("/login"));
+    void loadUser();
   }, [router]);
 
   useEffect(() => {

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import {
   apiClient,
   getToken,
@@ -10,6 +12,9 @@ import {
   type Transaction,
 } from "@/lib/api";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
+
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function BillingPage() {
   const router = useRouter();
@@ -22,6 +27,7 @@ export default function BillingPage() {
   const [error, setError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [embeddedClientSecret, setEmbeddedClientSecret] = useState("");
 
   useEffect(() => {
     async function loadBilling() {
@@ -62,9 +68,14 @@ export default function BillingPage() {
     setCheckoutLoading(true);
     setError("");
     setMessage("");
+    if (!stripePromise) {
+      setError("Stripe publishable key is missing — set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.");
+      setCheckoutLoading(false);
+      return;
+    }
     try {
-      const { checkout_url } = await apiClient.createCheckout();
-      window.location.href = checkout_url;
+      const { client_secret } = await apiClient.createEmbeddedCheckout();
+      setEmbeddedClientSecret(client_secret);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start checkout");
     } finally {
@@ -91,6 +102,9 @@ export default function BillingPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "1") {
       setMessage("Checkout completed. Credits will update after the Stripe webhook is received.");
+    }
+    if (params.get("session_id")) {
+      setMessage("Payment submitted. Credits will update after the Stripe webhook is received.");
     }
     if (params.get("canceled") === "1") {
       setMessage("Checkout was canceled.");
@@ -121,10 +135,10 @@ export default function BillingPage() {
             <button
               type="button"
               className="btn-primary"
-              disabled={!stripeReady || checkoutLoading}
+              disabled={!stripeReady || checkoutLoading || Boolean(embeddedClientSecret)}
               onClick={() => void startCheckout()}
             >
-              {checkoutLoading ? "Starting..." : "Subscribe with Stripe"}
+              {checkoutLoading ? "Starting..." : "Enter payment details"}
             </button>
             <button
               type="button"
@@ -136,8 +150,8 @@ export default function BillingPage() {
             </button>
           </div>
           <p className="text-xs text-skill-muted">
-            Test checkout grants 4,200 credits after the webhook receives
-            checkout.session.completed.
+            Card number, name, and billing address are collected by Stripe Embedded Checkout.
+            Test checkout grants 4,200 credits after the webhook receives checkout.session.completed.
           </p>
         </div>
 
@@ -171,6 +185,33 @@ export default function BillingPage() {
           )}
         </div>
       </div>
+
+      {embeddedClientSecret && stripePromise && (
+        <div className="card mt-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold">Secure payment</h2>
+              <p className="text-sm text-skill-muted">
+                Use Stripe test card 4242 4242 4242 4242. Stripe securely collects payment method,
+                name, and billing address.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="text-sm text-skill-muted underline hover:text-skill-ink"
+              onClick={() => setEmbeddedClientSecret("")}
+            >
+              Close
+            </button>
+          </div>
+          <EmbeddedCheckoutProvider
+            stripe={stripePromise}
+            options={{ clientSecret: embeddedClientSecret }}
+          >
+            <EmbeddedCheckout />
+          </EmbeddedCheckoutProvider>
+        </div>
+      )}
 
       <p className="mt-6 text-center text-sm text-skill-muted">
         <Link href="/pricing" className="underline">

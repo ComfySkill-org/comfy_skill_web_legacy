@@ -40,9 +40,9 @@ export interface Transaction {
   created_at: string;
 }
 
-async function authHeaders(): Promise<HeadersInit> {
+async function authHeaders(forceRefresh = false): Promise<HeadersInit> {
   if (isFirebaseEnabled()) {
-    const token = await getFirebaseIdToken();
+    const token = await getFirebaseIdToken(forceRefresh);
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
   if (typeof window === "undefined") return {};
@@ -51,14 +51,22 @@ async function authHeaders(): Promise<HeadersInit> {
 }
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(await authHeaders()),
-      ...init?.headers,
-    },
-  });
+  const request = async (forceRefresh = false) =>
+    fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(await authHeaders(forceRefresh)),
+        ...init?.headers,
+      },
+    });
+
+  let res = await request();
+  if (res.status === 401 && isFirebaseEnabled()) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    res = await request(true);
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const detail = body.detail;
@@ -97,6 +105,11 @@ export const apiClient = {
 
   createCheckout: () =>
     api<{ checkout_url: string }>("/billing/checkout", {
+      method: "POST",
+    }),
+
+  createEmbeddedCheckout: () =>
+    api<{ client_secret: string }>("/billing/checkout/embedded", {
       method: "POST",
     }),
 

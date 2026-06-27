@@ -38,7 +38,7 @@ export async function firebaseLogin(email: string, password: string): Promise<st
   const a = getFirebaseAuth();
   if (!a) throw new Error("Firebase is not configured");
   const cred = await signInWithEmailAndPassword(a, email, password);
-  return cred.user.getIdToken();
+  return cred.user.getIdToken(true);
 }
 
 export async function firebaseLogout(): Promise<void> {
@@ -46,10 +46,10 @@ export async function firebaseLogout(): Promise<void> {
   if (a) await signOut(a);
 }
 
-export async function getFirebaseIdToken(): Promise<string | null> {
+export async function getFirebaseIdToken(forceRefresh = false): Promise<string | null> {
   const a = getFirebaseAuth();
   if (!a?.currentUser) return null;
-  return a.currentUser.getIdToken();
+  return a.currentUser.getIdToken(forceRefresh);
 }
 
 export function subscribeToAuthToken(onToken: (token: string | null) => void): () => void {

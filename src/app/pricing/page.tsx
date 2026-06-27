@@ -1,7 +1,13 @@
 import Link from "next/link";
 
 const PLANS = [
-  { name: "Standard", price: "$20/mo", credits: "4,200 credits", note: "Similar to Comfy Cloud Standard" },
+  {
+    name: "Standard",
+    price: "$20/mo",
+    credits: "4,200 credits",
+    note: "Similar to Comfy Cloud Standard",
+    available: true,
+  },
   { name: "Creator", price: "$35/mo", credits: "7,400 credits", popular: true },
   { name: "Pro", price: "$100/mo", credits: "21,100 credits", note: "Teams & heavy use" },
 ];
@@ -28,6 +34,15 @@ export default function PricingPage() {
             <p className="mt-2 text-2xl font-bold">{plan.price}</p>
             <p className="mt-1 text-sm text-skill-muted">{plan.credits}</p>
             {plan.note && <p className="mt-2 text-xs text-skill-muted">{plan.note}</p>}
+            {plan.available ? (
+              <Link href="/settings/billing" className="btn-primary mt-5 w-full">
+                Subscribe
+              </Link>
+            ) : (
+              <button type="button" className="btn-secondary mt-5 w-full" disabled>
+                Coming soon
+              </button>
+            )}
           </div>
         ))}
       </div>
