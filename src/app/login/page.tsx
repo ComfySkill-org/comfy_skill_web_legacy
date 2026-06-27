@@ -7,8 +7,8 @@ import { firebaseLogin } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("tester@comfyskill.local");
+  const [password, setPassword] = useState("replace-me-tester");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const useFirebase = isFirebaseEnabled();
@@ -50,6 +50,8 @@ export default function LoginPage() {
           <input
             className="input"
             type="email"
+            name="email"
+            autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tester@comfyskill.local"
@@ -61,6 +63,8 @@ export default function LoginPage() {
           <input
             className="input"
             type="password"
+            name="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
