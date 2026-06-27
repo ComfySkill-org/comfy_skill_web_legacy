@@ -31,6 +31,15 @@ export interface Job {
   completed_at: string | null;
 }
 
+export interface Transaction {
+  id: string;
+  amount: number;
+  type: string;
+  description: string | null;
+  job_id: string | null;
+  created_at: string;
+}
+
 async function authHeaders(): Promise<HeadersInit> {
   if (isFirebaseEnabled()) {
     const token = await getFirebaseIdToken();
@@ -79,7 +88,22 @@ export const apiClient = {
 
   balance: () => api<{ balance_credits: number }>("/billing/balance"),
 
-  stripeStatus: () => api<{ configured: boolean; mode: string }>("/billing/stripe/status"),
+  transactions: () => api<{ transactions: Transaction[] }>("/billing/transactions"),
+
+  stripeStatus: () =>
+    api<{ configured: boolean; price_configured: boolean; mode: string }>(
+      "/billing/stripe/status",
+    ),
+
+  createCheckout: () =>
+    api<{ checkout_url: string }>("/billing/checkout", {
+      method: "POST",
+    }),
+
+  createBillingPortal: () =>
+    api<{ portal_url: string }>("/billing/portal", {
+      method: "POST",
+    }),
 
   adminJobs: () => api<{ jobs: Job[]; total: number }>("/admin/jobs"),
 

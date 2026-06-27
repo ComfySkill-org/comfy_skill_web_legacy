@@ -32,11 +32,11 @@ export default function PricingPage() {
         ))}
       </div>
       <p className="mt-8 text-center text-sm text-skill-muted">
-        Stripe checkout integration ships in Phase 2.{" "}
-        <Link href="/login" className="underline">
-          Log in
+        Ready to test subscription checkout?{" "}
+        <Link href="/settings/billing" className="underline">
+          Open billing
         </Link>{" "}
-        to use seed credits on staging.
+        to subscribe with Stripe test mode.
       </p>
     </div>
   );
