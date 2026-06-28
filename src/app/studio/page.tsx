@@ -413,6 +413,32 @@ export default function StudioPage() {
     };
   }, [hydrated]);
 
+  useEffect(() => {
+    if (!hydrated || !isStudioAuthed()) return;
+
+    function refreshBalanceCredits() {
+      void apiClient
+        .me()
+        .then((user) => setBalanceCredits(user.balance_credits))
+        .catch(() => undefined);
+    }
+
+    function onWindowFocus() {
+      refreshBalanceCredits();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") refreshBalanceCredits();
+    }
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [hydrated]);
+
   const inFlightJobKey = useMemo(
     () =>
       project.blocks
@@ -2188,7 +2214,7 @@ export default function StudioPage() {
           )}
           {balanceCredits !== null && (
             <Link
-              href="/settings/billing"
+              href="/settings/billing?plan=standard"
               className={`rounded-full border px-2.5 py-1 text-xs ${
                 lowCreditBalance
                   ? "border-amber-500/60 text-amber-300 hover:border-amber-400 hover:text-amber-200"
@@ -3402,7 +3428,7 @@ export default function StudioPage() {
                     Need {selectedCreditEstimate} credits for this tier; you have{" "}
                     {balanceCredits?.toLocaleString()}.{" "}
                     <Link
-                      href="/settings/billing"
+                      href="/settings/billing?plan=standard"
                       className="underline hover:text-amber-300"
                     >
                       Add credits in Billing

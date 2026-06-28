@@ -42,14 +42,7 @@ export default function BillingPage() {
     async function loadBilling() {
       setError("");
       try {
-        const [balanceResult, transactionsResult, statusResult] = await Promise.all([
-          apiClient.balance(),
-          apiClient.transactions(),
-          apiClient.stripeStatus(),
-        ]);
-        setBalance(balanceResult.balance_credits);
-        setTransactions(transactionsResult.transactions);
-        setStripeStatus(statusResult);
+        await refreshBillingSnapshot();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load billing");
         router.replace("/login");
@@ -72,6 +65,18 @@ export default function BillingPage() {
 
     router.replace("/login");
   }, [router]);
+
+  async function refreshBillingSnapshot() {
+    const [balanceResult, transactionsResult, statusResult] = await Promise.all([
+      apiClient.balance(),
+      apiClient.transactions(),
+      apiClient.stripeStatus(),
+    ]);
+    setBalance(balanceResult.balance_credits);
+    setTransactions(transactionsResult.transactions);
+    setStripeStatus(statusResult);
+    return balanceResult.balance_credits;
+  }
 
   async function startCheckout() {
     setCheckoutLoading(true);
@@ -109,16 +114,20 @@ export default function BillingPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "1") {
+    if (params.get("success") === "1" || params.get("session_id")) {
       setMessage("Checkout completed. Credits will update after the Stripe webhook is received.");
-    }
-    if (params.get("session_id")) {
-      setMessage("Payment submitted. Credits will update after the Stripe webhook is received.");
+      void refreshBillingSnapshot().catch(() => undefined);
     }
     if (params.get("canceled") === "1") {
       setMessage("Checkout was canceled.");
     }
   }, []);
+
+  function handleEmbeddedCheckoutComplete() {
+    setEmbeddedClientSecret("");
+    setMessage("Checkout completed. Credits will update after the Stripe webhook is received.");
+    void refreshBillingSnapshot().catch(() => undefined);
+  }
 
   const stripeReady = Boolean(stripeStatus?.configured && stripeStatus.price_configured);
 
@@ -216,7 +225,10 @@ export default function BillingPage() {
           </div>
           <EmbeddedCheckoutProvider
             stripe={stripePromise}
-            options={{ clientSecret: embeddedClientSecret }}
+            options={{
+              clientSecret: embeddedClientSecret,
+              onComplete: handleEmbeddedCheckoutComplete,
+            }}
           >
             <EmbeddedCheckout />
           </EmbeddedCheckoutProvider>
