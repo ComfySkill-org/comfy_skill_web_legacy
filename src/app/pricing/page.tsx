@@ -60,7 +60,7 @@ export default function PricingPage() {
             </p>
             {plan.note && <p className="mt-2 text-xs text-skill-muted">{plan.note}</p>}
             <Link
-              href={`/settings/billing?plan=${plan.id}`}
+              href={`/login?plan=${plan.id}`}
               className="btn-primary mt-5 w-full"
             >
               Subscribe
@@ -84,12 +84,15 @@ export default function PricingPage() {
         </div>
       </section>
       <p className="mt-8 text-center text-sm text-skill-muted">
-        Ready to test subscription checkout?{" "}
+        Subscribe starts with sign-in, then continues in Billing with Stripe test mode.{" "}
+        <Link href="/login" className="underline">
+          Log in
+        </Link>
+        {" · "}
         <Link href="/settings/billing" className="underline">
           Open billing
-        </Link>{" "}
-        to subscribe with Stripe test mode. Creator/Pro use dedicated price IDs when set,
-        otherwise fall back to Standard.
+        </Link>
+        . Creator/Pro use dedicated price IDs when set, otherwise fall back to Standard.
       </p>
     </div>
   );

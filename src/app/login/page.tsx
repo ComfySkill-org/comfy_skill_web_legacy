@@ -1,9 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, saveToken } from "@/lib/api";
 import { firebaseLogin } from "@/lib/firebase";
+
+function readLoginPlan(): "standard" | "creator" | "pro" | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("plan");
+  if (raw === "creator" || raw === "pro" || raw === "standard") return raw;
+  return null;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,7 +19,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("replace-me-tester");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginPlan, setLoginPlan] = useState<"standard" | "creator" | "pro" | null>(null);
   const useFirebase = isFirebaseEnabled();
+
+  useEffect(() => {
+    setLoginPlan(readLoginPlan());
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -24,7 +37,10 @@ export default function LoginPage() {
         const { access_token } = await apiClient.login(email, password);
         saveToken(access_token);
       }
-      router.push("/app");
+      const plan = readLoginPlan();
+      router.push(
+        plan ? `/settings/billing?plan=${plan}` : "/app",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -38,6 +54,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-12">
+      <div className="w-full">
       <form onSubmit={onSubmit} className="card w-full space-y-4">
         <h1 className="text-2xl font-bold">Log in to ComfySkill</h1>
         <p className="text-sm text-skill-muted">
@@ -45,6 +62,12 @@ export default function LoginPage() {
             ? "Sign in with Firebase (Comfy Cloud–aligned auth)."
             : "Legacy JWT mode — set Firebase env vars for production auth."}
         </p>
+        {loginPlan && (
+          <p className="rounded-xl border border-skill-blue/20 bg-skill-yellow/30 px-3 py-2 text-sm text-skill-ink">
+            After sign-in you&apos;ll continue to Billing for the{" "}
+            <span className="font-semibold capitalize">{loginPlan}</span> plan.
+          </p>
+        )}
         <div>
           <label className="mb-1 block text-sm font-medium">Email</label>
           <input
@@ -75,6 +98,16 @@ export default function LoginPage() {
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      <p className="mt-4 text-center text-sm text-skill-muted">
+        <Link href="/pricing" className="underline hover:text-skill-ink">
+          View pricing
+        </Link>
+        {" · "}
+        <Link href="/studio" className="underline hover:text-skill-ink">
+          Open studio
+        </Link>
+      </p>
+      </div>
     </div>
   );
 }
