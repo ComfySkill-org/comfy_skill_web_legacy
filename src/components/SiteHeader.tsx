@@ -186,6 +186,13 @@ export function SiteHeader() {
                         Generation history
                       </Link>
                       <Link
+                        href="/settings"
+                        role="menuitem"
+                        className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"
+                      >
+                        Account settings
+                      </Link>
+                      <Link
                         href="/settings/billing?plan=standard"
                         role="menuitem"
                         className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"

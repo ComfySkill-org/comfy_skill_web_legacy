@@ -55,6 +55,45 @@ export default function AppJobsPage() {
     void loadJobs();
   }, [router]);
 
+  useEffect(() => {
+    function refreshJobs() {
+      void apiClient
+        .listJobs()
+        .then(({ jobs: list }) => setJobs(list))
+        .catch(() => undefined);
+    }
+
+    function onWindowFocus() {
+      refreshJobs();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") refreshJobs();
+    }
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const inFlight = jobs.some(
+      (job) => job.status === "pending" || job.status === "running",
+    );
+    if (!inFlight || loading) return;
+
+    const timer = setInterval(() => {
+      void apiClient
+        .listJobs()
+        .then(({ jobs: list }) => setJobs(list))
+        .catch(() => undefined);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [jobs, loading]);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -65,6 +104,26 @@ export default function AppJobsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 text-sm">
+          <button
+            type="button"
+            className="underline hover:text-skill-ink disabled:opacity-50"
+            disabled={loading}
+            onClick={() => {
+              setLoading(true);
+              void apiClient
+                .listJobs()
+                .then(({ jobs: list }) => setJobs(list))
+                .catch((err) =>
+                  setError(err instanceof Error ? err.message : "Failed to refresh jobs"),
+                )
+                .finally(() => setLoading(false));
+            }}
+          >
+            Refresh
+          </button>
+          <Link href="/settings" className="underline hover:text-skill-ink">
+            Account
+          </Link>
           <Link href="/app" className="underline hover:text-skill-ink">
             Quick form
           </Link>

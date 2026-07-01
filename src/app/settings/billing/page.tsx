@@ -298,6 +298,10 @@ export default function BillingPage() {
       )}
 
       <p className="mt-6 text-center text-sm text-skill-muted">
+        <Link href="/settings" className="underline">
+          Account settings
+        </Link>
+        {" · "}
         <Link href="/pricing" className="underline">
           View plans
         </Link>
