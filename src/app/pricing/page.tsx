@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import {
+  estimateGenerations,
+  PLAN_MONTHLY_CREDITS,
+  QUALITY_CREDITS,
+  QUALITY_TIER_OPTIONS,
+} from "@/lib/credits";
 
 const PLANS = [
   {
@@ -46,6 +51,13 @@ export default function PricingPage() {
             <h2 className="text-lg font-bold">{plan.name}</h2>
             <p className="mt-2 text-2xl font-bold">{plan.price}</p>
             <p className="mt-1 text-sm text-skill-muted">{plan.credits}</p>
+            <p className="mt-2 text-xs text-skill-muted">
+              ~
+              {estimateGenerations(PLAN_MONTHLY_CREDITS[plan.id], "standard").toLocaleString()}{" "}
+              Medium · ~
+              {estimateGenerations(PLAN_MONTHLY_CREDITS[plan.id], "budget").toLocaleString()}{" "}
+              Budget generations / mo
+            </p>
             {plan.note && <p className="mt-2 text-xs text-skill-muted">{plan.note}</p>}
             <Link
               href={`/settings/billing?plan=${plan.id}`}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 
 export default function FeaturesPage() {
   return (
@@ -18,6 +19,27 @@ export default function FeaturesPage() {
             Start from productized templates — Pixar-style short, viral remake, scene beat —
             then refine on the canvas without learning ComfyUI nodes.
           </p>
+        </div>
+        <div className="card">
+          <h2 className="font-semibold">Credits & billing</h2>
+          <p className="mt-2 text-sm text-skill-muted">
+            Subscribe for monthly credits. Pick a quality tier when you generate —{" "}
+            {QUALITY_TIER_OPTIONS.map(({ tier, label }, index) => (
+              <span key={tier}>
+                {index > 0 ? " · " : ""}
+                {label} ({QUALITY_CREDITS[tier]} credits)
+              </span>
+            ))}
+            .
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-sm">
+            <Link href="/pricing" className="underline hover:text-skill-ink">
+              View pricing
+            </Link>
+            <Link href="/settings/billing" className="underline hover:text-skill-ink">
+              Manage billing
+            </Link>
+          </div>
         </div>
         <div className="card opacity-70">
           <h2 className="font-semibold">Coming soon — Video blocks</h2>

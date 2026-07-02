@@ -16,3 +16,17 @@ export const QUALITY_TIER_OPTIONS: { tier: QualityTier; label: string }[] = [
 export function isLowCreditBalance(balance: number): boolean {
   return balance < QUALITY_CREDITS.budget;
 }
+
+/** Monthly credits included with each subscription plan (after webhook). */
+export const PLAN_MONTHLY_CREDITS = {
+  standard: 4200,
+  creator: 7400,
+  pro: 21100,
+} as const;
+
+export function estimateGenerations(
+  planCredits: number,
+  tier: QualityTier = "standard",
+): number {
+  return Math.floor(planCredits / QUALITY_CREDITS[tier]);
+}

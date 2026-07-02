@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { QUALITY_CREDITS } from "@/lib/credits";
 
 export default function HomePage() {
   return (
@@ -36,7 +37,7 @@ export default function HomePage() {
           },
           {
             title: "Simple credits",
-            desc: "Pick quality when you need it; billing stays out of the way.",
+            desc: `Pick Good (${QUALITY_CREDITS.premium}), Medium (${QUALITY_CREDITS.standard}), or Budget (${QUALITY_CREDITS.budget}) when you generate — billing stays out of the way.`,
           },
         ].map((item) => (
           <div key={item.title} className="card">
