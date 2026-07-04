@@ -165,7 +165,7 @@ export default function AppPage() {
           <p className="text-sm text-amber-700">
             Need {creditEstimate} credits for {quality}; you have{" "}
             {user.balance_credits.toLocaleString()}.{" "}
-            <Link href="/settings/billing" className="underline hover:text-amber-900">
+            <Link href="/settings/billing?plan=standard" className="underline hover:text-amber-900">
               Add credits in Billing
             </Link>
           </p>
@@ -212,7 +212,7 @@ export default function AppPage() {
       )}
 
       <p className="mt-6 text-center text-sm text-skill-muted">
-        <Link href="/settings/billing" className="underline">
+        <Link href="/settings/billing?plan=standard" className="underline">
           Billing & usage
         </Link>
       </p>

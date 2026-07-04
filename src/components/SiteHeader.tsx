@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
+import { QUALITY_CREDITS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 export function SiteHeader() {
@@ -36,6 +37,32 @@ export function SiteHeader() {
   }, [pathname]);
 
   useEffect(() => {
+    if (!user) return;
+
+    function refreshUserCredits() {
+      void apiClient
+        .me()
+        .then(setUser)
+        .catch(() => undefined);
+    }
+
+    function onWindowFocus() {
+      refreshUserCredits();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") refreshUserCredits();
+    }
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
     setAccountMenuOpen(false);
   }, [pathname]);
 
@@ -52,6 +79,8 @@ export function SiteHeader() {
 
   const accountLabel = user?.email.split("@")[0] ?? "Account";
   const avatarInitial = (user?.name || user?.email || "U").trim().charAt(0).toUpperCase();
+  const lowCreditBalance =
+    user !== null && user.balance_credits < QUALITY_CREDITS.budget;
 
   return (
     <header className="sticky top-0 z-50 border-b border-skill-blue/20 bg-white/70 backdrop-blur">
@@ -125,7 +154,13 @@ export function SiteHeader() {
                       </div>
                       <div className="flex items-center justify-between gap-4">
                         <span className="text-skill-muted">Credits</span>
-                        <span className="font-semibold">{user.balance_credits}</span>
+                        <span
+                          className={
+                            lowCreditBalance ? "font-semibold text-amber-700" : "font-semibold"
+                          }
+                        >
+                          {user.balance_credits.toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
@@ -145,7 +180,7 @@ export function SiteHeader() {
                         Quick form
                       </Link>
                       <Link
-                        href="/settings/billing"
+                        href="/settings/billing?plan=standard"
                         role="menuitem"
                         className="block rounded-xl px-3 py-2 text-skill-muted hover:bg-skill-yellow/40 hover:text-skill-ink"
                       >

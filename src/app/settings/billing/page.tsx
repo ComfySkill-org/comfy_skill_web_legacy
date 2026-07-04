@@ -66,6 +66,27 @@ export default function BillingPage() {
     router.replace("/login");
   }, [router]);
 
+  useEffect(() => {
+    function refreshOnReturn() {
+      void refreshBillingSnapshot().catch(() => undefined);
+    }
+
+    function onWindowFocus() {
+      refreshOnReturn();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") refreshOnReturn();
+    }
+
+    window.addEventListener("focus", onWindowFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", onWindowFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
   async function refreshBillingSnapshot() {
     const [balanceResult, transactionsResult, statusResult] = await Promise.all([
       apiClient.balance(),
@@ -130,6 +151,9 @@ export default function BillingPage() {
   }
 
   const stripeReady = Boolean(stripeStatus?.configured && stripeStatus.price_configured);
+  const stripePriceMisconfigured = Boolean(
+    stripeStatus?.price_configured && stripeStatus.price_looks_valid === false,
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -147,6 +171,12 @@ export default function BillingPage() {
             Checkout:{" "}
             <span className="font-semibold">{stripeReady ? "configured" : "not ready"}</span>
           </div>
+          {stripePriceMisconfigured && (
+            <p className="rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Stripe price ID looks invalid — set <code>STRIPE_PRICE_STANDARD</code> to a{" "}
+              <code>price_…</code> id, not <code>prod_…</code>.
+            </p>
+          )}
           {message && <p className="text-sm text-skill-blue-dark">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex flex-wrap gap-3">
