@@ -19,3 +19,18 @@ export function transactionAmountClassName(amount: number): string {
   if (amount < 0) return "font-bold text-skill-ink";
   return "font-bold text-skill-muted";
 }
+
+export function summarizeTransactions(transactions: { amount: number }[]): {
+  creditsIn: number;
+  creditsOut: number;
+} {
+  let creditsIn = 0;
+  let creditsOut = 0;
+
+  for (const tx of transactions) {
+    if (tx.amount > 0) creditsIn += tx.amount;
+    else creditsOut += Math.abs(tx.amount);
+  }
+
+  return { creditsIn, creditsOut };
+}

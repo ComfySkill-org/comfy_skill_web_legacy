@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/lib/credits";
 import {
   formatTransactionType,
+  summarizeTransactions,
   transactionAmountClassName,
 } from "@/lib/transactions";
 
@@ -162,6 +163,10 @@ export default function BillingPage() {
   const stripePriceMisconfigured = Boolean(
     stripeStatus?.price_configured && stripeStatus.price_looks_valid === false,
   );
+  const ledgerSummary = useMemo(
+    () => summarizeTransactions(transactions),
+    [transactions],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -246,6 +251,12 @@ export default function BillingPage() {
               Generation history
             </Link>
           </div>
+          {transactions.length > 0 && (
+            <p className="text-sm text-skill-muted">
+              Ledger total: +{ledgerSummary.creditsIn.toLocaleString()} in · −
+              {ledgerSummary.creditsOut.toLocaleString()} used
+            </p>
+          )}
           {transactions.length ? (
             <div className="space-y-3">
               {transactions.slice(0, 8).map((tx) => (

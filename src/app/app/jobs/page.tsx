@@ -48,6 +48,32 @@ export default function AppJobsPage() {
     [jobs, filter],
   );
 
+  const jobFilterCounts = useMemo(() => {
+    const counts: Record<JobFilter, number> = {
+      all: jobs.length,
+      completed: 0,
+      failed: 0,
+      in_progress: 0,
+    };
+
+    for (const job of jobs) {
+      if (job.status === "completed") counts.completed += 1;
+      else if (job.status === "failed") counts.failed += 1;
+      else if (job.status === "pending" || job.status === "running") counts.in_progress += 1;
+    }
+
+    return counts;
+  }, [jobs]);
+
+  const filteredCreditsTotal = useMemo(
+    () =>
+      filteredJobs.reduce(
+        (total, job) => total + (job.credits_charged ?? job.credits_estimated),
+        0,
+      ),
+    [filteredJobs],
+  );
+
   useEffect(() => {
     async function loadJobs() {
       setError("");
@@ -201,10 +227,15 @@ export default function AppJobsPage() {
                 }`}
                 onClick={() => setFilter(id)}
               >
-                {label}
+                {label} ({jobFilterCounts[id]})
               </button>
             ))}
           </div>
+
+          <p className="mb-4 text-sm text-skill-muted">
+            Showing {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"} ·{" "}
+            {filteredCreditsTotal.toLocaleString()} credits
+          </p>
 
           {filteredJobs.length === 0 ? (
             <p className="text-sm text-skill-muted">No jobs match this filter.</p>
