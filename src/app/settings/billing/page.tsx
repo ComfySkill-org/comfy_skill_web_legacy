@@ -12,10 +12,13 @@ import {
   type Transaction,
 } from "@/lib/api";
 import {
+  estimateGenerations,
   isLowCreditBalance,
+  PLAN_MONTHLY_CREDITS,
   QUALITY_CREDITS,
   QUALITY_TIER_OPTIONS,
 } from "@/lib/credits";
+import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
   formatTransactionType,
   summarizeTransactions,
@@ -25,6 +28,16 @@ import {
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+
+const BILLING_PLANS: {
+  id: "standard" | "creator" | "pro";
+  label: string;
+  price: string;
+}[] = [
+  { id: "standard", label: "Standard", price: "$20/mo" },
+  { id: "creator", label: "Creator", price: "$35/mo" },
+  { id: "pro", label: "Pro", price: "$100/mo" },
+];
 
 export default function BillingPage() {
   const router = useRouter();
@@ -218,6 +231,34 @@ export default function BillingPage() {
               <code>price_…</code> id, not <code>prod_…</code>.
             </p>
           )}
+          <div>
+            <p className="mb-2 text-sm font-semibold">Subscription plan</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {BILLING_PLANS.map((plan) => {
+                const monthlyCredits = PLAN_MONTHLY_CREDITS[plan.id];
+                const selected = planId === plan.id;
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setPlanId(plan.id)}
+                    className={`rounded-xl border p-3 text-left text-sm transition ${
+                      selected
+                        ? "border-skill-blue-dark bg-skill-blue/20"
+                        : "border-skill-blue/20 bg-white hover:bg-skill-yellow/30"
+                    }`}
+                  >
+                    <span className="block font-semibold">{plan.label}</span>
+                    <span className="text-xs text-skill-muted">{plan.price}</span>
+                    <span className="mt-1 block text-xs text-skill-muted">
+                      {monthlyCredits.toLocaleString()} credits · ~
+                      {estimateGenerations(monthlyCredits, "standard").toLocaleString()} Medium / mo
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {message && <p className="text-sm text-skill-blue-dark">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex flex-wrap gap-3">
@@ -239,9 +280,8 @@ export default function BillingPage() {
             </button>
           </div>
           <p className="text-xs text-skill-muted">
-            Plan from pricing: <span className="font-semibold capitalize">{planId}</span>
-            {" "}(Standard 4,200 / Creator 7,400 / Pro 21,100 credits after webhook).
-            Card details are collected by Stripe Embedded Checkout.
+            Credits post to your balance after the Stripe webhook. Card details are collected by
+            Stripe Embedded Checkout.
           </p>
         </div>
 

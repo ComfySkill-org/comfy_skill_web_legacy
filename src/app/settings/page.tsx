@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, type User } from "@/lib/api";
-import { isLowCreditBalance } from "@/lib/credits";
+import { isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 export default function SettingsPage() {
@@ -130,6 +130,20 @@ export default function SettingsPage() {
             </Link>
           </p>
         )}
+
+        <div className="rounded-xl border border-skill-blue/10 p-3 text-sm">
+          <p className="font-semibold">Generation costs</p>
+          <ul className="mt-2 space-y-1 text-skill-muted">
+            {QUALITY_TIER_OPTIONS.map(({ tier, label }) => (
+              <li key={tier} className="flex justify-between gap-4">
+                <span>{label}</span>
+                <span className="font-semibold text-skill-ink">
+                  {QUALITY_CREDITS[tier]} credits
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <nav className="mt-6 grid gap-3 sm:grid-cols-2">
