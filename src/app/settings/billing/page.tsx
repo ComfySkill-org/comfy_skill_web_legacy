@@ -20,6 +20,7 @@ import {
   formatTransactionType,
   summarizeTransactions,
   transactionAmountClassName,
+  transactionHighlightJobId,
 } from "@/lib/transactions";
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -272,6 +273,14 @@ export default function BillingPage() {
                     <p className="text-xs text-skill-muted">
                       {new Date(tx.created_at).toLocaleString()}
                     </p>
+                    {transactionHighlightJobId(tx) && (
+                      <Link
+                        href={`/app/jobs?job=${transactionHighlightJobId(tx)}`}
+                        className="mt-1 inline-block text-xs underline hover:text-skill-ink"
+                      >
+                        View generation
+                      </Link>
+                    )}
                   </div>
                   <span className={transactionAmountClassName(tx.amount)}>
                     {tx.amount >= 0 ? "+" : ""}

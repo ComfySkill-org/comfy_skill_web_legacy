@@ -42,6 +42,7 @@ export default function AppJobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
+  const [highlightJobId, setHighlightJobId] = useState<string | null>(null);
 
   const filteredJobs = useMemo(
     () => jobs.filter((job) => matchesJobFilter(job, filter)),
@@ -104,6 +105,21 @@ export default function AppJobsPage() {
     }
     void loadJobs();
   }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const jobId = new URLSearchParams(window.location.search).get("job");
+    if (!jobId) return;
+    setHighlightJobId(jobId);
+    setFilter("all");
+  }, []);
+
+  useEffect(() => {
+    if (!highlightJobId || loading) return;
+    const row = document.getElementById(`job-${highlightJobId}`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightJobId, loading, jobs]);
 
   useEffect(() => {
     function refreshJobs() {
@@ -183,6 +199,9 @@ export default function AppJobsPage() {
           >
             Refresh
           </button>
+          <Link href="/settings/billing?plan=standard" className="underline hover:text-skill-ink">
+            Billing
+          </Link>
           <Link href="/settings" className="underline hover:text-skill-ink">
             Account
           </Link>
@@ -244,7 +263,10 @@ export default function AppJobsPage() {
               {filteredJobs.map((job) => (
             <article
               key={job.id}
-              className="card flex flex-col gap-4 sm:flex-row sm:items-start"
+              id={`job-${job.id}`}
+              className={`card flex flex-col gap-4 sm:flex-row sm:items-start ${
+                highlightJobId === job.id ? "ring-2 ring-skill-blue-dark" : ""
+              }`}
               data-testid="job-row"
             >
               {job.output_url ? (

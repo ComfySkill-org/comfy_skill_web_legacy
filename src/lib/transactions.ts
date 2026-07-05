@@ -34,3 +34,12 @@ export function summarizeTransactions(transactions: { amount: number }[]): {
 
   return { creditsIn, creditsOut };
 }
+
+export function transactionHighlightJobId(tx: {
+  type: string;
+  job_id: string | null;
+}): string | null {
+  if (!tx.job_id) return null;
+  if (tx.type === "usage" || tx.type === "refund") return tx.job_id;
+  return null;
+}
