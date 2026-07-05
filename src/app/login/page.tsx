@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, saveToken } from "@/lib/api";
-import { firebaseLogin } from "@/lib/firebase";
+import { firebaseLogin, getFirebaseAuth } from "@/lib/firebase";
 
 function readLoginPlan(): "standard" | "creator" | "pro" | null {
   if (typeof window === "undefined") return null;
@@ -26,6 +26,19 @@ export default function LoginPage() {
     setLoginPlan(readLoginPlan());
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const plan = readLoginPlan();
+    const destination = plan ? `/settings/billing?plan=${plan}` : "/app";
+
+    if (useFirebase) {
+      if (getFirebaseAuth()?.currentUser) router.replace(destination);
+      return;
+    }
+
+    if (getToken()) router.replace(destination);
+  }, [router, useFirebase]);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -46,10 +59,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (typeof window !== "undefined" && !useFirebase && getToken()) {
-    router.replace("/app");
   }
 
   return (

@@ -20,10 +20,14 @@ import {
 } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 import {
+  countTransactionsByFilter,
   formatTransactionType,
+  matchesTransactionFilter,
   summarizeTransactions,
+  TRANSACTION_FILTERS,
   transactionAmountClassName,
   transactionHighlightJobId,
+  type TransactionFilter,
 } from "@/lib/transactions";
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -52,6 +56,15 @@ export default function BillingPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [embeddedClientSecret, setEmbeddedClientSecret] = useState("");
   const [planId, setPlanId] = useState<"standard" | "creator" | "pro">("standard");
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>("all");
+
+  function selectPlan(id: "standard" | "creator" | "pro") {
+    setPlanId(id);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("plan", id);
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -181,6 +194,18 @@ export default function BillingPage() {
     () => summarizeTransactions(transactions),
     [transactions],
   );
+  const filteredTransactions = useMemo(
+    () => transactions.filter((tx) => matchesTransactionFilter(tx, transactionFilter)),
+    [transactions, transactionFilter],
+  );
+  const filteredLedgerSummary = useMemo(
+    () => summarizeTransactions(filteredTransactions),
+    [filteredTransactions],
+  );
+  const transactionFilterCounts = useMemo(
+    () => countTransactionsByFilter(transactions),
+    [transactions],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -241,7 +266,7 @@ export default function BillingPage() {
                   <button
                     key={plan.id}
                     type="button"
-                    onClick={() => setPlanId(plan.id)}
+                    onClick={() => selectPlan(plan.id)}
                     className={`rounded-xl border p-3 text-left text-sm transition ${
                       selected
                         ? "border-skill-blue-dark bg-skill-blue/20"
@@ -298,9 +323,42 @@ export default function BillingPage() {
               {ledgerSummary.creditsOut.toLocaleString()} used
             </p>
           )}
+          {transactions.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2"
+              role="tablist"
+              aria-label="Filter transactions by type"
+            >
+              {TRANSACTION_FILTERS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={transactionFilter === id}
+                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                    transactionFilter === id
+                      ? "border-skill-blue-dark bg-skill-blue/20 font-semibold"
+                      : "border-skill-blue/20 bg-white hover:bg-skill-yellow/30"
+                  }`}
+                  onClick={() => setTransactionFilter(id)}
+                >
+                  {label} ({transactionFilterCounts[id]})
+                </button>
+              ))}
+            </div>
+          )}
+          {filteredTransactions.length > 0 && transactionFilter !== "all" && (
+            <p className="text-xs text-skill-muted">
+              Filtered: +{filteredLedgerSummary.creditsIn.toLocaleString()} in · −
+              {filteredLedgerSummary.creditsOut.toLocaleString()} used
+            </p>
+          )}
           {transactions.length ? (
             <div className="space-y-3">
-              {transactions.slice(0, 8).map((tx) => (
+              {filteredTransactions.length === 0 ? (
+                <p className="text-sm text-skill-muted">No transactions match this filter.</p>
+              ) : (
+                filteredTransactions.slice(0, 8).map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-start justify-between gap-4 rounded-xl border border-skill-blue/10 p-3 text-sm"
@@ -327,7 +385,8 @@ export default function BillingPage() {
                     {tx.amount.toLocaleString()}
                   </span>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           ) : (
             <p className="text-sm text-skill-muted">No billing transactions yet.</p>

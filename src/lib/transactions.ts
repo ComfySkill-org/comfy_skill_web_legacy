@@ -43,3 +43,41 @@ export function transactionHighlightJobId(tx: {
   if (tx.type === "usage" || tx.type === "refund") return tx.job_id;
   return null;
 }
+
+export type TransactionFilter = "all" | "usage" | "subscription" | "grant" | "refund";
+
+export const TRANSACTION_FILTERS: { id: TransactionFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "usage", label: "Generations" },
+  { id: "subscription", label: "Subscriptions" },
+  { id: "grant", label: "Grants" },
+  { id: "refund", label: "Refunds" },
+];
+
+export function matchesTransactionFilter(
+  tx: { type: string },
+  filter: TransactionFilter,
+): boolean {
+  if (filter === "all") return true;
+  return tx.type === filter;
+}
+
+export function countTransactionsByFilter(
+  transactions: readonly { type: string }[],
+): Record<TransactionFilter, number> {
+  const counts: Record<TransactionFilter, number> = {
+    all: transactions.length,
+    usage: 0,
+    subscription: 0,
+    grant: 0,
+    refund: 0,
+  };
+
+  for (const tx of transactions) {
+    if (tx.type in counts && tx.type !== "all") {
+      counts[tx.type as Exclude<TransactionFilter, "all">] += 1;
+    }
+  }
+
+  return counts;
+}
