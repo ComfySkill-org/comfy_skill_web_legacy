@@ -6,6 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, type Job } from "@/lib/api";
 import { QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
+import {
+  countJobsByQualityFilter,
+  JOB_QUALITY_FILTERS,
+  matchesJobQualityFilter,
+  type JobQualityFilter,
+} from "@/lib/jobs";
 
 const QUALITY_LABELS = Object.fromEntries(
   QUALITY_TIER_OPTIONS.map(({ tier, label }) => [tier, label]),
@@ -39,14 +45,18 @@ export default function AppJobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filter, setFilter] = useState<JobFilter>("all");
+  const [qualityFilter, setQualityFilter] = useState<JobQualityFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
   const [highlightJobId, setHighlightJobId] = useState<string | null>(null);
 
   const filteredJobs = useMemo(
-    () => jobs.filter((job) => matchesJobFilter(job, filter)),
-    [jobs, filter],
+    () =>
+      jobs.filter(
+        (job) => matchesJobFilter(job, filter) && matchesJobQualityFilter(job, qualityFilter),
+      ),
+    [jobs, filter, qualityFilter],
   );
 
   const jobFilterCounts = useMemo(() => {
@@ -65,6 +75,8 @@ export default function AppJobsPage() {
 
     return counts;
   }, [jobs]);
+
+  const jobQualityFilterCounts = useMemo(() => countJobsByQualityFilter(jobs), [jobs]);
 
   const filteredCreditsTotal = useMemo(
     () =>
@@ -251,13 +263,38 @@ export default function AppJobsPage() {
             ))}
           </div>
 
+          <div
+            className="mb-4 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Filter jobs by quality tier"
+          >
+            {JOB_QUALITY_FILTERS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={qualityFilter === id}
+                className={`rounded-full border px-3 py-1 text-sm transition ${
+                  qualityFilter === id
+                    ? "border-skill-blue-dark bg-skill-blue/20 font-semibold"
+                    : "border-skill-blue/20 bg-white hover:bg-skill-yellow/30"
+                }`}
+                onClick={() => setQualityFilter(id)}
+              >
+                {label} ({jobQualityFilterCounts[id]})
+              </button>
+            ))}
+          </div>
+
           <p className="mb-4 text-sm text-skill-muted">
             Showing {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"} ·{" "}
             {filteredCreditsTotal.toLocaleString()} credits
           </p>
 
           {filteredJobs.length === 0 ? (
-            <p className="text-sm text-skill-muted">No jobs match this filter.</p>
+            <p className="text-sm text-skill-muted">
+              No jobs match the current filters.
+            </p>
           ) : (
             <div className="space-y-3">
               {filteredJobs.map((job) => (
