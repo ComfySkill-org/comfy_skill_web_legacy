@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, type Job } from "@/lib/api";
 import { QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
@@ -18,11 +18,34 @@ function statusTone(status: string): string {
   return "text-skill-muted";
 }
 
+type JobFilter = "all" | "completed" | "failed" | "in_progress";
+
+const JOB_FILTERS: { id: JobFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "in_progress", label: "In progress" },
+  { id: "completed", label: "Completed" },
+  { id: "failed", label: "Failed" },
+];
+
+function matchesJobFilter(job: Job, filter: JobFilter): boolean {
+  if (filter === "all") return true;
+  if (filter === "in_progress") {
+    return job.status === "pending" || job.status === "running";
+  }
+  return job.status === filter;
+}
+
 export default function AppJobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [filter, setFilter] = useState<JobFilter>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const filteredJobs = useMemo(
+    () => jobs.filter((job) => matchesJobFilter(job, filter)),
+    [jobs, filter],
+  );
 
   useEffect(() => {
     async function loadJobs() {
@@ -146,8 +169,35 @@ export default function AppJobsPage() {
       )}
 
       {!loading && jobs.length > 0 && (
-        <div className="space-y-3">
-          {jobs.map((job) => (
+        <>
+          <div
+            className="mb-4 flex flex-wrap gap-2"
+            role="tablist"
+            aria-label="Filter jobs by status"
+          >
+            {JOB_FILTERS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={filter === id}
+                className={`rounded-full border px-3 py-1 text-sm transition ${
+                  filter === id
+                    ? "border-skill-blue-dark bg-skill-blue/20 font-semibold"
+                    : "border-skill-blue/20 bg-white hover:bg-skill-yellow/30"
+                }`}
+                onClick={() => setFilter(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {filteredJobs.length === 0 ? (
+            <p className="text-sm text-skill-muted">No jobs match this filter.</p>
+          ) : (
+            <div className="space-y-3">
+              {filteredJobs.map((job) => (
             <article
               key={job.id}
               className="card flex flex-col gap-4 sm:flex-row sm:items-start"
@@ -192,8 +242,10 @@ export default function AppJobsPage() {
                 )}
               </div>
             </article>
-          ))}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

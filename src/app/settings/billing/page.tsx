@@ -16,7 +16,10 @@ import {
   QUALITY_CREDITS,
   QUALITY_TIER_OPTIONS,
 } from "@/lib/credits";
-import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
+import {
+  formatTransactionType,
+  transactionAmountClassName,
+} from "@/lib/transactions";
 
 const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -237,7 +240,12 @@ export default function BillingPage() {
         </div>
 
         <div className="card space-y-4">
-          <h2 className="text-lg font-bold">Recent transactions</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold">Recent transactions</h2>
+            <Link href="/app/jobs" className="text-sm underline hover:text-skill-ink">
+              Generation history
+            </Link>
+          </div>
           {transactions.length ? (
             <div className="space-y-3">
               {transactions.slice(0, 8).map((tx) => (
@@ -246,7 +254,7 @@ export default function BillingPage() {
                   className="flex items-start justify-between gap-4 rounded-xl border border-skill-blue/10 p-3 text-sm"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold capitalize">{tx.type}</p>
+                    <p className="font-semibold">{formatTransactionType(tx.type)}</p>
                     <p className="truncate text-xs text-skill-muted">
                       {tx.description ?? "No description"}
                     </p>
@@ -254,9 +262,9 @@ export default function BillingPage() {
                       {new Date(tx.created_at).toLocaleString()}
                     </p>
                   </div>
-                  <span className={tx.amount >= 0 ? "font-bold text-green-700" : "font-bold"}>
+                  <span className={transactionAmountClassName(tx.amount)}>
                     {tx.amount >= 0 ? "+" : ""}
-                    {tx.amount}
+                    {tx.amount.toLocaleString()}
                   </span>
                 </div>
               ))}
