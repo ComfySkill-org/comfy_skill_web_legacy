@@ -137,3 +137,50 @@ export function summarizeRefundsForMonth(
 
   return { refundCount, creditsRefunded };
 }
+
+export type BillingSearchState = {
+  plan?: "standard" | "creator" | "pro";
+  ledger: TransactionFilter;
+};
+
+const BILLING_PLAN_VALUES = ["standard", "creator", "pro"] as const;
+const BILLING_LEDGER_VALUES: TransactionFilter[] = [
+  "all",
+  "usage",
+  "subscription",
+  "grant",
+  "refund",
+];
+
+export function parseBillingSearchParams(
+  search: string | URLSearchParams,
+): BillingSearchState {
+  const params = typeof search === "string" ? new URLSearchParams(search) : search;
+  const plan = params.get("plan");
+  const ledger = params.get("ledger");
+
+  return {
+    plan: BILLING_PLAN_VALUES.includes(plan as (typeof BILLING_PLAN_VALUES)[number])
+      ? (plan as (typeof BILLING_PLAN_VALUES)[number])
+      : undefined,
+    ledger: BILLING_LEDGER_VALUES.includes(ledger as TransactionFilter)
+      ? (ledger as TransactionFilter)
+      : "all",
+  };
+}
+
+export function buildBillingSearchParams(state: BillingSearchState): string {
+  const params = new URLSearchParams();
+  if (state.plan) params.set("plan", state.plan);
+  if (state.ledger !== "all") params.set("ledger", state.ledger);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export function averageCreditsPerGeneration(monthUsage: {
+  creditsUsed: number;
+  generationCount: number;
+}): number | null {
+  if (monthUsage.generationCount <= 0) return null;
+  return Math.round(monthUsage.creditsUsed / monthUsage.generationCount);
+}

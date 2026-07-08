@@ -28,6 +28,9 @@ import {
   summarizeUsageForMonth,
   summarizeRefundsForMonth,
   estimateCreditsRunway,
+  averageCreditsPerGeneration,
+  parseBillingSearchParams,
+  buildBillingSearchParams,
   TRANSACTION_FILTERS,
   transactionAmountClassName,
   transactionHighlightJobId,
@@ -65,19 +68,32 @@ export default function BillingPage() {
 
   function selectPlan(id: "standard" | "creator" | "pro") {
     setPlanId(id);
-    if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    url.searchParams.set("plan", id);
-    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
   }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = new URLSearchParams(window.location.search).get("plan");
-    if (raw === "creator" || raw === "pro" || raw === "standard") {
-      setPlanId(raw);
-    }
+    const parsed = parseBillingSearchParams(window.location.search);
+    if (parsed.plan) setPlanId(parsed.plan);
+    setTransactionFilter(parsed.ledger);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const current = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(
+      buildBillingSearchParams({ plan: planId, ledger: transactionFilter }).replace(/^\?/, ""),
+    );
+    for (const key of ["success", "session_id", "canceled"] as const) {
+      const value = current.get(key);
+      if (value) params.set(key, value);
+    }
+    const query = params.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }, [planId, transactionFilter]);
 
   useEffect(() => {
     async function loadBilling() {
@@ -246,6 +262,10 @@ export default function BillingPage() {
     () => summarizeRefundsForMonth(transactions),
     [transactions],
   );
+  const averageCreditsPerGen = useMemo(
+    () => averageCreditsPerGeneration(monthUsage),
+    [monthUsage],
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -377,6 +397,11 @@ export default function BillingPage() {
               {monthUsage.generationCount.toLocaleString()} generation
               {monthUsage.generationCount === 1 ? "" : "s"}.
             </p>
+            {averageCreditsPerGen !== null && (
+              <p className="mt-1 text-sm text-skill-muted">
+                ~{averageCreditsPerGen.toLocaleString()} credits per generation on average.
+              </p>
+            )}
             {creditsRunwayDays !== null && (
               <p
                 className={`mt-1 text-sm ${
