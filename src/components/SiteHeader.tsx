@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { apiClient, clearAuth, getToken, isFirebaseEnabled, type User } from "@/lib/api";
-import { isLowCreditBalance } from "@/lib/credits";
+import { estimateGenerations, isLowCreditBalance } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 export function SiteHeader() {
@@ -161,6 +161,13 @@ export function SiteHeader() {
                           {user.balance_credits.toLocaleString()}
                         </span>
                       </div>
+                      <p className="text-xs text-skill-muted">
+                        ~
+                        {estimateGenerations(user.balance_credits, "standard").toLocaleString()}{" "}
+                        Medium · ~
+                        {estimateGenerations(user.balance_credits, "budget").toLocaleString()}{" "}
+                        Budget generations remaining
+                      </p>
                     </div>
 
                     {lowCreditBalance && (

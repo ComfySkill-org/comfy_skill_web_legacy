@@ -215,6 +215,14 @@ export default function BillingPage() {
           <div>
             <p className="text-sm text-skill-muted">Current balance</p>
             <p className="text-3xl font-bold">{balance ?? "..."} credits</p>
+            {balance !== null && (
+              <p className="mt-1 text-xs text-skill-muted">
+                ~
+                {estimateGenerations(balance, "standard").toLocaleString()} Medium · ~
+                {estimateGenerations(balance, "budget").toLocaleString()} Budget generations
+                remaining
+              </p>
+            )}
           </div>
           {balance !== null && isLowCreditBalance(balance) && (
             <p className="rounded-xl border border-amber-500/40 bg-amber-50 px-3 py-2 text-sm text-amber-900">
