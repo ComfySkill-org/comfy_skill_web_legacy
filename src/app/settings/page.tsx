@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClient, getToken, isFirebaseEnabled, type User } from "@/lib/api";
-import { isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
+import { estimateGenerations, isLowCreditBalance, QUALITY_CREDITS, QUALITY_TIER_OPTIONS } from "@/lib/credits";
 import { getFirebaseAuth, subscribeToAuthToken } from "@/lib/firebase";
 
 export default function SettingsPage() {
@@ -107,17 +107,25 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-skill-muted">Credits</dt>
-            <dd className="flex items-center gap-3">
-              <span className={lowBalance ? "font-semibold text-amber-700" : "font-semibold"}>
-                {user.balance_credits.toLocaleString()}
+            <dd className="flex flex-col items-end gap-1">
+              <span className="flex items-center gap-3">
+                <span className={lowBalance ? "font-semibold text-amber-700" : "font-semibold"}>
+                  {user.balance_credits.toLocaleString()}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-skill-muted underline hover:text-skill-ink"
+                  onClick={() => void refreshAccount()}
+                >
+                  Refresh
+                </button>
               </span>
-              <button
-                type="button"
-                className="text-xs text-skill-muted underline hover:text-skill-ink"
-                onClick={() => void refreshAccount()}
-              >
-                Refresh
-              </button>
+              <span className="text-xs text-skill-muted">
+                ~
+                {estimateGenerations(user.balance_credits, "standard").toLocaleString()} Medium · ~
+                {estimateGenerations(user.balance_credits, "budget").toLocaleString()} Budget
+                generations remaining
+              </span>
             </dd>
           </div>
         </dl>

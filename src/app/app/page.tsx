@@ -12,6 +12,7 @@ import {
   type User,
 } from "@/lib/api";
 import {
+  estimateGenerations,
   formatInsufficientCreditsMessage,
   hasCreditsForGeneration,
   isInsufficientCreditsError,
@@ -129,6 +130,7 @@ export default function AppPage() {
   }
 
   const creditEstimate = QUALITY_CREDITS[quality];
+  const remainingGenerations = estimateGenerations(user.balance_credits, quality);
   const hasInsufficientCredits = !hasCreditsForGeneration(user.balance_credits, quality);
   const lowCreditBalance = isLowCreditBalance(user.balance_credits);
 
@@ -156,6 +158,12 @@ export default function AppPage() {
           {user.balance_credits.toLocaleString()} credits
         </p>
       </div>
+      <p className="mb-6 text-sm text-skill-muted">
+        ~
+        {remainingGenerations.toLocaleString()}{" "}
+        {QUALITY_OPTIONS.find((opt) => opt.tier === quality)?.label ?? "Medium"} generations
+        remaining at selected quality.
+      </p>
 
       <form onSubmit={onGenerate} className="card space-y-4">
         <div>
