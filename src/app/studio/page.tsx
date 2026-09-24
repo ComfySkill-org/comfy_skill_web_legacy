@@ -191,6 +191,7 @@ export default function StudioPage() {
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const wheelHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nudgeHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeJobPollsRef = useRef(new Set<string>());
   const suppressCanvasClickUntilRef = useRef(0);
   const dragRef = useRef<{
     id: string;
@@ -411,6 +412,31 @@ export default function StudioPage() {
       cancelled = true;
     };
   }, [hydrated]);
+
+  const inFlightJobKey = useMemo(
+    () =>
+      project.blocks
+        .filter(
+          (block) =>
+            block.jobId &&
+            (block.status === "pending" || block.status === "running"),
+        )
+        .map((block) => `${block.id}:${block.jobId}`)
+        .join(","),
+    [project.blocks],
+  );
+
+  useEffect(() => {
+    if (!hydrated || !inFlightJobKey) return;
+    for (const block of projectRef.current.blocks) {
+      if (
+        block.jobId &&
+        (block.status === "pending" || block.status === "running")
+      ) {
+        resumeBlockJobPoll(block.id, block.jobId);
+      }
+    }
+  }, [hydrated, project.id, inFlightJobKey]);
 
   useEffect(() => {
     function onPointerMove(e: PointerEvent) {
@@ -1972,6 +1998,83 @@ export default function StudioPage() {
     exitCanvasToolModes();
   }
 
+  async function pollBlockJobUntilDone(blockId: string, jobId: string) {
+    const pollKey = `${blockId}:${jobId}`;
+    if (activeJobPollsRef.current.has(pollKey)) {
+      while (activeJobPollsRef.current.has(pollKey)) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      return;
+    }
+    activeJobPollsRef.current.add(pollKey);
+
+    try {
+      let current = await apiClient.getJob(jobId);
+      if (!projectRef.current.blocks.some((block) => block.id === blockId)) return;
+
+      patchBlock(blockId, {
+        jobId: current.id,
+        status: current.status as CanvasBlockStatus,
+      });
+
+      while (current.status !== "completed" && current.status !== "failed") {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        current = await apiClient.getJob(jobId);
+        if (!projectRef.current.blocks.some((block) => block.id === blockId)) return;
+        patchBlock(blockId, { status: current.status as CanvasBlockStatus });
+        if (selectedIdRef.current === blockId) {
+          try {
+            const timeline = await apiClient.getJobEvents(jobId);
+            setJobEvents(timeline.events);
+          } catch {
+            /* keep last timeline snapshot */
+          }
+        }
+      }
+
+      const block = projectRef.current.blocks.find((item) => item.id === blockId);
+      if (!block) return;
+
+      if (current.status === "completed" && current.output_url) {
+        patchBlock(blockId, {
+          status: "completed",
+          mediaUrls: [current.output_url, ...block.mediaUrls].slice(0, 8),
+          bodyText: block.params.prompt.trim() || block.bodyText,
+        });
+      } else {
+        patchBlock(blockId, { status: "failed" });
+        if (selectedIdRef.current === blockId) {
+          setGenerateError(current.error_message || "Generation failed");
+        }
+      }
+
+      if (selectedIdRef.current === blockId) {
+        try {
+          const timeline = await apiClient.getJobEvents(jobId);
+          setJobEvents(timeline.events);
+        } catch {
+          /* ignore */
+        }
+        void apiClient
+          .me()
+          .then((user) => setBalanceCredits(user.balance_credits))
+          .catch(() => undefined);
+      }
+    } catch (err) {
+      if (!projectRef.current.blocks.some((block) => block.id === blockId)) return;
+      patchBlock(blockId, { status: "failed" });
+      if (selectedIdRef.current === blockId) {
+        setGenerateError(err instanceof Error ? err.message : "Generation failed");
+      }
+    } finally {
+      activeJobPollsRef.current.delete(pollKey);
+    }
+  }
+
+  function resumeBlockJobPoll(blockId: string, jobId: string) {
+    void pollBlockJobUntilDone(blockId, jobId);
+  }
+
   async function generateSelected() {
     if (!selected) return;
     if (selected.type !== "image") {
@@ -1990,50 +2093,22 @@ export default function StudioPage() {
 
     setGenerateError("");
     setGenerating(true);
-    patchBlock(selected.id, { status: "pending" });
+    const blockId = selected.id;
+    patchBlock(blockId, { status: "pending" });
 
     try {
       const { job } = await apiClient.createJob(prompt, selected.params.quality_tier, {
         project_id: project.id,
-        block_id: selected.id,
+        block_id: blockId,
       });
-      patchBlock(selected.id, { jobId: job.id, status: job.status as CanvasBlockStatus });
+      patchBlock(blockId, { jobId: job.id, status: job.status as CanvasBlockStatus });
       void apiClient
         .me()
         .then((user) => setBalanceCredits(user.balance_credits))
         .catch(() => undefined);
-
-      let current = job;
-      while (current.status !== "completed" && current.status !== "failed") {
-        await new Promise((r) => setTimeout(r, 1500));
-        current = await apiClient.getJob(current.id);
-        patchBlock(selected.id, { status: current.status as CanvasBlockStatus });
-        try {
-          const timeline = await apiClient.getJobEvents(current.id);
-          setJobEvents(timeline.events);
-        } catch {
-          /* keep last timeline snapshot */
-        }
-      }
-
-      if (current.status === "completed" && current.output_url) {
-        patchBlock(selected.id, {
-          status: "completed",
-          mediaUrls: [current.output_url, ...selected.mediaUrls].slice(0, 8),
-          bodyText: prompt,
-        });
-      } else {
-        patchBlock(selected.id, { status: "failed" });
-        setGenerateError(current.error_message || "Generation failed");
-      }
-      try {
-        const timeline = await apiClient.getJobEvents(current.id);
-        setJobEvents(timeline.events);
-      } catch {
-        /* ignore */
-      }
+      await pollBlockJobUntilDone(blockId, job.id);
     } catch (err) {
-      patchBlock(selected.id, { status: "failed" });
+      patchBlock(blockId, { status: "failed" });
       setGenerateError(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setGenerating(false);
@@ -3280,8 +3355,9 @@ export default function StudioPage() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-500">
-                    Runs POST /jobs and writes the result back onto this canvas block. Double-click
-                    a block to inspect.
+                    Runs POST /jobs and writes the result back onto this canvas block. In-flight
+                    jobs resume polling after reload or project switch. Double-click a block to
+                    inspect.
                   </p>
                 )}
                 {selected.jobId && jobEvents.length > 0 && (
