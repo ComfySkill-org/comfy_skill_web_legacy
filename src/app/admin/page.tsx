@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClient, getToken, type User } from "@/lib/api";
 import { ApiHealthBadge } from "@/components/ApiHealthBadge";
+import { StripeStatusCard } from "@/components/StripeStatusCard";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -11,6 +12,9 @@ export default function AdminPage() {
   const [metrics, setMetrics] = useState<Awaited<ReturnType<typeof apiClient.adminMetrics>> | null>(
     null,
   );
+  const [stripeStatus, setStripeStatus] = useState<Awaited<
+    ReturnType<typeof apiClient.stripeStatus>
+  > | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -26,9 +30,14 @@ export default function AdminPage() {
           return;
         }
         setUser(u);
-        return apiClient.adminMetrics();
+        return Promise.all([apiClient.adminMetrics(), apiClient.stripeStatus()]);
       })
-      .then((m) => m && setMetrics(m))
+      .then((result) => {
+        if (!result) return;
+        const [m, stripe] = result;
+        setMetrics(m);
+        setStripeStatus(stripe);
+      })
       .catch((e) => setError(e.message));
   }, [router]);
 
@@ -38,8 +47,9 @@ export default function AdminPage() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="mb-6 text-2xl font-bold">Admin dashboard</h1>
       {error && <p className="mb-4 text-red-600">{error}</p>}
-      <div className="mb-8">
+      <div className="mb-8 grid gap-4 lg:grid-cols-2">
         <ApiHealthBadge variant="card" />
+        <StripeStatusCard status={stripeStatus} />
       </div>
       {metrics && (
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
