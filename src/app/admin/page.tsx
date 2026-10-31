@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiClient, getToken, type User } from "@/lib/api";
 import { ApiHealthBadge } from "@/components/ApiHealthBadge";
 import { StripeStatusCard } from "@/components/StripeStatusCard";
-import { deriveJobHealthRates, formatHealthRate } from "@/lib/adminMetrics";
+import { deriveJobHealthRates, deriveInProgressJobMetrics, formatHealthRate } from "@/lib/adminMetrics";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -60,6 +60,13 @@ export default function AdminPage() {
     () => (metrics ? deriveJobHealthRates(metrics) : null),
     [metrics],
   );
+  const inProgressMetrics = useMemo(
+    () => (metrics ? deriveInProgressJobMetrics(metrics) : null),
+    [metrics],
+  );
+  const inProgressAlert =
+    inProgressMetrics !== null &&
+    ((inProgressMetrics.inProgressRate ?? 0) > 0.1 || inProgressMetrics.inProgress >= 5);
 
   if (!user) return <div className="p-8 text-center">Loading…</div>;
 
@@ -81,6 +88,18 @@ export default function AdminPage() {
               <span className="rounded-full bg-red-50 px-3 py-1 text-red-700">
                 Failure {formatHealthRate(healthRates?.failureRate ?? null)}
               </span>
+              {inProgressMetrics && inProgressMetrics.inProgress > 0 && (
+                <span
+                  className={`rounded-full px-3 py-1 ${
+                    inProgressAlert
+                      ? "bg-amber-50 text-amber-900"
+                      : "bg-skill-blue/10 text-skill-blue-dark"
+                  }`}
+                >
+                  In progress {formatHealthRate(inProgressMetrics.inProgressRate)} (
+                  {inProgressMetrics.inProgress.toLocaleString()} jobs)
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3 text-xs text-skill-muted">
               {metricsUpdatedAt && (
