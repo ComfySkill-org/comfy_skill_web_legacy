@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiClient, getToken, type User } from "@/lib/api";
+import { ApiHealthBadge } from "@/components/ApiHealthBadge";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -37,6 +38,9 @@ export default function AdminPage() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="mb-6 text-2xl font-bold">Admin dashboard</h1>
       {error && <p className="mb-4 text-red-600">{error}</p>}
+      <div className="mb-8">
+        <ApiHealthBadge variant="card" />
+      </div>
       {metrics && (
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
